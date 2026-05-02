@@ -8,6 +8,79 @@
       content="Persönliches Gym-Tracking für Workouts, Vorlagen und Übungsdiagramme."
     />
     <title>Gym Tracker</title>
+    <script>
+      (() => {
+        const storageKey = 'gym-tracker-state-v1';
+        const retiredTemplateIds = new Set(['template-upper', 'template-lower']);
+        const retiredTemplateNames = new Set(['upper push/pull', 'lower strength']);
+        const originalGetItem = Storage.prototype.getItem;
+        const originalSetItem = Storage.prototype.setItem;
+
+        function pruneRetiredTemplates(rawValue) {
+          try {
+            const state = JSON.parse(rawValue);
+
+            if (Array.isArray(state.templates)) {
+              state.templates = state.templates.filter((template) => {
+                const name = String(template.name || '').trim().toLowerCase();
+                return !retiredTemplateIds.has(template.id) && !retiredTemplateNames.has(name);
+              });
+            }
+
+            return JSON.stringify(state);
+          } catch {
+            return rawValue;
+          }
+        }
+
+        Storage.prototype.getItem = function patchedGetItem(key) {
+          const value = originalGetItem.call(this, key);
+          return key === storageKey && value ? pruneRetiredTemplates(value) : value;
+        };
+
+        Storage.prototype.setItem = function patchedSetItem(key, value) {
+          const nextValue = key === storageKey && typeof value === 'string' ? pruneRetiredTemplates(value) : value;
+          return originalSetItem.call(this, key, nextValue);
+        };
+
+        const existingState = originalGetItem.call(window.localStorage, storageKey);
+
+        if (existingState) {
+          originalSetItem.call(window.localStorage, storageKey, pruneRetiredTemplates(existingState));
+        }
+
+        document.addEventListener(
+          'click',
+          (event) => {
+            const button = event.target.closest('button');
+            const suggestionList = button?.closest('.absolute.left-0.right-0');
+
+            if (!suggestionList) {
+              return;
+            }
+
+            window.setTimeout(() => {
+              suggestionList.style.display = 'none';
+            }, 0);
+          },
+          true,
+        );
+
+        document.addEventListener(
+          'input',
+          (event) => {
+            if (!event.target.matches('input.field')) {
+              return;
+            }
+
+            document.querySelectorAll('.absolute.left-0.right-0[style*="display: none"]').forEach((element) => {
+              element.style.display = '';
+            });
+          },
+          true,
+        );
+      })();
+    </script>
     <script type="module" crossorigin src="./assets/index-CqiV4nIi.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-TOg7w60j.css">
   </head>
