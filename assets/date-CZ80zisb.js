@@ -1,0 +1,1 @@
+function e(t){return t?new Intl.DateTimeFormat("de-DE",{day:"2-digit",month:"short",year:"numeric"}).format(new Date(t)):"Kein Datum"}function i(t){return t?new Intl.DateTimeFormat("de-DE",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(t)):"Nicht gespeichert"}export{i as a,e as f};
