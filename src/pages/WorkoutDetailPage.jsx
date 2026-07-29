@@ -4,6 +4,21 @@ import EmptyState from '../components/EmptyState';
 import { calculateWorkoutStats } from '../utils/workout';
 import { formatDateTime } from '../utils/date';
 
+function ChartIcon() {
+  return (
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+      <path d="M4 19V5M4 19H20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path
+        d="m7 15 3.2-3.4 3 2.1L19 7.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function formatVolume(value) {
   return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 }).format(value);
 }
@@ -81,8 +96,13 @@ export default function WorkoutDetailPage() {
                   </div>
                   {machineSettings ? <p className="mt-2 text-xs text-muted">Setup · {machineSettings}</p> : null}
                 </div>
-                <Link to={`/exercises/${exercise.exerciseId}/chart`} className="secondary-button">
-                  Verlauf
+                <Link
+                  to={`/exercises/${exercise.exerciseId}/chart`}
+                  className="icon-button"
+                  aria-label={`Übungsverlauf von ${exercise.name} als Diagramm öffnen`}
+                  title="Übungsverlauf öffnen"
+                >
+                  <ChartIcon />
                 </Link>
               </div>
 

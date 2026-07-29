@@ -76,7 +76,7 @@ export default function AppShell() {
     <div className="min-h-[100dvh]">
       <header className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-3 py-2.5 sm:px-5">
-          <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="HardGainWAF Übersicht">
+          <Link to="/" className="flex shrink-0 items-center" aria-label="Zur Übersicht">
             <span className="relative flex h-10 w-10 items-center justify-center" aria-hidden="true">
               <span className="absolute inset-[2px] rounded-full border-2 border-amber" />
               <span className="absolute right-0 top-0 h-4 w-2 rotate-[38deg] bg-paper" />
@@ -84,9 +84,6 @@ export default function AppShell() {
               <span className="-skew-x-12 font-display text-base font-black tracking-[-0.12em] text-amber">
                 HG
               </span>
-            </span>
-            <span className="hidden font-display text-base font-bold tracking-[-0.025em] text-ink sm:block">
-              HardGain<span className="ml-0.5 text-amber">WAF</span>
             </span>
           </Link>
 

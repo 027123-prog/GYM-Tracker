@@ -9,14 +9,66 @@ function formatVolume(value) {
   return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 }).format(value);
 }
 
+function hasRecordedSets(workout) {
+  return workout.exercises.some((exercise) => exercise.sets?.length);
+}
+
+function hasLegacyDraftContent(workout, templates) {
+  if (hasRecordedSets(workout)) {
+    return true;
+  }
+
+  if (workout.mode === 'free') {
+    return workout.name.trim() !== 'Freies Workout' || workout.exercises.length > 0;
+  }
+
+  const template = templates.find((item) => item.id === workout.templateId);
+
+  if (!template) {
+    return workout.exercises.length > 0;
+  }
+
+  if (workout.name.trim() !== template.name.trim()) {
+    return true;
+  }
+
+  if (workout.exercises.length !== template.exerciseTemplates.length) {
+    return true;
+  }
+
+  return workout.exercises.some((exercise, index) => {
+    const templateExercise = template.exerciseTemplates[index];
+    return (
+      exercise.exerciseId !== templateExercise?.exerciseId ||
+      exercise.name !== templateExercise?.name ||
+      exercise.skipped
+    );
+  });
+}
+
+function isMeaningfulDraft(workout, templates) {
+  if (workout.completedAt) {
+    return false;
+  }
+
+  if (workout.draftStartedAt) {
+    return true;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(workout, 'draftStartedAt')) {
+    return false;
+  }
+
+  return hasLegacyDraftContent(workout, templates);
+}
+
 export default function DashboardPage() {
   const { state } = useAppData();
   const sortedWorkouts = [...state.workouts].sort(
     (a, b) => new Date(b.completedAt || b.updatedAt || b.date) - new Date(a.completedAt || a.updatedAt || a.date),
   );
   const completedWorkouts = sortedWorkouts.filter((workout) => workout.completedAt);
-  const drafts = sortedWorkouts.filter((workout) => !workout.completedAt);
-  const currentDraft = drafts[0] ?? null;
+  const currentDraft = sortedWorkouts.find((workout) => isMeaningfulDraft(workout, state.templates)) ?? null;
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
@@ -34,24 +86,13 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      <section className="flex flex-col gap-4 border-b border-line pb-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="eyebrow">HardGainWAF Console</p>
-          <h1 className="mt-2 font-display text-3xl font-bold uppercase tracking-tight text-ink sm:text-5xl">
-            Übersicht
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted">
-            Training starten, Fortschritt prüfen, Daten behalten.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link to="/workouts/template" className="secondary-button">
-            Aus Vorlage
-          </Link>
-          <Link to="/workouts/new" className="action-button">
-            Workout starten
-          </Link>
-        </div>
+      <section className="flex flex-wrap justify-end gap-2">
+        <Link to="/workouts/template" className="secondary-button">
+          Aus Vorlage
+        </Link>
+        <Link to="/workouts/new" className="action-button">
+          Workout starten
+        </Link>
       </section>
 
       {currentDraft ? (
@@ -67,23 +108,6 @@ export default function DashboardPage() {
             <Link to={`/workouts/${currentDraft.id}/edit`} className="action-button">
               Fortsetzen
             </Link>
-          </div>
-        </section>
-      ) : null}
-
-      {drafts.length > 1 ? (
-        <section className="panel overflow-hidden">
-          <div className="flex items-center justify-between border-b border-line px-4 py-3 sm:px-5">
-            <div>
-              <p className="eyebrow">Entwürfe</p>
-              <h2 className="mt-1 text-base font-bold text-ink">Weitere offene Workouts</h2>
-            </div>
-            <span className="text-xs font-semibold text-muted">{drafts.length - 1}</span>
-          </div>
-          <div className="divide-y divide-line">
-            {drafts.slice(1).map((workout) => (
-              <WorkoutCard key={workout.id} workout={workout} compact />
-            ))}
           </div>
         </section>
       ) : null}

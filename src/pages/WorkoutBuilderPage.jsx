@@ -13,6 +13,8 @@ import {
   getLastExerciseSummaryText,
 } from '../utils/workout';
 
+const DEFAULT_FREE_WORKOUT_NAME = 'Freies Workout';
+
 export default function WorkoutBuilderPage({ mode }) {
   const params = useParams();
   const navigate = useNavigate();
@@ -27,7 +29,6 @@ export default function WorkoutBuilderPage({ mode }) {
     renameExercise,
     reorderExercise,
     saveExerciseMachineSettings,
-    toggleExerciseSkipped,
     deleteExercise,
     saveSet,
     deleteSet,
@@ -39,6 +40,7 @@ export default function WorkoutBuilderPage({ mode }) {
   const [exerciseModalOpen, setExerciseModalOpen] = useState(false);
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0);
   const [templateSaved, setTemplateSaved] = useState(false);
+  const [workoutNameFocused, setWorkoutNameFocused] = useState(false);
 
   useEffect(() => {
     if (!templateSaved) {
@@ -143,6 +145,10 @@ export default function WorkoutBuilderPage({ mode }) {
   const activeExercise = workout.exercises[activeExerciseIndex] ?? null;
   const isCompact = mode === 'edit';
   const canComplete = summary.setCount > 0;
+  const usesDefaultFreeWorkoutName =
+    workout.mode === 'free' &&
+    !workout.completedAt &&
+    workout.name.trim() === DEFAULT_FREE_WORKOUT_NAME;
 
   function handleAddExercise(name, placement = 'end') {
     if (isCompact && activeExercise) {
@@ -182,9 +188,24 @@ export default function WorkoutBuilderPage({ mode }) {
               <input
                 id="workout-name"
                 className="field max-w-2xl font-display text-lg font-bold sm:text-xl"
-                value={workout.name}
+                value={usesDefaultFreeWorkoutName ? '' : workout.name}
                 onChange={(event) => updateWorkoutName(workout.id, event.target.value)}
-                placeholder="Workout"
+                onFocus={() => setWorkoutNameFocused(true)}
+                onBlur={() => {
+                  setWorkoutNameFocused(false);
+
+                  if (workout.mode === 'free' && !workout.name.trim()) {
+                    updateWorkoutName(workout.id, DEFAULT_FREE_WORKOUT_NAME);
+                  }
+                }}
+                placeholder={
+                  usesDefaultFreeWorkoutName && !workoutNameFocused
+                    ? DEFAULT_FREE_WORKOUT_NAME
+                    : workoutNameFocused
+                      ? ''
+                      : 'Workout benennen'
+                }
+                autoComplete="off"
               />
             </div>
             <div className="flex w-full flex-col gap-2 sm:flex-row xl:w-auto">
@@ -299,7 +320,6 @@ export default function WorkoutBuilderPage({ mode }) {
                 onSaveSet={(payload) => saveSet(workout.id, activeExercise.id, payload)}
                 onDeleteSet={(setId) => deleteSet(workout.id, activeExercise.id, setId)}
                 onSaveMachineSettings={(settings) => saveExerciseMachineSettings(workout.id, activeExercise.id, settings)}
-                onToggleSkipped={() => toggleExerciseSkipped(workout.id, activeExercise.id)}
               />
             </div>
           ) : null

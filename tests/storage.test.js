@@ -173,6 +173,52 @@ test('normalizeAppState migriert Namen und bereinigt beschädigte v1-Daten', () 
   assert.equal(normalized.meta.customFlag, true);
 });
 
+test('alte Legacy-Workouts mit Sätzen werden abgeschlossen, echte neue Drafts bleiben offen', () => {
+  const legacyUpdatedAt = '2026-01-15T19:30:00.000Z';
+  const normalized = normalizeAppState({
+    exercises: [],
+    templates: [],
+    maxStrengthRecords: [],
+    workouts: [
+      {
+        id: 'legacy-workout',
+        name: 'Altes Training',
+        date: '2026-01-15T18:00:00.000Z',
+        updatedAt: legacyUpdatedAt,
+        completedAt: null,
+        exercises: [
+          {
+            id: 'legacy-entry',
+            exerciseId: 'legacy-exercise',
+            name: 'Kniebeugen',
+            sets: [{ id: 'legacy-set', weight: 80, reps: 8 }],
+          },
+        ],
+      },
+      {
+        id: 'current-draft',
+        name: 'Aktuelles Training',
+        date: legacyUpdatedAt,
+        updatedAt: legacyUpdatedAt,
+        completedAt: null,
+        draftStartedAt: legacyUpdatedAt,
+        exercises: [
+          {
+            id: 'current-entry',
+            exerciseId: 'current-exercise',
+            name: 'Bankdrücken',
+            sets: [{ id: 'current-set', weight: 60, reps: 8 }],
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.equal(normalized.workouts[0].completedAt, legacyUpdatedAt);
+  assert.equal(normalized.workouts[1].completedAt, null);
+  assert.equal(normalized.workouts[1].draftStartedAt, legacyUpdatedAt);
+});
+
 test('loadAppState migriert Legacy-Daten und bewahrt das unveränderte v1-Backup', () => {
   const legacyState = {
     exercises: [

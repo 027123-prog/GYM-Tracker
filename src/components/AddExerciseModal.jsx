@@ -155,6 +155,7 @@ export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) 
 
   return (
     <ModalShell isOpen={isOpen} onClose={onClose} labelledBy="add-exercise-title" maxWidth="max-w-lg">
+      <div className="flex h-[72dvh] min-h-0 flex-col sm:h-auto">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="eyebrow">Workout erweitern</p>
@@ -167,8 +168,8 @@ export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) 
           </button>
         </div>
 
-        <div className="mt-5 space-y-4">
-          <div className="relative">
+        <div className="mt-5 flex min-h-0 flex-1 flex-col gap-4">
+          <div className="flex min-h-0 flex-1 flex-col">
             <label htmlFor="modal-exercise-search" className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">
               Übung suchen oder neu anlegen
             </label>
@@ -184,7 +185,7 @@ export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) 
               autoComplete="off"
             />
             {(filteredExercises.length || (trimmedValue && !hasExactExercise)) && !selectedExerciseName ? (
-              <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 rounded-sm border border-line bg-surface-raised p-2 shadow-panel">
+              <div className="mt-2 min-h-[10rem] flex-1 touch-pan-y overflow-y-auto overscroll-contain rounded-sm border border-line bg-surface-raised p-2 pr-1 shadow-panel sm:max-h-72 sm:min-h-0 sm:flex-none">
                 {trimmedValue && !hasExactExercise ? (
                   <button
                     type="button"
@@ -215,10 +216,12 @@ export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) 
                   </button>
                 ))}
               </div>
-            ) : null}
+            ) : (
+              <div className="min-h-0 flex-1" aria-hidden="true" />
+            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid shrink-0 grid-cols-2 gap-2">
             <button type="button" onClick={() => submitWithPlacement('before')} className="secondary-button">
               Davor
             </button>
@@ -230,6 +233,7 @@ export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) 
             </button>
           </div>
         </div>
+      </div>
     </ModalShell>
   );
 }

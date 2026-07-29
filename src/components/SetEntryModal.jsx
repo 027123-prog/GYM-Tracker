@@ -102,6 +102,8 @@ export default function SetEntryModal({
           </label>
         </div>
 
+        <WeightSuggestionGrid options={weightOptions} onSelect={setWeight} />
+
         <div>
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted">Schnellauswahl Reps</p>
           <div className="grid grid-cols-6 gap-1.5">
@@ -121,8 +123,6 @@ export default function SetEntryModal({
             ))}
           </div>
         </div>
-
-        <WeightSuggestionGrid options={weightOptions} onSelect={setWeight} />
 
         <label>
           <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Kommentar</span>

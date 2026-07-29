@@ -1,5 +1,13 @@
-import { lazy, Suspense, useEffect } from 'react';
-import { BrowserRouter, HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import {
+  BrowserRouter,
+  HashRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import { AppProvider } from './components/AppProvider';
 import AppShell from './components/AppShell';
 
@@ -14,9 +22,30 @@ const WorkoutDetailPage = lazy(() => import('./pages/WorkoutDetailPage'));
 function PageLoader() {
   return (
     <div className="panel flex min-h-48 items-center justify-center">
-      <span className="eyebrow animate-pulse">HardGainWAF lädt</span>
+      <span className="eyebrow animate-pulse">Lädt</span>
     </div>
   );
+}
+
+function InitialDashboardGate({ children }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    if (isReady) {
+      return;
+    }
+
+    if (location.pathname !== '/') {
+      navigate('/', { replace: true });
+      return;
+    }
+
+    setIsReady(true);
+  }, [isReady, location.pathname, navigate]);
+
+  return isReady ? children : <PageLoader />;
 }
 
 function findScrollableParent(element) {
@@ -90,24 +119,26 @@ export default function App() {
 
   return (
     <Router>
-      <AppProvider>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route element={<AppShell />}>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/exercises" element={<ExerciseLibraryPage />} />
-              <Route path="/templates" element={<TemplatesPage />} />
-              <Route path="/max-strength" element={<MaxStrengthPage />} />
-              <Route path="/workouts/new" element={<WorkoutBuilderPage mode="free" />} />
-              <Route path="/workouts/template" element={<WorkoutBuilderPage mode="template" />} />
-              <Route path="/workouts/:workoutId" element={<WorkoutDetailPage />} />
-              <Route path="/workouts/:workoutId/edit" element={<WorkoutBuilderPage mode="edit" />} />
-              <Route path="/exercises/:exerciseId/chart" element={<ExerciseChartPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </Routes>
-        </Suspense>
-      </AppProvider>
+      <InitialDashboardGate>
+        <AppProvider>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route element={<AppShell />}>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/exercises" element={<ExerciseLibraryPage />} />
+                <Route path="/templates" element={<TemplatesPage />} />
+                <Route path="/max-strength" element={<MaxStrengthPage />} />
+                <Route path="/workouts/new" element={<WorkoutBuilderPage mode="free" />} />
+                <Route path="/workouts/template" element={<WorkoutBuilderPage mode="template" />} />
+                <Route path="/workouts/:workoutId" element={<WorkoutDetailPage />} />
+                <Route path="/workouts/:workoutId/edit" element={<WorkoutBuilderPage mode="edit" />} />
+                <Route path="/exercises/:exerciseId/chart" element={<ExerciseChartPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </AppProvider>
+      </InitialDashboardGate>
     </Router>
   );
 }

@@ -65,6 +65,21 @@ function normalizeMachineSettings(settings = []) {
     .filter((item) => item.label || item.value);
 }
 
+function updateStartedWorkout(workout, changes) {
+  const updatedAt = new Date().toISOString();
+
+  return {
+    ...workout,
+    ...changes,
+    updatedAt,
+    ...(!workout.completedAt
+      ? {
+          draftStartedAt: workout.draftStartedAt || updatedAt,
+        }
+      : {}),
+  };
+}
+
 export function AppProvider({ children }) {
   const [state, setState] = useState(() => loadAppState());
   const [syncState, setSyncState] = useState({
@@ -153,12 +168,14 @@ export function AppProvider({ children }) {
       return existingDraft.id;
     }
 
+    const createdAt = new Date().toISOString();
     const workout = {
       id: persistedDraftId || createId('workout'),
       name: 'Freies Workout',
-      date: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      date: createdAt,
+      updatedAt: createdAt,
       completedAt: null,
+      draftStartedAt: null,
       mode: 'free',
       exercises: [],
     };
@@ -195,12 +212,14 @@ export function AppProvider({ children }) {
       });
     });
 
+    const createdAt = new Date().toISOString();
     const workout = {
       id: createId('workout'),
       name: template.name,
-      date: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      date: createdAt,
+      updatedAt: createdAt,
       completedAt: null,
+      draftStartedAt: null,
       mode: 'template',
       templateId,
       exercises: templateEntries,
@@ -289,11 +308,7 @@ export function AppProvider({ children }) {
   function updateWorkoutName(workoutId, name) {
     const nextWorkouts = state.workouts.map((workout) =>
       workout.id === workoutId
-        ? {
-            ...workout,
-            name,
-            updatedAt: new Date().toISOString(),
-          }
+        ? updateStartedWorkout(workout, { name })
         : workout,
     );
 
@@ -330,11 +345,7 @@ export function AppProvider({ children }) {
         currentExercises.splice(insertionIndex, 0, nextEntry);
       }
 
-      return {
-        ...workout,
-        updatedAt: new Date().toISOString(),
-        exercises: currentExercises,
-      };
+      return updateStartedWorkout(workout, { exercises: currentExercises });
     });
 
     setWorkouts(nextWorkouts, nextExercises);
@@ -351,9 +362,7 @@ export function AppProvider({ children }) {
     const { exercises: nextExercises, exercise } = ensureExerciseRecord(state.exercises, trimmedName);
     const nextWorkouts = state.workouts.map((workout) =>
       workout.id === workoutId
-        ? {
-            ...workout,
-            updatedAt: new Date().toISOString(),
+        ? updateStartedWorkout(workout, {
             exercises: workout.exercises.map((exerciseEntry) =>
               exerciseEntry.id === entryId
                 ? {
@@ -363,7 +372,7 @@ export function AppProvider({ children }) {
                   }
                 : exerciseEntry,
             ),
-          }
+          })
         : workout,
     );
 
@@ -392,11 +401,7 @@ export function AppProvider({ children }) {
       const [moved] = nextEntries.splice(index, 1);
       nextEntries.splice(targetIndex, 0, moved);
 
-      return {
-        ...workout,
-        updatedAt: new Date().toISOString(),
-        exercises: nextEntries,
-      };
+      return updateStartedWorkout(workout, { exercises: nextEntries });
     });
 
     setWorkouts(nextWorkouts);
@@ -406,29 +411,11 @@ export function AppProvider({ children }) {
     const normalizedSettings = normalizeMachineSettings(settings);
     const nextWorkouts = state.workouts.map((workout) =>
       workout.id === workoutId
-        ? {
-            ...workout,
-            updatedAt: new Date().toISOString(),
+        ? updateStartedWorkout(workout, {
             exercises: workout.exercises.map((exercise) =>
               exercise.id === entryId ? { ...exercise, machineSettings: normalizedSettings } : exercise,
             ),
-          }
-        : workout,
-    );
-
-    setWorkouts(nextWorkouts);
-  }
-
-  function toggleExerciseSkipped(workoutId, entryId) {
-    const nextWorkouts = state.workouts.map((workout) =>
-      workout.id === workoutId
-        ? {
-            ...workout,
-            updatedAt: new Date().toISOString(),
-            exercises: workout.exercises.map((exercise) =>
-              exercise.id === entryId ? { ...exercise, skipped: !exercise.skipped } : exercise,
-            ),
-          }
+          })
         : workout,
     );
 
@@ -438,11 +425,9 @@ export function AppProvider({ children }) {
   function deleteExercise(workoutId, entryId) {
     const nextWorkouts = state.workouts.map((workout) =>
       workout.id === workoutId
-        ? {
-            ...workout,
-            updatedAt: new Date().toISOString(),
+        ? updateStartedWorkout(workout, {
             exercises: workout.exercises.filter((exercise) => exercise.id !== entryId),
-          }
+          })
         : workout,
     );
 
@@ -471,9 +456,7 @@ export function AppProvider({ children }) {
         return workout;
       }
 
-      return {
-        ...workout,
-        updatedAt: new Date().toISOString(),
+      return updateStartedWorkout(workout, {
         exercises: workout.exercises.map((exercise) => {
           if (exercise.id !== entryId) {
             return exercise;
@@ -511,7 +494,7 @@ export function AppProvider({ children }) {
             sets,
           };
         }),
-      };
+      });
     });
 
     setWorkouts(nextWorkouts, nextExercises);
@@ -521,9 +504,7 @@ export function AppProvider({ children }) {
   function deleteSet(workoutId, entryId, setId) {
     const nextWorkouts = state.workouts.map((workout) =>
       workout.id === workoutId
-        ? {
-            ...workout,
-            updatedAt: new Date().toISOString(),
+        ? updateStartedWorkout(workout, {
             exercises: workout.exercises.map((exercise) =>
               exercise.id === entryId
                 ? {
@@ -532,7 +513,7 @@ export function AppProvider({ children }) {
                   }
                 : exercise,
             ),
-          }
+          })
         : workout,
     );
 
@@ -628,7 +609,6 @@ export function AppProvider({ children }) {
         renameExercise,
         reorderExercise,
         saveExerciseMachineSettings,
-        toggleExerciseSkipped,
         deleteExercise,
         saveSet,
         deleteSet,

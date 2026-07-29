@@ -8,6 +8,7 @@ export const PRE_IMPORT_BACKUP_KEY = 'gym-tracker-state-v2-pre-import-backup';
 export const STORAGE_VERSION = 2;
 
 const RETIRED_TEMPLATE_IDS = new Set(['template-upper', 'template-lower']);
+const STALE_LEGACY_WORKOUT_MS = 12 * 60 * 60 * 1000;
 
 const NAME_MIGRATIONS = new Map([
   ['Bankdruecken', 'Bankdrücken'],
@@ -108,20 +109,53 @@ function normalizeWorkoutExercises(exercises) {
     .filter((exercise) => exercise.name);
 }
 
+function inferLegacyCompletedAt(workout, exercises, updatedAt) {
+  const completedAt = safeString(workout?.completedAt);
+
+  if (completedAt) {
+    return completedAt;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(workout ?? {}, 'draftStartedAt')) {
+    return null;
+  }
+
+  const hasRecordedSets = exercises.some((exercise) => exercise.sets.length > 0);
+  const updatedAtMs = Date.parse(updatedAt);
+
+  if (
+    !hasRecordedSets ||
+    !Number.isFinite(updatedAtMs) ||
+    Date.now() - updatedAtMs < STALE_LEGACY_WORKOUT_MS
+  ) {
+    return null;
+  }
+
+  return updatedAt;
+}
+
 function normalizeWorkouts(workouts) {
   return safeArray(workouts).map((workout, index) => {
     const date = safeString(workout?.date) || safeString(workout?.completedAt) || new Date(0).toISOString();
+    const updatedAt = safeString(workout?.updatedAt) || date;
+    const exercises = normalizeWorkoutExercises(workout?.exercises);
+    const hasDraftMarker = Object.prototype.hasOwnProperty.call(workout ?? {}, 'draftStartedAt');
 
     return {
       ...workout,
       id: safeId(workout?.id, 'workout', index),
       name: migrateName(workout?.name) || 'Workout',
       date,
-      updatedAt: safeString(workout?.updatedAt) || date,
-      completedAt: safeString(workout?.completedAt) || null,
+      updatedAt,
+      completedAt: inferLegacyCompletedAt(workout, exercises, updatedAt),
       mode: workout?.mode === 'template' ? 'template' : 'free',
       templateId: safeString(workout?.templateId) || undefined,
-      exercises: normalizeWorkoutExercises(workout?.exercises),
+      exercises,
+      ...(hasDraftMarker
+        ? {
+            draftStartedAt: safeString(workout?.draftStartedAt) || null,
+          }
+        : {}),
     };
   });
 }
