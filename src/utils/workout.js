@@ -80,9 +80,9 @@ function matchesExercise(exercise, exerciseId, exerciseName = '') {
 }
 
 export function getLastExerciseSnapshot(workouts, exerciseId, excludeWorkoutId = null, exerciseName = '') {
-  const sorted = [...workouts]
-    .filter((workout) => workout.id !== excludeWorkoutId && workout.completedAt)
-    .sort((a, b) => new Date(b.completedAt || b.date) - new Date(a.completedAt || a.date));
+  const sorted = sortWorkoutsByDate(
+    workouts.filter((workout) => workout.id !== excludeWorkoutId && workout.completedAt),
+  );
 
   for (const workout of sorted) {
     const matchingExercises = workout.exercises.filter(
@@ -96,10 +96,12 @@ export function getLastExerciseSnapshot(workouts, exerciseId, excludeWorkoutId =
       continue;
     }
 
+    const workoutTimestamp = getWorkoutDateTimestamp(workout);
+
     return {
       workoutId: workout.id,
       workoutName: workout.name,
-      workoutDate: workout.completedAt || workout.date,
+      workoutDate: workoutTimestamp === null ? null : new Date(workoutTimestamp).toISOString(),
       skipped: false,
       sets: matchingExercises.flatMap((exercise) => exercise.sets),
     };

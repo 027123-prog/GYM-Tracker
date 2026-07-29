@@ -60,6 +60,7 @@ function ensureExerciseRecord(exercises, name) {
     id: createId('exercise'),
     name: trimmedName,
     weightOptions: [],
+    createdAt: new Date().toISOString(),
   };
 
   return {

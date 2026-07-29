@@ -104,18 +104,29 @@ function normalizeSets(sets) {
 
 function normalizeExercises(exercises) {
   return safeArray(exercises)
-    .map((exercise, index) => ({
-      ...exercise,
-      id: safeId(exercise?.id, 'exercise', index),
-      name: migrateName(exercise?.name),
-      weightOptions: [
-        ...new Set(
-          safeArray(exercise?.weightOptions)
-            .map((value) => safeNumber(value, Number.NaN))
-            .filter((value) => Number.isFinite(value) && value >= 0),
-        ),
-      ].sort((a, b) => a - b),
-    }))
+    .map((exercise, index) => {
+      const rawCreatedAt = safeString(exercise?.createdAt);
+      const createdAtTimestamp = Date.parse(rawCreatedAt);
+      const createdAt = Number.isFinite(createdAtTimestamp)
+        ? new Date(createdAtTimestamp).toISOString()
+        : '';
+      const exerciseData = exercise && typeof exercise === 'object' ? { ...exercise } : {};
+      delete exerciseData.createdAt;
+
+      return {
+        ...exerciseData,
+        id: safeId(exercise?.id, 'exercise', index),
+        name: migrateName(exercise?.name),
+        weightOptions: [
+          ...new Set(
+            safeArray(exercise?.weightOptions)
+              .map((value) => safeNumber(value, Number.NaN))
+              .filter((value) => Number.isFinite(value) && value >= 0),
+          ),
+        ].sort((a, b) => a - b),
+        ...(createdAt ? { createdAt } : {}),
+      };
+    })
     .filter((exercise) => exercise.name);
 }
 

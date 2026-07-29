@@ -1,7 +1,16 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppData } from '../components/AppProvider';
-import { getExerciseWorkoutCount, getLastExerciseSummaryText } from '../utils/workout';
+import { sortExerciseCards } from '../utils/exerciseSort';
+import { getExerciseWorkoutCount, getLastExerciseSnapshot } from '../utils/workout';
+
+const sortOptions = [
+  { value: 'name-asc', label: 'Alphabet A–Z' },
+  { value: 'count-desc', label: 'Anzahl: meiste' },
+  { value: 'newest', label: 'Neueste Übungen' },
+  { value: 'last-trained', label: 'Zuletzt trainiert' },
+  { value: 'name-desc', label: 'Alphabet Z–A' },
+];
 
 function normalizeSearch(value) {
   return value
@@ -13,19 +22,28 @@ function normalizeSearch(value) {
 export default function ExerciseLibraryPage() {
   const { state } = useAppData();
   const [query, setQuery] = useState('');
+  const [sortMode, setSortMode] = useState('name-asc');
 
   const exercises = useMemo(() => {
     const normalizedQuery = normalizeSearch(query.trim());
 
-    return [...state.exercises]
-      .sort((a, b) => a.name.localeCompare(b.name, 'de'))
-      .filter((exercise) => !normalizedQuery || normalizeSearch(exercise.name).includes(normalizedQuery))
-      .map((exercise) => ({
-        ...exercise,
-        workoutCount: getExerciseWorkoutCount(state.workouts, exercise.id, exercise.name),
-        latestSummary: getLastExerciseSummaryText(state.workouts, exercise.id, null, exercise.name),
-      }));
-  }, [query, state.exercises, state.workouts]);
+    const exerciseCards = state.exercises
+      .map((exercise, sourceIndex) => {
+        const latestSnapshot = getLastExerciseSnapshot(state.workouts, exercise.id, null, exercise.name);
+
+        return {
+          ...exercise,
+          sourceIndex,
+          workoutCount: getExerciseWorkoutCount(state.workouts, exercise.id, exercise.name),
+          lastTrainedAt: latestSnapshot?.workoutDate ?? null,
+          latestSummary:
+            latestSnapshot?.sets.map((setItem) => `${setItem.weight}kgx${setItem.reps}`).join(' ') ?? '',
+        };
+      })
+      .filter((exercise) => !normalizedQuery || normalizeSearch(exercise.name).includes(normalizedQuery));
+
+    return sortExerciseCards(exerciseCards, sortMode);
+  }, [query, sortMode, state.exercises, state.workouts]);
 
   return (
     <div className="space-y-5">
@@ -35,16 +53,38 @@ export default function ExerciseLibraryPage() {
           <h1 className="mt-2 font-display text-3xl font-bold uppercase text-ink sm:text-4xl">Übungen</h1>
           <p className="mt-2 text-sm text-muted">{state.exercises.length} Übungen mit Verlauf und Gewichten.</p>
         </div>
-        <label className="w-full md:max-w-sm">
-          <span className="sr-only">Übungen durchsuchen</span>
-          <input
-            type="search"
-            className="field"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Übung suchen …"
-          />
-        </label>
+        <div className="grid w-full gap-2 sm:grid-cols-[minmax(0,1fr)_auto] md:max-w-xl">
+          <label>
+            <span className="sr-only">Übungen durchsuchen</span>
+            <input
+              type="search"
+              className="field"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Übung suchen …"
+            />
+          </label>
+          <label className="relative">
+            <span className="sr-only">Übungen sortieren</span>
+            <select
+              className="secondary-button h-[46px] w-full appearance-none justify-start pl-3 pr-10 text-left sm:w-auto"
+              value={sortMode}
+              onChange={(event) => setSortMode(event.target.value)}
+            >
+              {sortOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 right-3 flex items-center font-display text-base font-bold text-amber"
+            >
+              ⇅
+            </span>
+          </label>
+        </div>
       </section>
 
       <section className="grid gap-2 lg:grid-cols-2">

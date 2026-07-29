@@ -215,3 +215,40 @@ test('sortWorkoutsByDate verändert weder das Eingabearray noch dessen Reihenfol
   assert.deepEqual(workouts.map((workout) => workout.id), originalOrder);
   assert.deepEqual(sorted.map((workout) => workout.id), ['newer', 'older']);
 });
+
+test('letztes Übungs-Workout richtet sich nach dem Workout-Datum statt dem Abschlusszeitpunkt', () => {
+  const workouts = [
+    {
+      id: 'older-workout',
+      name: 'Spät abgeschlossen',
+      date: '2026-06-10T18:00:00.000Z',
+      completedAt: '2026-07-30T20:00:00.000Z',
+      exercises: [
+        {
+          exerciseId: 'bench',
+          skipped: false,
+          sets: [{ id: 'older-set', weight: 60, reps: 8 }],
+        },
+      ],
+    },
+    {
+      id: 'newer-workout',
+      name: 'Früher abgeschlossen',
+      date: '2026-07-20T18:00:00.000Z',
+      completedAt: '2026-07-20T19:00:00.000Z',
+      exercises: [
+        {
+          exerciseId: 'bench',
+          skipped: false,
+          sets: [{ id: 'newer-set', weight: 70, reps: 5 }],
+        },
+      ],
+    },
+  ];
+
+  const snapshot = getLastExerciseSnapshot(workouts, 'bench');
+
+  assert.equal(snapshot.workoutId, 'newer-workout');
+  assert.equal(snapshot.workoutDate, '2026-07-20T18:00:00.000Z');
+  assert.deepEqual(snapshot.sets.map((setItem) => setItem.id), ['newer-set']);
+});

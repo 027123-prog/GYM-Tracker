@@ -39,6 +39,7 @@ test('normalizeAppState migriert Namen und bereinigt beschädigte v1-Daten', () 
         id: '',
         name: ' Bankdruecken ',
         weightOptions: [20, '10', 20, -1, 'ungültig'],
+        createdAt: '2026-06-15T12:00:00.000Z',
       },
       { id: 'exercise-empty', name: '   ', weightOptions: [10] },
     ],
@@ -115,6 +116,7 @@ test('normalizeAppState migriert Namen und bereinigt beschädigte v1-Daten', () 
       id: 'exercise-recovered-0',
       name: 'Bankdrücken',
       weightOptions: [10, 20],
+      createdAt: '2026-06-15T12:00:00.000Z',
     },
   ]);
 
@@ -171,6 +173,25 @@ test('normalizeAppState migriert Namen und bereinigt beschädigte v1-Daten', () 
   assert.equal(normalized.meta.storageVersion, STORAGE_VERSION);
   assert.equal(normalized.meta.migratedFrom, 'v1');
   assert.equal(normalized.meta.customFlag, true);
+});
+
+test('normalizeAppState entfernt ungültige Übungs-Zeitstempel', () => {
+  const normalized = normalizeAppState({
+    exercises: [
+      {
+        id: 'exercise-invalid-created-at',
+        name: 'Rudern',
+        weightOptions: [],
+        createdAt: 'kein-datum',
+      },
+    ],
+    templates: [],
+    workouts: [],
+    maxStrengthRecords: [],
+    meta: {},
+  });
+
+  assert.equal(Object.hasOwn(normalized.exercises[0], 'createdAt'), false);
 });
 
 test('alte Legacy-Workouts mit Sätzen werden abgeschlossen, echte neue Drafts bleiben offen', () => {
