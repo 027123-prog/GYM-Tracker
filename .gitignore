@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.tools/
+backups/
+gym-tracker-backup-*.json
+hardgainwaf-backup-*.json
+*.log
+*.pid
+*.port
+.DS_Store

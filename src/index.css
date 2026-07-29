@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color: #f2f1ef;
+    background: #191919;
+    font-family: Inter, 'Segoe UI', sans-serif;
+    color-scheme: dark;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  * {
+    box-sizing: border-box;
+    scrollbar-color: #343943 #090a0c;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    color: #f2f1ef;
+    background:
+      radial-gradient(circle at 8% -12%, rgba(244, 122, 36, 0.08), transparent 30rem),
+      #191919;
+    overscroll-behavior-y: none;
+  }
+
+  html,
+  #root {
+    min-height: 100%;
+    overscroll-behavior-y: none;
+  }
+
+  ::selection {
+    color: #191919;
+    background: #f47a24;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 2px solid #f47a24;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-md border border-line bg-surface shadow-panel;
+  }
+
+  .action-button {
+    @apply inline-flex min-h-10 items-center justify-center rounded-sm border border-amber bg-amber px-4 py-2 text-sm font-bold text-paper transition duration-150 hover:border-amber-deep hover:bg-amber-deep active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45;
+  }
+
+  .secondary-button {
+    @apply inline-flex min-h-10 items-center justify-center rounded-sm border border-line bg-surface-raised px-4 py-2 text-sm font-semibold text-ink transition duration-150 hover:border-amber/70 hover:text-amber-deep active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .field {
+    @apply w-full rounded-sm border border-line bg-paper px-3.5 py-3 text-sm text-ink outline-none transition placeholder:text-muted/70 focus:border-amber focus:ring-2 focus:ring-amber/15;
+  }
+
+  .eyebrow {
+    @apply text-[11px] font-bold uppercase tracking-[0.2em] text-amber-deep;
+  }
+
+  .metric {
+    @apply rounded-sm border border-line bg-paper/70 px-4 py-3;
+  }
+
+  .danger-button {
+    @apply inline-flex min-h-10 items-center justify-center rounded-sm border border-ember/35 bg-ember/10 px-4 py-2 text-sm font-semibold text-ember transition hover:border-ember hover:bg-ember/15 active:translate-y-px;
+  }
+
+  .icon-button {
+    @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-line bg-surface-raised text-base font-bold text-ink transition hover:border-amber/70 hover:text-amber-deep disabled:cursor-not-allowed disabled:opacity-35;
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "hardgainwaf",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": ".\\.tools\\node-v20.18.0-win-x64\\node.exe ./node_modules/vite/bin/vite.js",
+    "build": ".\\.tools\\node-v20.18.0-win-x64\\node.exe ./node_modules/vite/bin/vite.js build",
+    "preview": ".\\.tools\\node-v20.18.0-win-x64\\node.exe ./node_modules/vite/bin/vite.js preview",
+    "test": ".\\.tools\\node-v20.18.0-win-x64\\node.exe --import ./tests/register-loader.mjs --test",
+    "test:watch": ".\\.tools\\node-v20.18.0-win-x64\\node.exe --import ./tests/register-loader.mjs --test --watch"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "recharts": "^2.13.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "vite": "^5.4.10"
+  }
+}
