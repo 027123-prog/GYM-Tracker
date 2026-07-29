@@ -35,6 +35,16 @@
     overscroll-behavior-y: none;
   }
 
+  @media (max-width: 767px) {
+    html,
+    body,
+    #root {
+      height: 100dvh;
+      min-height: 0;
+      overflow: hidden;
+    }
+  }
+
   ::selection {
     color: #191919;
     background: #f47a24;

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import ModalShell from './ModalShell';
 
 function normalizeText(value) {
@@ -112,6 +112,8 @@ function getExerciseMatch(exercise, query, queryTokens) {
 export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) {
   const [value, setValue] = useState('');
   const [selectedExerciseName, setSelectedExerciseName] = useState('');
+  const [placement, setPlacement] = useState('after');
+  const searchInputRef = useRef(null);
   const trimmedValue = value.trim();
 
   const filteredExercises = useMemo(() => {
@@ -150,12 +152,19 @@ export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) 
     onAdd(exactMatch?.name ?? trimmedValue, placement);
     setValue('');
     setSelectedExerciseName('');
+    setPlacement('after');
     onClose();
+  }
+
+  function selectExercise(name) {
+    setValue(name);
+    setSelectedExerciseName(name);
+    window.requestAnimationFrame(() => searchInputRef.current?.focus({ preventScroll: true }));
   }
 
   return (
     <ModalShell isOpen={isOpen} onClose={onClose} labelledBy="add-exercise-title" maxWidth="max-w-lg">
-      <div className="flex h-[72dvh] min-h-0 flex-col sm:h-auto">
+      <div className="flex h-[min(72dvh,36rem)] max-h-[calc(var(--modal-viewport-height,100dvh)-4rem)] min-h-0 flex-col">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="eyebrow">Workout erweitern</p>
@@ -168,71 +177,95 @@ export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) 
           </button>
         </div>
 
-        <div className="mt-5 flex min-h-0 flex-1 flex-col gap-4">
-          <div className="flex min-h-0 flex-1 flex-col">
+        <form
+          className="mt-5 flex min-h-0 flex-1 flex-col"
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitWithPlacement(placement);
+          }}
+        >
+          <div className="shrink-0">
             <label htmlFor="modal-exercise-search" className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">
               Übung suchen oder neu anlegen
             </label>
-            <input
-              id="modal-exercise-search"
-              className="field"
-              value={value}
-              onChange={(event) => {
-                setValue(event.target.value);
-                setSelectedExerciseName('');
-              }}
-              placeholder="z. B. Bankdrücken"
-              autoComplete="off"
-            />
-            {(filteredExercises.length || (trimmedValue && !hasExactExercise)) && !selectedExerciseName ? (
-              <div className="mt-2 min-h-[10rem] flex-1 touch-pan-y overflow-y-auto overscroll-contain rounded-sm border border-line bg-surface-raised p-2 pr-1 shadow-panel sm:max-h-72 sm:min-h-0 sm:flex-none">
-                {trimmedValue && !hasExactExercise ? (
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+              <input
+                ref={searchInputRef}
+                id="modal-exercise-search"
+                className="field min-w-0"
+                value={value}
+                onChange={(event) => {
+                  setValue(event.target.value);
+                  setSelectedExerciseName('');
+                }}
+                placeholder="z. B. Bankdrücken"
+                autoComplete="off"
+                enterKeyHint="done"
+                data-autofocus
+              />
+              <button type="submit" className="action-button min-h-11 px-3" disabled={!trimmedValue}>
+                Einfügen
+              </button>
+            </div>
+
+            <fieldset className="mt-3">
+              <legend className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+                Position
+              </legend>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  ['before', 'Davor'],
+                  ['after', 'Danach'],
+                  ['end', 'Ans Ende'],
+                ].map(([valueKey, label]) => (
                   <button
+                    key={valueKey}
                     type="button"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => {
-                      setValue(trimmedValue);
-                      setSelectedExerciseName(trimmedValue);
-                    }}
-                    className="mb-1 flex min-h-11 w-full items-center justify-between rounded-sm border border-amber/60 bg-amber-soft px-3 py-2 text-left text-sm font-semibold text-ink transition"
+                    onClick={() => setPlacement(valueKey)}
+                    className={`min-h-11 rounded-sm border px-2 text-xs font-bold transition ${
+                      placement === valueKey
+                        ? 'border-amber bg-amber-soft text-amber-deep'
+                        : 'border-line bg-surface-raised text-muted hover:border-amber/55 hover:text-ink'
+                    }`}
+                    aria-pressed={placement === valueKey}
                   >
-                    <span>Neue Übung: {trimmedValue}</span>
-                    <span className="text-xs text-muted">neu</span>
-                  </button>
-                ) : null}
-                {filteredExercises.map((exercise) => (
-                  <button
-                    key={exercise.id}
-                    type="button"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => {
-                      setValue(exercise.name);
-                      setSelectedExerciseName(exercise.name);
-                    }}
-                    className="flex min-h-11 w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm text-ink transition hover:bg-amber-soft"
-                  >
-                    <span>{exercise.name}</span>
-                    <span className="text-xs text-muted">{exercise.weightOptions?.length ?? 0} Gewichte</span>
+                    {label}
                   </button>
                 ))}
               </div>
-            ) : (
-              <div className="min-h-0 flex-1" aria-hidden="true" />
-            )}
+            </fieldset>
           </div>
 
-          <div className="grid shrink-0 grid-cols-2 gap-2">
-            <button type="button" onClick={() => submitWithPlacement('before')} className="secondary-button">
-              Davor
-            </button>
-            <button type="button" onClick={() => submitWithPlacement('after')} className="secondary-button">
-              Danach
-            </button>
-            <button type="button" onClick={() => submitWithPlacement('end')} className="action-button col-span-2">
-              Ans Ende
-            </button>
-          </div>
-        </div>
+          {(filteredExercises.length || (trimmedValue && !hasExactExercise)) && !selectedExerciseName ? (
+            <div className="mt-3 min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain rounded-sm border border-line bg-surface-raised p-2 pr-1 shadow-panel">
+              {trimmedValue && !hasExactExercise ? (
+                <button
+                  type="button"
+                  onPointerDown={(event) => event.preventDefault()}
+                  onClick={() => selectExercise(trimmedValue)}
+                  className="mb-1 flex min-h-11 w-full items-center justify-between rounded-sm border border-amber/60 bg-amber-soft px-3 py-2 text-left text-sm font-semibold text-ink transition"
+                >
+                  <span>Neue Übung: {trimmedValue}</span>
+                  <span className="text-xs text-muted">neu</span>
+                </button>
+              ) : null}
+              {filteredExercises.map((exercise) => (
+                <button
+                  key={exercise.id}
+                  type="button"
+                  onPointerDown={(event) => event.preventDefault()}
+                  onClick={() => selectExercise(exercise.name)}
+                  className="flex min-h-11 w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm text-ink transition hover:bg-amber-soft"
+                >
+                  <span>{exercise.name}</span>
+                  <span className="text-xs text-muted">{exercise.weightOptions?.length ?? 0} Gewichte</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="min-h-0 flex-1" aria-hidden="true" />
+          )}
+        </form>
       </div>
     </ModalShell>
   );

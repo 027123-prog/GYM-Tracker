@@ -18,6 +18,56 @@ export function calculateWorkoutStats(workout) {
   };
 }
 
+function parseDateTimestamp(value) {
+  if (value === null || value === undefined || (typeof value === 'string' && !value.trim())) {
+    return null;
+  }
+
+  if (!(value instanceof Date) && typeof value !== 'string' && typeof value !== 'number') {
+    return null;
+  }
+
+  const timestamp = value instanceof Date ? value.getTime() : new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+export function getWorkoutDateTimestamp(workout) {
+  return (
+    parseDateTimestamp(workout?.date) ??
+    parseDateTimestamp(workout?.completedAt) ??
+    parseDateTimestamp(workout?.updatedAt)
+  );
+}
+
+export function sortWorkoutsByDate(workouts = []) {
+  if (!Array.isArray(workouts)) {
+    return [];
+  }
+
+  return workouts
+    .map((workout, index) => ({
+      workout,
+      index,
+      timestamp: getWorkoutDateTimestamp(workout),
+    }))
+    .sort((a, b) => {
+      if (a.timestamp === b.timestamp) {
+        return a.index - b.index;
+      }
+
+      if (a.timestamp === null) {
+        return 1;
+      }
+
+      if (b.timestamp === null) {
+        return -1;
+      }
+
+      return b.timestamp - a.timestamp;
+    })
+    .map((item) => item.workout);
+}
+
 function normalizeExerciseName(value = '') {
   return value.trim().toLocaleLowerCase('de-DE');
 }

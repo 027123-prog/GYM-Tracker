@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import BackupControls from './BackupControls';
 import { useAppData } from './AppProvider';
@@ -73,14 +74,22 @@ function AppNavigation({ mobile = false, trainingTarget }) {
 export default function AppShell() {
   const location = useLocation();
   const { activeWorkoutId } = useAppData();
+  const mainRef = useRef(null);
   const isWorkoutFocus = /^\/workouts\/.+\/edit$/.test(location.pathname);
   const trainingTarget = activeWorkoutId
     ? `/workouts/${encodeURIComponent(activeWorkoutId)}/edit`
     : '/workouts/new';
 
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+  }, [location.pathname]);
+
   return (
-    <div className="min-h-[100dvh]">
-      <header className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur-xl">
+    <div
+      data-app-shell
+      className="flex h-[100dvh] min-h-0 flex-col overflow-hidden md:h-auto md:min-h-[100dvh] md:overflow-visible"
+    >
+      <header className="relative z-40 shrink-0 border-b border-line bg-paper/90 backdrop-blur-xl md:sticky md:top-0">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-3 py-2.5 sm:px-5">
           <Link to="/" className="flex shrink-0 items-center" aria-label="Zur Übersicht">
             <span className="relative flex h-10 w-10 items-center justify-center" aria-hidden="true">
@@ -114,11 +123,18 @@ export default function AppShell() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl px-3 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-4 sm:px-5 sm:pt-6 md:pb-8">
+      <main
+        ref={mainRef}
+        data-app-scroll-container
+        className="mx-auto min-h-0 w-full max-w-7xl flex-1 touch-pan-y overflow-y-auto overscroll-contain px-3 pb-4 pt-4 [-webkit-overflow-scrolling:touch] sm:px-5 sm:pt-6 md:overflow-visible md:overscroll-auto md:pb-8"
+      >
         <Outlet />
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-50 isolate h-[calc(4rem+env(safe-area-inset-bottom))] transform-gpu bg-surface [backface-visibility:hidden] [contain:paint] md:hidden">
+      <div
+        data-mobile-navigation
+        className="relative z-50 h-[calc(4rem+env(safe-area-inset-bottom))] shrink-0 bg-surface md:hidden"
+      >
         <AppNavigation mobile trainingTarget={trainingTarget} />
       </div>
     </div>

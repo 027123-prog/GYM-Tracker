@@ -8,6 +8,7 @@ import {
   getExerciseWorkoutCount,
   getLastExerciseSnapshot,
   getLastExerciseWeight,
+  sortWorkoutsByDate,
 } from '../src/utils/workout.js';
 
 test('Körpergewichtsanteil und Zusatzgewicht ergeben eine nachvollziehbare effektive Last', () => {
@@ -153,4 +154,64 @@ test('Drafts werden in Verlauf, Chart und Workout-Zähler ignoriert', () => {
   assert.equal(getLastExerciseWeight(workouts, 'bench'), 70);
   assert.deepEqual(chart.map((point) => point.workoutName), ['Abgeschlossen']);
   assert.equal(getExerciseWorkoutCount(workouts, 'bench'), 1);
+});
+
+test('sortWorkoutsByDate priorisiert das Workout-Datum trotz konfliktierender Abschlussdaten', () => {
+  const workouts = [
+    {
+      id: 'older-workout-date',
+      date: '2026-06-10T18:00:00.000Z',
+      completedAt: '2026-12-31T23:00:00.000Z',
+      updatedAt: '2026-12-31T23:30:00.000Z',
+    },
+    {
+      id: 'fallback-updated-at',
+      date: '',
+      completedAt: 'kein-datum',
+      updatedAt: '2026-08-01T18:00:00.000Z',
+    },
+    {
+      id: 'newer-workout-date',
+      date: '2026-07-10T18:00:00.000Z',
+      completedAt: '2026-01-01T18:00:00.000Z',
+      updatedAt: '2026-01-01T19:00:00.000Z',
+    },
+    {
+      id: 'fallback-completed-at',
+      date: 'ungültig',
+      completedAt: '2026-05-01T18:00:00.000Z',
+      updatedAt: '2027-01-01T18:00:00.000Z',
+    },
+    {
+      id: 'without-valid-date',
+      date: null,
+      completedAt: null,
+      updatedAt: 'ebenfalls-ungültig',
+    },
+  ];
+
+  assert.deepEqual(
+    sortWorkoutsByDate(workouts).map((workout) => workout.id),
+    [
+      'fallback-updated-at',
+      'newer-workout-date',
+      'older-workout-date',
+      'fallback-completed-at',
+      'without-valid-date',
+    ],
+  );
+});
+
+test('sortWorkoutsByDate verändert weder das Eingabearray noch dessen Reihenfolge', () => {
+  const workouts = Object.freeze([
+    { id: 'older', date: '2026-06-01T18:00:00.000Z' },
+    { id: 'newer', date: '2026-07-01T18:00:00.000Z' },
+  ]);
+  const originalOrder = workouts.map((workout) => workout.id);
+
+  const sorted = sortWorkoutsByDate(workouts);
+
+  assert.notStrictEqual(sorted, workouts);
+  assert.deepEqual(workouts.map((workout) => workout.id), originalOrder);
+  assert.deepEqual(sorted.map((workout) => workout.id), ['newer', 'older']);
 });

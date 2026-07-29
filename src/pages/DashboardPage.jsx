@@ -3,7 +3,11 @@ import { useAppData } from '../components/AppProvider';
 import BackupControls from '../components/BackupControls';
 import EmptyState from '../components/EmptyState';
 import WorkoutCard from '../components/WorkoutCard';
-import { calculateWorkoutStats } from '../utils/workout';
+import {
+  calculateWorkoutStats,
+  getWorkoutDateTimestamp,
+  sortWorkoutsByDate,
+} from '../utils/workout';
 
 function formatVolume(value) {
   return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 }).format(value);
@@ -64,17 +68,22 @@ function isMeaningfulDraft(workout, templates) {
 
 export default function DashboardPage() {
   const { state } = useAppData();
-  const sortedWorkouts = [...state.workouts].sort(
-    (a, b) => new Date(b.completedAt || b.updatedAt || b.date) - new Date(a.completedAt || a.updatedAt || a.date),
-  );
+  const sortedWorkouts = sortWorkoutsByDate(state.workouts);
   const completedWorkouts = sortedWorkouts.filter((workout) => workout.completedAt);
   const currentDraft = sortedWorkouts.find((workout) => isMeaningfulDraft(workout, state.templates)) ?? null;
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
-  const monthlyWorkouts = completedWorkouts.filter(
-    (workout) => new Date(workout.completedAt) >= monthStart,
-  );
+  const nextMonthStart = new Date(monthStart);
+  nextMonthStart.setMonth(nextMonthStart.getMonth() + 1);
+  const monthlyWorkouts = completedWorkouts.filter((workout) => {
+    const workoutTimestamp = getWorkoutDateTimestamp(workout);
+    return (
+      workoutTimestamp !== null &&
+      workoutTimestamp >= monthStart.getTime() &&
+      workoutTimestamp < nextMonthStart.getTime()
+    );
+  });
   const totalVolume = completedWorkouts.reduce(
     (sum, workout) => sum + calculateWorkoutStats(workout).totalVolume,
     0,

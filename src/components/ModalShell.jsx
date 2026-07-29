@@ -1,7 +1,14 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function ModalShell({ isOpen, onClose, labelledBy, maxWidth = 'max-w-lg', children }) {
   const dialogRef = useRef(null);
+  const overlayRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -13,15 +20,15 @@ export default function ModalShell({ isOpen, onClose, labelledBy, maxWidth = 'ma
     const focusableSelector =
       'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-    window.requestAnimationFrame(() => {
-      const preferredFocus = dialog?.querySelector('[autofocus]');
+    const focusFrameId = window.requestAnimationFrame(() => {
+      const preferredFocus = dialog?.querySelector('[data-autofocus]');
       (preferredFocus ?? dialog?.querySelector(focusableSelector))?.focus();
     });
 
     function handleKeyDown(event) {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -39,7 +46,10 @@ export default function ModalShell({ isOpen, onClose, labelledBy, maxWidth = 'ma
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
 
-      if (event.shiftKey && document.activeElement === first) {
+      if (!dialog.contains(document.activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
         last.focus();
       } else if (!event.shiftKey && document.activeElement === last) {
@@ -51,26 +61,88 @@ export default function ModalShell({ isOpen, onClose, labelledBy, maxWidth = 'ma
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      window.cancelAnimationFrame(focusFrameId);
       document.removeEventListener('keydown', handleKeyDown);
       previousFocus?.focus?.();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !window.visualViewport || !overlayRef.current) {
+      return undefined;
+    }
+
+    const viewport = window.visualViewport;
+    const overlay = overlayRef.current;
+    let frameId = 0;
+
+    function syncToVisibleViewport() {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        overlay.style.top = `${Math.max(0, viewport.offsetTop)}px`;
+        overlay.style.height = `${viewport.height}px`;
+        overlay.style.bottom = 'auto';
+        overlay.style.setProperty('--modal-viewport-height', `${viewport.height}px`);
+      });
+    }
+
+    syncToVisibleViewport();
+    viewport.addEventListener('resize', syncToVisibleViewport);
+    viewport.addEventListener('scroll', syncToVisibleViewport);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      viewport.removeEventListener('resize', syncToVisibleViewport);
+      viewport.removeEventListener('scroll', syncToVisibleViewport);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined;
+    }
+
+    const appScrollContainer = document.querySelector('[data-app-scroll-container]');
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousAppOverflow = appScrollContainer?.style.overflow ?? '';
+    const previousAppTouchAction = appScrollContainer?.style.touchAction ?? '';
+
+    document.body.style.overflow = 'hidden';
+
+    if (appScrollContainer) {
+      appScrollContainer.style.overflow = 'hidden';
+      appScrollContainer.style.touchAction = 'none';
+    }
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+
+      if (appScrollContainer) {
+        appScrollContainer.style.overflow = previousAppOverflow;
+        appScrollContainer.style.touchAction = previousAppTouchAction;
+      }
+    };
+  }, [isOpen]);
 
   if (!isOpen) {
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/75 px-0 pt-10 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6">
+  return createPortal(
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-[60] flex items-end justify-center overscroll-contain bg-black/75 px-0 pt-4 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6"
+    >
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
-        className={`panel max-h-[92dvh] w-full overflow-y-auto rounded-b-none border-b-0 p-5 sm:rounded-md sm:border-b sm:p-6 ${maxWidth}`}
+        className={`panel max-h-[calc(100%_-_1rem)] w-full overscroll-contain overflow-y-auto rounded-b-none border-b-0 p-5 sm:max-h-full sm:rounded-md sm:border-b sm:p-6 ${maxWidth}`}
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
