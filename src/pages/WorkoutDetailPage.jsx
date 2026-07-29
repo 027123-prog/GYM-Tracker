@@ -117,10 +117,12 @@ export default function WorkoutDetailPage() {
                       <p className="font-display text-lg font-bold tabular-nums text-ink">
                         {setItem.weight} kg <span className="text-amber">×</span> {setItem.reps}
                       </p>
-                      <div className="text-xs text-muted">
-                        {setItem.comment ? <p>{setItem.comment}</p> : <p>Kein Kommentar</p>}
-                        {setItem.seatHeight ? <p className="mt-0.5">Sitzhöhe / Setup: {setItem.seatHeight}</p> : null}
-                      </div>
+                      {setItem.comment || setItem.seatHeight ? (
+                        <div className="text-xs italic text-muted">
+                          {setItem.comment ? <p>{setItem.comment}</p> : null}
+                          {setItem.seatHeight ? <p className="mt-0.5">Setup: {setItem.seatHeight}</p> : null}
+                        </div>
+                      ) : null}
                     </div>
                   ))}
                 </div>

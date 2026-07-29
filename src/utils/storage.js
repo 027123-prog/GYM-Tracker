@@ -1,4 +1,5 @@
 import { defaultData } from '../data/defaultData.js';
+import { calculateBodyweightLoad } from './bodyweight.js';
 
 export const STORAGE_KEY = 'gym-tracker-state-v2';
 export const LEGACY_STORAGE_KEY = 'gym-tracker-state-v1';
@@ -66,14 +67,38 @@ function normalizeMachineSettings(settings) {
 
 function normalizeSets(sets) {
   return safeArray(sets)
-    .map((item, index) => ({
-      id: safeId(item?.id, 'set', index),
-      weight: Math.max(0, safeNumber(item?.weight)),
-      reps: Math.max(0, Math.round(safeNumber(item?.reps))),
-      comment: safeString(item?.comment).trim(),
-      seatHeight: safeString(item?.seatHeight).trim(),
-      savedAt: safeString(item?.savedAt),
-    }))
+    .map((item, index) => {
+      const bodyWeight = safeNumber(item?.bodyWeight, Number.NaN);
+      const bodyweightFactor = safeNumber(item?.bodyweightFactor, Number.NaN);
+      const addedWeight = safeNumber(item?.addedWeight, 0);
+      const hasBodyweightData =
+        item?.weightMode === 'bodyweight' &&
+        Number.isFinite(bodyWeight) &&
+        bodyWeight > 0 &&
+        Number.isFinite(bodyweightFactor) &&
+        bodyweightFactor > 0 &&
+        Number.isFinite(addedWeight);
+      const effectiveBodyweight = hasBodyweightData
+        ? calculateBodyweightLoad(bodyWeight, bodyweightFactor, addedWeight)
+        : null;
+
+      return {
+        id: safeId(item?.id, 'set', index),
+        weight: effectiveBodyweight ?? Math.max(0, safeNumber(item?.weight)),
+        reps: Math.max(0, Math.round(safeNumber(item?.reps))),
+        comment: safeString(item?.comment).trim(),
+        seatHeight: safeString(item?.seatHeight).trim(),
+        savedAt: safeString(item?.savedAt),
+        ...(effectiveBodyweight !== null
+          ? {
+              weightMode: 'bodyweight',
+              bodyWeight,
+              bodyweightFactor,
+              addedWeight,
+            }
+          : {}),
+      };
+    })
     .filter((item) => item.reps > 0);
 }
 

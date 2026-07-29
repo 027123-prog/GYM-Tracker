@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import BackupControls from './BackupControls';
+import { useAppData } from './AppProvider';
 import SyncIndicator from './SyncIndicator';
 
 const appVersion = '2.0.0';
@@ -23,7 +24,7 @@ function isNavActive(pathname, to) {
   return pathname === to || pathname.startsWith(`${to}/`);
 }
 
-function AppNavigation({ mobile = false }) {
+function AppNavigation({ mobile = false, trainingTarget }) {
   const location = useLocation();
 
   return (
@@ -31,20 +32,21 @@ function AppNavigation({ mobile = false }) {
       aria-label="Hauptnavigation"
       className={
         mobile
-          ? 'grid grid-cols-4 border-t border-line bg-surface/95 px-1 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1 backdrop-blur'
+          ? 'grid h-full grid-cols-4 border-t border-line bg-surface px-1 pb-[env(safe-area-inset-bottom)] pt-1'
           : 'flex items-center gap-1'
       }
     >
       {navItems.map((item) => {
         const active = isNavActive(location.pathname, item.to);
+        const target = item.to === '/workouts/new' ? trainingTarget : item.to;
 
         return (
           <NavLink
             key={item.to}
-            to={item.to}
+            to={target}
             className={
               mobile
-                ? `flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-sm px-1 text-[10px] font-semibold transition ${
+                ? `flex min-h-0 flex-col items-center justify-center gap-0.5 rounded-sm px-1 text-[10px] font-semibold transition ${
                     active ? 'bg-amber-soft text-amber-deep' : 'text-muted hover:text-ink'
                   }`
                 : `flex min-h-10 items-center gap-2 rounded-sm border px-3 text-sm font-semibold transition ${
@@ -70,7 +72,11 @@ function AppNavigation({ mobile = false }) {
 
 export default function AppShell() {
   const location = useLocation();
+  const { activeWorkoutId } = useAppData();
   const isWorkoutFocus = /^\/workouts\/.+\/edit$/.test(location.pathname);
+  const trainingTarget = activeWorkoutId
+    ? `/workouts/${encodeURIComponent(activeWorkoutId)}/edit`
+    : '/workouts/new';
 
   return (
     <div className="min-h-[100dvh]">
@@ -88,7 +94,7 @@ export default function AppShell() {
           </Link>
 
           <div className="hidden flex-1 md:block">
-            <AppNavigation />
+            <AppNavigation trainingTarget={trainingTarget} />
           </div>
 
           <div className="ml-auto flex items-center gap-2">
@@ -108,12 +114,12 @@ export default function AppShell() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl px-3 pb-24 pt-4 sm:px-5 sm:pt-6 md:pb-8">
+      <main className="mx-auto w-full max-w-7xl px-3 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-4 sm:px-5 sm:pt-6 md:pb-8">
         <Outlet />
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 md:hidden">
-        <AppNavigation mobile />
+      <div className="fixed inset-x-0 bottom-0 z-50 isolate h-[calc(4rem+env(safe-area-inset-bottom))] transform-gpu bg-surface [backface-visibility:hidden] [contain:paint] md:hidden">
+        <AppNavigation mobile trainingTarget={trainingTarget} />
       </div>
     </div>
   );

@@ -20,6 +20,7 @@ export default function WorkoutBuilderPage({ mode }) {
   const navigate = useNavigate();
   const {
     state,
+    activateWorkout,
     createFreeWorkout,
     createWorkoutFromTemplate,
     saveWorkoutAsTemplate,
@@ -27,8 +28,6 @@ export default function WorkoutBuilderPage({ mode }) {
     addExerciseToWorkout,
     insertExerciseToWorkout,
     renameExercise,
-    reorderExercise,
-    saveExerciseMachineSettings,
     deleteExercise,
     saveSet,
     deleteSet,
@@ -68,6 +67,12 @@ export default function WorkoutBuilderPage({ mode }) {
   }, [createFreeWorkout, mode, navigate, params.workoutId]);
 
   const workout = state.workouts.find((item) => item.id === workoutId);
+
+  useEffect(() => {
+    if (mode === 'edit' && workout && !workout.completedAt) {
+      activateWorkout(workout.id);
+    }
+  }, [activateWorkout, mode, workout?.completedAt, workout?.id]);
 
   useEffect(() => {
     if (!workout?.exercises?.length) {
@@ -240,14 +245,11 @@ export default function WorkoutBuilderPage({ mode }) {
 
         {isCompact ? (
           <section className="panel overflow-hidden">
-            <div className="flex items-center justify-between border-b border-line px-3 py-2.5">
+            <div className="border-b border-line px-3 py-2.5">
               <div>
                 <p className="eyebrow">Übungen</p>
                 <p className="mt-0.5 text-xs text-muted">{workout.exercises.length} im Workout</p>
               </div>
-              <button type="button" onClick={() => setExerciseModalOpen(true)} className="secondary-button">
-                + Übung
-              </button>
             </div>
             {workout.exercises.length ? (
               <div className="flex gap-1.5 overflow-x-auto p-2" aria-label="Übungen im Workout">
@@ -291,6 +293,7 @@ export default function WorkoutBuilderPage({ mode }) {
                 onNextExercise={() =>
                   setActiveExerciseIndex((current) => Math.min(current + 1, workout.exercises.length - 1))
                 }
+                onInsertExercise={() => setExerciseModalOpen(true)}
                 libraryEntry={state.exercises.find((item) => item.id === activeExercise.exerciseId)}
                 lastWorkoutSummary={getLastExerciseSummaryText(
                   previousWorkouts,
@@ -305,29 +308,39 @@ export default function WorkoutBuilderPage({ mode }) {
                   activeExercise.name,
                 )}
                 onRenameExercise={(name) => renameExercise(workout.id, activeExercise.id, name)}
-                onMoveUp={() => {
-                  reorderExercise(workout.id, activeExercise.id, 'up');
-                  setActiveExerciseIndex((current) => Math.max(current - 1, 0));
-                }}
-                onMoveDown={() => {
-                  reorderExercise(workout.id, activeExercise.id, 'down');
-                  setActiveExerciseIndex((current) => Math.min(current + 1, workout.exercises.length - 1));
-                }}
                 onDeleteExercise={() => {
                   deleteExercise(workout.id, activeExercise.id);
                   setActiveExerciseIndex((current) => Math.max(current - 1, 0));
                 }}
                 onSaveSet={(payload) => saveSet(workout.id, activeExercise.id, payload)}
                 onDeleteSet={(setId) => deleteSet(workout.id, activeExercise.id, setId)}
-                onSaveMachineSettings={(settings) => saveExerciseMachineSettings(workout.id, activeExercise.id, settings)}
               />
             </div>
           ) : null
         ) : (
-          <EmptyState
-            title="Noch keine Übungen im Workout"
-            description="Füge oben eine bestehende Übung hinzu oder lege durch freie Eingabe direkt eine neue an."
-          />
+          <div className="space-y-3">
+            <EmptyState
+              title="Noch keine Übungen im Workout"
+              description={
+                isCompact
+                  ? 'Füge die erste Übung hinzu oder lege durch freie Eingabe direkt eine neue an.'
+                  : 'Füge oben eine bestehende Übung hinzu oder lege durch freie Eingabe direkt eine neue an.'
+              }
+            />
+            {isCompact ? (
+              <button
+                type="button"
+                onClick={() => setExerciseModalOpen(true)}
+                className="icon-button mx-auto"
+                aria-label="Erste Übung einfügen"
+                title="Erste Übung einfügen"
+              >
+                <span aria-hidden="true" className="text-xl leading-none">
+                  +
+                </span>
+              </button>
+            ) : null}
+          </div>
         )}
       </div>
 

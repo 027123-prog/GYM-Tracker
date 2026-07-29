@@ -1,11 +1,36 @@
 import { useEffect, useState } from 'react';
+import {
+  BODYWEIGHT_FACTOR_PRESETS,
+  calculateBodyweightLoad,
+  parseLocalizedNumber,
+} from '../utils/bodyweight';
 import ModalShell from './ModalShell';
 import WeightSuggestionGrid from './WeightSuggestionGrid';
 
 const repPresets = [5, 6, 8, 10, 12, 15];
+const BODY_WEIGHT_KEY = 'hardgainwaf-body-weight-kg';
 
-function parseLocalizedNumber(value) {
-  return Number(String(value).trim().replace(',', '.'));
+function getBodyweightFactorKey(exerciseName) {
+  const normalizedName = String(exerciseName || 'allgemein')
+    .trim()
+    .toLocaleLowerCase('de-DE');
+  return `hardgainwaf-body-weight-factor:${normalizedName}`;
+}
+
+function readLocalPreference(key, fallback = '') {
+  try {
+    return window.localStorage.getItem(key) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeLocalPreference(key, value) {
+  try {
+    window.localStorage.setItem(key, String(value));
+  } catch {
+    // Die Berechnung funktioniert auch, wenn der Browser Einstellungen nicht dauerhaft speichern darf.
+  }
 }
 
 export default function SetEntryModal({
@@ -21,15 +46,47 @@ export default function SetEntryModal({
   const [reps, setReps] = useState(initialSet?.reps ?? '');
   const [comment, setComment] = useState(initialSet?.comment ?? '');
   const [seatHeight, setSeatHeight] = useState(initialSet?.seatHeight ?? '');
+  const [bodyweightPanelOpen, setBodyweightPanelOpen] = useState(false);
+  const [weightMode, setWeightMode] = useState(initialSet?.weightMode ?? '');
+  const [bodyWeight, setBodyWeight] = useState(initialSet?.bodyWeight ?? '');
+  const [bodyweightFactor, setBodyweightFactor] = useState(initialSet?.bodyweightFactor ?? 1);
+  const [addedWeight, setAddedWeight] = useState(initialSet?.addedWeight ?? 0);
   const [error, setError] = useState('');
+  const effectiveBodyweight = calculateBodyweightLoad(bodyWeight, bodyweightFactor, addedWeight);
 
   useEffect(() => {
     setWeight(initialSet?.weight ?? '');
     setReps(initialSet?.reps ?? '');
     setComment(initialSet?.comment ?? '');
     setSeatHeight(initialSet?.seatHeight ?? '');
+    setWeightMode(initialSet?.weightMode ?? '');
+    setBodyweightPanelOpen(initialSet?.weightMode === 'bodyweight');
+    setBodyWeight(initialSet?.bodyWeight ?? readLocalPreference(BODY_WEIGHT_KEY));
+    setBodyweightFactor(
+      initialSet?.bodyweightFactor ??
+        readLocalPreference(getBodyweightFactorKey(exerciseName), 1),
+    );
+    setAddedWeight(initialSet?.addedWeight ?? 0);
     setError('');
-  }, [initialSet, isOpen]);
+  }, [exerciseName, initialSet, isOpen]);
+
+  function applyBodyweight() {
+    const effectiveWeight = calculateBodyweightLoad(bodyWeight, bodyweightFactor, addedWeight);
+
+    if (effectiveWeight === null) {
+      setError('Körpergewicht, Faktor und Zusatzgewicht ergeben keine gültige Last.');
+      return;
+    }
+
+    setWeight(effectiveWeight);
+    setWeightMode('bodyweight');
+    setError('');
+    writeLocalPreference(BODY_WEIGHT_KEY, parseLocalizedNumber(bodyWeight));
+    writeLocalPreference(
+      getBodyweightFactorKey(exerciseName),
+      parseLocalizedNumber(bodyweightFactor),
+    );
+  }
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -52,6 +109,14 @@ export default function SetEntryModal({
       reps: parsedReps,
       comment,
       seatHeight,
+      ...(weightMode === 'bodyweight'
+        ? {
+            weightMode,
+            bodyWeight: parseLocalizedNumber(bodyWeight),
+            bodyweightFactor: parseLocalizedNumber(bodyweightFactor),
+            addedWeight: parseLocalizedNumber(addedWeight || 0),
+          }
+        : {}),
     });
     onClose();
   }
@@ -81,6 +146,7 @@ export default function SetEntryModal({
               value={weight}
               onChange={(event) => {
                 setWeight(event.target.value);
+                setWeightMode('');
                 setError('');
               }}
               placeholder="62,5"
@@ -102,11 +168,115 @@ export default function SetEntryModal({
           </label>
         </div>
 
-        <WeightSuggestionGrid options={weightOptions} onSelect={setWeight} />
+        <button
+          type="button"
+          onClick={() => setBodyweightPanelOpen((current) => !current)}
+          className={`secondary-button w-full ${
+            weightMode === 'bodyweight' ? 'border-amber bg-amber-soft text-amber-deep' : ''
+          }`}
+          aria-expanded={bodyweightPanelOpen}
+          aria-controls="bodyweight-calculator"
+        >
+          Körpergewicht
+        </button>
+
+        {bodyweightPanelOpen ? (
+          <div id="bodyweight-calculator" className="rounded-sm bg-surface-raised p-3">
+            <div className="grid grid-cols-2 gap-2">
+              <label>
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+                  Dein Gewicht
+                </span>
+                <input
+                  className="field py-2.5"
+                  inputMode="decimal"
+                  value={bodyWeight}
+                  onChange={(event) => {
+                    setBodyWeight(event.target.value);
+                    setWeightMode('');
+                  }}
+                  placeholder="z. B. 90"
+                />
+              </label>
+              <label>
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+                  Zusatz / Hilfe
+                </span>
+                <input
+                  className="field py-2.5"
+                  inputMode="decimal"
+                  value={addedWeight}
+                  onChange={(event) => {
+                    setAddedWeight(event.target.value);
+                    setWeightMode('');
+                  }}
+                  placeholder="+10 / -20"
+                />
+              </label>
+            </div>
+
+            <div className="mt-3 grid grid-cols-[repeat(3,minmax(0,1fr))_minmax(72px,1.1fr)] gap-1.5">
+              {BODYWEIGHT_FACTOR_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => {
+                    setBodyweightFactor(
+                      preset.label === '⅔'
+                        ? '⅔'
+                        : String(preset.value).replace('.', ','),
+                    );
+                    setWeightMode('');
+                  }}
+                  className={`min-h-10 rounded-sm border text-xs font-bold transition ${
+                    Math.abs(parseLocalizedNumber(bodyweightFactor) - preset.value) < 0.001
+                      ? 'border-amber bg-amber-soft text-amber-deep'
+                      : 'border-line bg-paper text-muted hover:border-amber/55 hover:text-ink'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+              <label>
+                <span className="sr-only">Eigener Körpergewichtsfaktor</span>
+                <input
+                  className="field h-10 px-2 py-1 text-center text-xs font-bold"
+                  inputMode="decimal"
+                  value={bodyweightFactor}
+                  onChange={(event) => {
+                    setBodyweightFactor(event.target.value);
+                    setWeightMode('');
+                  }}
+                  aria-label="Eigener Körpergewichtsfaktor"
+                />
+              </label>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <p className="text-xs text-muted">
+                Effektive Last:{' '}
+                <strong className="font-display text-base tabular-nums text-ink">
+                  {effectiveBodyweight === null ? '–' : `${effectiveBodyweight} kg`}
+                </strong>
+              </p>
+              <button type="button" onClick={applyBodyweight} className="secondary-button shrink-0 px-3">
+                Übernehmen
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        <WeightSuggestionGrid
+          options={weightOptions}
+          onSelect={(value) => {
+            setWeight(value);
+            setWeightMode('');
+          }}
+        />
 
         <div>
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted">Schnellauswahl Reps</p>
-          <div className="grid grid-cols-6 gap-1.5">
+          <div className="grid grid-cols-3 gap-1.5 min-[350px]:grid-cols-6">
             {repPresets.map((preset) => (
               <button
                 key={preset}
@@ -150,7 +320,7 @@ export default function SetEntryModal({
           </p>
         ) : null}
 
-        <div className="sticky bottom-0 -mx-5 flex gap-2 border-t border-line bg-surface px-5 pb-1 pt-4 sm:-mx-6 sm:px-6">
+        <div className="sticky bottom-0 -mx-5 flex gap-2 border-t border-line bg-surface px-5 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-4 sm:-mx-6 sm:px-6">
           <button type="button" onClick={onClose} className="secondary-button flex-1">
             Abbrechen
           </button>

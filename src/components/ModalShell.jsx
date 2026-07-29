@@ -61,7 +61,7 @@ export default function ModalShell({ isOpen, onClose, labelledBy, maxWidth = 'ma
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 px-0 pt-10 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/75 px-0 pt-10 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6">
       <div
         ref={dialogRef}
         role="dialog"

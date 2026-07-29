@@ -1,11 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { formatDateTime } from '../utils/date';
-import MachineSettingsModal from './MachineSettingsModal';
 import SetEntryModal from './SetEntryModal';
 
 const compactIconButtonClass =
-  'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-line bg-surface-raised text-ink transition hover:border-amber/70 hover:text-amber-deep disabled:cursor-not-allowed disabled:opacity-35 sm:h-9 sm:w-9';
+  'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border border-line bg-surface-raised text-ink transition hover:border-amber/70 hover:text-amber-deep disabled:cursor-not-allowed disabled:opacity-35';
+
+function formatBodyweightFormula(setItem) {
+  if (setItem.weightMode !== 'bodyweight' || !setItem.bodyWeight || !setItem.bodyweightFactor) {
+    return '';
+  }
+
+  const format = (value) =>
+    new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 }).format(value);
+  const factor =
+    Math.abs(setItem.bodyweightFactor - 2 / 3) < 0.01
+      ? '⅔'
+      : format(setItem.bodyweightFactor);
+  const addedWeight = Number(setItem.addedWeight) || 0;
+  const addedLabel = addedWeight
+    ? ` ${addedWeight > 0 ? '+' : '−'} ${format(Math.abs(addedWeight))} kg`
+    : '';
+
+  return `Körpergewicht ${format(setItem.bodyWeight)} kg × ${factor}${addedLabel}`;
+}
 
 function ChartIcon() {
   return (
@@ -22,30 +39,14 @@ function ChartIcon() {
   );
 }
 
-function MachineIcon() {
+function PlusIcon() {
   return (
     <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" className="h-4 w-4" fill="none">
-      <path d="M5 6h14M5 12h14M5 18h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <circle cx="9" cy="6" r="2" fill="currentColor" />
-      <circle cx="15" cy="12" r="2" fill="currentColor" />
-      <circle cx="11" cy="18" r="2" fill="currentColor" />
-    </svg>
-  );
-}
-
-function MoveIcon({ direction }) {
-  const points = direction === 'left' ? '14 7 9 12 14 17' : '10 7 15 12 10 17';
-  const edgeX = direction === 'left' ? 6 : 18;
-
-  return (
-    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" className="h-4 w-4" fill="none">
-      <path d={`M${edgeX} 6v12`} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <polyline
-        points={points}
+      <path
+        d="M12 5v14M5 12h14"
         stroke="currentColor"
         strokeWidth="1.8"
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </svg>
   );
@@ -74,19 +75,16 @@ export default function ExerciseEditorCard({
   exerciseCount,
   onPrevExercise,
   onNextExercise,
+  onInsertExercise,
   canMovePrevExercise,
   canMoveNextExercise,
   onRenameExercise,
-  onMoveUp,
-  onMoveDown,
   onDeleteExercise,
   onSaveSet,
   onDeleteSet,
-  onSaveMachineSettings,
 }) {
   const location = useLocation();
   const [setModalOpen, setSetModalOpen] = useState(false);
-  const [machineModalOpen, setMachineModalOpen] = useState(false);
   const [editingSet, setEditingSet] = useState(null);
   const [recentlySaved, setRecentlySaved] = useState('');
   const [draftName, setDraftName] = useState(exercise.name);
@@ -95,8 +93,12 @@ export default function ExerciseEditorCard({
   const machineSettingsText = useMemo(
     () =>
       (exercise.machineSettings ?? [])
+        .map((item) => ({
+          label: item.label?.trim() ?? '',
+          value: item.value?.trim() ?? '',
+        }))
         .filter((item) => item.label || item.value)
-        .map((item) => `${item.label}: ${item.value}`)
+        .map((item) => (item.label && item.value ? `${item.label}: ${item.value}` : item.label || item.value))
         .join(' · '),
     [exercise.machineSettings],
   );
@@ -137,6 +139,10 @@ export default function ExerciseEditorCard({
       reps: latest.reps,
       comment: '',
       seatHeight: latest.seatHeight ?? '',
+      weightMode: latest.weightMode,
+      bodyWeight: latest.bodyWeight,
+      bodyweightFactor: latest.bodyweightFactor,
+      addedWeight: latest.addedWeight,
     });
   }
 
@@ -185,16 +191,22 @@ export default function ExerciseEditorCard({
             ) : null}
           </div>
 
-          <div className="mt-3 grid gap-x-5 gap-y-3 bg-surface-raised px-3 py-3 text-sm md:grid-cols-2">
+          <div
+            className={`mt-3 grid gap-x-5 gap-y-3 bg-surface-raised px-3 py-3 text-sm ${
+              machineSettingsText ? 'md:grid-cols-2' : ''
+            }`}
+          >
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Letztes Workout</p>
               <p className="mt-1 italic text-ink">{lastWorkoutSummary || 'Noch keine abgeschlossene Historie'}</p>
               {lastWorkoutCommentText ? <p className="mt-1 text-xs italic text-muted">{lastWorkoutCommentText}</p> : null}
             </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Maschine</p>
-              <p className="mt-1 italic text-ink">{machineSettingsText || 'Keine Einstellung hinterlegt'}</p>
-            </div>
+            {machineSettingsText ? (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Maschine</p>
+                <p className="mt-1 italic text-ink">{machineSettingsText}</p>
+              </div>
+            ) : null}
           </div>
 
           <div
@@ -214,22 +226,12 @@ export default function ExerciseEditorCard({
             </button>
             <button
               type="button"
-              onClick={onMoveUp}
-              disabled={!canMovePrevExercise}
+              onClick={onInsertExercise}
               className={compactIconButtonClass}
-              aria-label="Übung nach links verschieben"
-              title="Übung nach links verschieben"
+              aria-label="Übung einfügen"
+              title="Übung einfügen"
             >
-              <MoveIcon direction="left" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setMachineModalOpen(true)}
-              className={compactIconButtonClass}
-              aria-label="Maschineneinstellungen bearbeiten"
-              title="Maschineneinstellungen bearbeiten"
-            >
-              <MachineIcon />
+              <PlusIcon />
             </button>
             <Link
               to={`/exercises/${exercise.exerciseId}/chart`}
@@ -251,16 +253,6 @@ export default function ExerciseEditorCard({
             </button>
             <button
               type="button"
-              onClick={onMoveDown}
-              disabled={!canMoveNextExercise}
-              className={compactIconButtonClass}
-              aria-label="Übung nach rechts verschieben"
-              title="Übung nach rechts verschieben"
-            >
-              <MoveIcon direction="right" />
-            </button>
-            <button
-              type="button"
               onClick={onNextExercise}
               disabled={!canMoveNextExercise}
               className={compactIconButtonClass}
@@ -273,18 +265,22 @@ export default function ExerciseEditorCard({
         </div>
 
         <div className="p-3 sm:p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="mb-3 flex flex-col gap-3 min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between">
             <div>
               <p className="eyebrow">Arbeitssätze</p>
               <p className="mt-1 text-xs text-muted">{exercise.sets.length} gespeichert</p>
             </div>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2 min-[380px]:flex">
               {exercise.sets.length ? (
-                <button type="button" onClick={repeatLastSet} className="secondary-button">
+                <button type="button" onClick={repeatLastSet} className="secondary-button w-full min-[380px]:w-auto">
                   Letzten wiederholen
                 </button>
               ) : null}
-              <button type="button" onClick={openNewSet} className="action-button">
+              <button
+                type="button"
+                onClick={openNewSet}
+                className={`action-button w-full min-[380px]:w-auto ${exercise.sets.length ? '' : 'col-span-2'}`}
+              >
                 + Satz
               </button>
             </div>
@@ -303,14 +299,14 @@ export default function ExerciseEditorCard({
                   <p className="font-display text-lg font-bold tabular-nums text-ink">
                     {setItem.weight} kg <span className="text-amber">×</span> {setItem.reps}
                   </p>
-                  <div className="min-w-0 text-xs text-muted">
-                    {setItem.comment ? <p className="truncate">{setItem.comment}</p> : <p>Kein Kommentar</p>}
-                    <p className="mt-0.5">
-                      {setItem.seatHeight ? `Sitzhöhe ${setItem.seatHeight} · ` : ''}
-                      {formatDateTime(setItem.savedAt)}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
+                  {setItem.comment || setItem.seatHeight || formatBodyweightFormula(setItem) ? (
+                    <div className="min-w-0 text-xs italic text-muted">
+                      {setItem.comment ? <p className="truncate">{setItem.comment}</p> : null}
+                      {formatBodyweightFormula(setItem) ? <p>{formatBodyweightFormula(setItem)}</p> : null}
+                      {setItem.seatHeight ? <p className="mt-0.5">Setup: Sitzhöhe {setItem.seatHeight}</p> : null}
+                    </div>
+                  ) : null}
+                  <div className="flex gap-2 sm:col-start-4">
                     <button type="button" onClick={() => editSet(setItem)} className="secondary-button">
                       Ändern
                     </button>
@@ -348,14 +344,6 @@ export default function ExerciseEditorCard({
         weightOptions={libraryEntry?.weightOptions ?? []}
         onClose={() => setSetModalOpen(false)}
         onSave={saveSet}
-      />
-
-      <MachineSettingsModal
-        isOpen={machineModalOpen}
-        exerciseName={exercise.name}
-        initialSettings={exercise.machineSettings}
-        onClose={() => setMachineModalOpen(false)}
-        onSave={onSaveMachineSettings}
       />
     </>
   );

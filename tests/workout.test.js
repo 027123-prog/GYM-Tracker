@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { calculateBodyweightLoad, parseLocalizedNumber } from '../src/utils/bodyweight.js';
 import {
   buildExerciseChartData,
   calculateWorkoutStats,
@@ -8,6 +9,16 @@ import {
   getLastExerciseSnapshot,
   getLastExerciseWeight,
 } from '../src/utils/workout.js';
+
+test('Körpergewichtsanteil und Zusatzgewicht ergeben eine nachvollziehbare effektive Last', () => {
+  assert.equal(calculateBodyweightLoad('90', 2 / 3, 0), 60);
+  assert.equal(calculateBodyweightLoad('80', '⅔', 0), 53.3);
+  assert.equal(parseLocalizedNumber('2/3'), 2 / 3);
+  assert.equal(calculateBodyweightLoad('80,5', 1, '10'), 90.5);
+  assert.equal(calculateBodyweightLoad(100, 1, -20), 80);
+  assert.equal(calculateBodyweightLoad('', 1, 0), null);
+  assert.equal(calculateBodyweightLoad(80, 0, 0), null);
+});
 
 test('calculateWorkoutStats ignoriert übersprungene Übungen vollständig', () => {
   const stats = calculateWorkoutStats({

@@ -1,31 +1,86 @@
 import { useEffect, useState } from 'react';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 
-function ChartTooltip({ active, payload, metric }) {
-  if (!active || !payload?.length) {
-    return null;
-  }
-
-  const point = payload[0].payload;
-
+function SelectedPointDetails({ point, metric, onClose }) {
   return (
-    <div className="rounded-sm border border-line bg-surface-raised p-3 shadow-panel">
-      <p className="text-sm font-bold text-ink">{point.workoutName}</p>
-      <p className="mt-1 text-xs text-muted">{new Date(point.date).toLocaleDateString('de-DE')}</p>
-      <p className="mt-3 text-sm text-ink">
-        {metric === 'volume' ? `Gesamtvolumen: ${point.volume.toFixed(0)} kg` : `Max Gewicht: ${point.maxWeight} kg`}
-      </p>
-      <p className="mt-1 text-sm text-ink">
-        Max: {point.maxWeight} kg x {point.maxWeightReps}
-      </p>
-      <div className="mt-3 space-y-1 text-xs text-muted">
-        {point.sets.map((setItem) => (
-          <p key={setItem.id}>
-            {setItem.weight} kg x {setItem.reps}
-          </p>
+    <div
+      id="chart-point-details"
+      role="status"
+      aria-live="polite"
+      className="border-t border-line bg-surface-raised px-4 py-3 sm:px-5"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-bold text-ink">{point.workoutName}</p>
+          <p className="mt-0.5 text-xs text-muted">{new Date(point.date).toLocaleDateString('de-DE')}</p>
+        </div>
+        <button type="button" onClick={onClose} className="icon-button h-8 w-8" aria-label="Punktdetails schließen">
+          ×
+        </button>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+        <p className="rounded-sm bg-paper/70 px-3 py-2 text-muted">
+          {metric === 'volume' ? 'Volumen' : 'Max. Gewicht'}
+          <strong className="mt-0.5 block font-display text-lg tabular-nums text-ink">
+            {metric === 'volume' ? `${point.volume.toFixed(0)} kg` : `${point.maxWeight} kg`}
+          </strong>
+        </p>
+        <p className="rounded-sm bg-paper/70 px-3 py-2 text-muted">
+          Stärkster Satz
+          <strong className="mt-0.5 block font-display text-lg tabular-nums text-ink">
+            {point.maxWeight} kg × {point.maxWeightReps}
+          </strong>
+        </p>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {point.sets.map((setItem, index) => (
+          <span key={setItem.id} className="rounded-sm bg-paper/70 px-2.5 py-1.5 text-xs text-muted">
+            {index + 1}. <strong className="text-ink">{setItem.weight} kg × {setItem.reps}</strong>
+          </span>
         ))}
       </div>
     </div>
+  );
+}
+
+function SelectableChartDot({ cx, cy, payload, color, isSelected, onSelect }) {
+  if (!Number.isFinite(cx) || !Number.isFinite(cy) || !payload) {
+    return null;
+  }
+
+  function selectPoint(event) {
+    event.stopPropagation();
+    onSelect(payload);
+  }
+
+  return (
+    <g
+      role="button"
+      tabIndex="0"
+      aria-label={`${new Date(payload.date).toLocaleDateString('de-DE')}, ${payload.workoutName}`}
+      aria-pressed={isSelected}
+      aria-controls="chart-point-details"
+      onClick={selectPoint}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          selectPoint(event);
+        }
+      }}
+      className="cursor-pointer"
+    >
+      <circle cx={cx} cy={cy} r="14" fill="transparent" />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={isSelected ? 6 : 4}
+        fill={isSelected ? color : '#222222'}
+        stroke={color}
+        strokeWidth="2"
+      />
+    </g>
   );
 }
 
@@ -38,6 +93,19 @@ export default function ExerciseChartCard({
   onNextExercise,
 }) {
   const [metric, setMetric] = useState('volume');
+  const [selectedPoint, setSelectedPoint] = useState(null);
+  const dataSignature = data
+    .map(
+      (point) =>
+        `${point.date}:${point.volume}:${point.maxWeight}:${point.sets
+          .map((setItem) => `${setItem.id}:${setItem.weight}:${setItem.reps}`)
+          .join(',')}`,
+    )
+    .join('|');
+
+  useEffect(() => {
+    setSelectedPoint(null);
+  }, [dataSignature, exerciseName, metric]);
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -122,23 +190,46 @@ export default function ExerciseChartCard({
 
       <div className="h-[280px] w-full p-2 sm:h-[380px] sm:p-4">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 12, right: 12, left: 0, bottom: 6 }}>
+          <LineChart
+            data={data}
+            margin={{ top: 12, right: 12, left: 0, bottom: 6 }}
+            onClick={(chartState) => {
+              const point = chartState?.activePayload?.[0]?.payload;
+
+              if (point) {
+                setSelectedPoint(point);
+              }
+            }}
+          >
             <CartesianGrid strokeDasharray="3 6" stroke="#3A3A3A" vertical={false} />
             <XAxis dataKey="shortDate" stroke="#AAA6A2" tickLine={false} axisLine={false} minTickGap={22} />
             <YAxis stroke="#AAA6A2" tickLine={false} axisLine={false} width={52} />
-            <Tooltip content={<ChartTooltip metric={metric} />} />
             <Line
               type="monotone"
               dataKey={metric === 'volume' ? 'volume' : 'maxWeight'}
               name={metricLabel}
               stroke={strokeColor}
               strokeWidth={3}
-              dot={{ r: 4, fill: '#222222', stroke: dotColor, strokeWidth: 2 }}
+              dot={(props) => (
+                <SelectableChartDot
+                  {...props}
+                  color={dotColor}
+                  isSelected={selectedPoint?.date === props.payload?.date}
+                  onSelect={setSelectedPoint}
+                />
+              )}
               activeDot={{ r: 6, fill: dotColor, strokeWidth: 0 }}
             />
           </LineChart>
         </ResponsiveContainer>
       </div>
+      {selectedPoint ? (
+        <SelectedPointDetails point={selectedPoint} metric={metric} onClose={() => setSelectedPoint(null)} />
+      ) : (
+        <p className="border-t border-line px-4 py-2 text-center text-[11px] text-muted">
+          Punkt antippen, Details erscheinen unter dem Diagramm.
+        </p>
+      )}
     </div>
   );
 }

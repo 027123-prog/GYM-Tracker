@@ -294,9 +294,13 @@ test('Backup-Export und -Import ergeben einen verlustfreien normalisierten Round
             sets: [
               {
                 id: 'set-1',
-                weight: 70,
+                weight: 999,
                 reps: 5,
                 comment: 'PR',
+                weightMode: 'bodyweight',
+                bodyWeight: 80,
+                bodyweightFactor: 1,
+                addedWeight: -10,
               },
             ],
           },
@@ -328,5 +332,52 @@ test('Backup-Export und -Import ergeben einen verlustfreien normalisierten Round
     workouts: 1,
     maxStrengthRecords: 1,
   });
+  const restoredBodyweightSet = restored.workouts[0].exercises[0].sets[0];
+  assert.equal(restoredBodyweightSet.weight, 70);
+  assert.equal(restoredBodyweightSet.weightMode, 'bodyweight');
+  assert.equal(restoredBodyweightSet.bodyWeight, 80);
+  assert.equal(restoredBodyweightSet.bodyweightFactor, 1);
+  assert.equal(restoredBodyweightSet.addedWeight, -10);
   assert.deepEqual(restored, backup.data);
+});
+
+test('ungültige Körpergewichtsformeln werden beim Import nicht als widersprüchliche Metadaten bewahrt', () => {
+  const normalized = normalizeAppState({
+    exercises: [],
+    templates: [],
+    workouts: [
+      {
+        id: 'workout-bodyweight-invalid',
+        name: 'Importtest',
+        date: '2026-07-20T18:00:00.000Z',
+        completedAt: '2026-07-20T19:00:00.000Z',
+        exercises: [
+          {
+            id: 'entry-bodyweight-invalid',
+            exerciseId: 'exercise-pull-up',
+            name: 'Pull Up',
+            sets: [
+              {
+                id: 'set-bodyweight-invalid',
+                weight: 70,
+                reps: 5,
+                weightMode: 'bodyweight',
+                bodyWeight: 80,
+                bodyweightFactor: 1,
+                addedWeight: -100,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    maxStrengthRecords: [],
+  });
+  const normalizedSet = normalized.workouts[0].exercises[0].sets[0];
+
+  assert.equal(normalizedSet.weight, 70);
+  assert.equal('weightMode' in normalizedSet, false);
+  assert.equal('bodyWeight' in normalizedSet, false);
+  assert.equal('bodyweightFactor' in normalizedSet, false);
+  assert.equal('addedWeight' in normalizedSet, false);
 });

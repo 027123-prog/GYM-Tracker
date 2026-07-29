@@ -1,9 +1,52 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { loadAppState, normalizeAppState, saveAppState, STORAGE_KEY } from '../utils/storage';
+import { calculateBodyweightLoad, parseLocalizedNumber } from '../utils/bodyweight';
 import { createId, normalizeWeightOptions } from '../utils/workout';
 
 const AppContext = createContext(null);
-const FREE_DRAFT_KEY = 'gym-tracker-active-free-draft';
+const ACTIVE_WORKOUT_KEY = 'gym-tracker-active-workout';
+const LEGACY_FREE_DRAFT_KEY = 'gym-tracker-active-free-draft';
+
+function readStoredActiveWorkoutId() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    return (
+      window.sessionStorage.getItem(ACTIVE_WORKOUT_KEY) ||
+      window.sessionStorage.getItem(LEGACY_FREE_DRAFT_KEY)
+    );
+  } catch {
+    return null;
+  }
+}
+
+function storeActiveWorkoutId(workoutId) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(ACTIVE_WORKOUT_KEY, workoutId);
+    window.sessionStorage.removeItem(LEGACY_FREE_DRAFT_KEY);
+  } catch {
+    // Der Provider-State bleibt auch ohne verfügbaren Session-Speicher funktionsfähig.
+  }
+}
+
+function clearStoredActiveWorkoutId() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.sessionStorage.removeItem(ACTIVE_WORKOUT_KEY);
+    window.sessionStorage.removeItem(LEGACY_FREE_DRAFT_KEY);
+  } catch {
+    // Der Provider-State wird unabhängig vom Session-Speicher bereinigt.
+  }
+}
 
 function ensureExerciseRecord(exercises, name) {
   const trimmedName = name.trim();
@@ -55,16 +98,6 @@ function getLastMachineSettings(workouts, exerciseId) {
   return [];
 }
 
-function normalizeMachineSettings(settings = []) {
-  return settings
-    .map((item) => ({
-      id: item.id ?? createId('setting'),
-      label: item.label?.trim() ?? '',
-      value: item.value?.trim() ?? '',
-    }))
-    .filter((item) => item.label || item.value);
-}
-
 function updateStartedWorkout(workout, changes) {
   const updatedAt = new Date().toISOString();
 
@@ -82,6 +115,13 @@ function updateStartedWorkout(workout, changes) {
 
 export function AppProvider({ children }) {
   const [state, setState] = useState(() => loadAppState());
+  const pendingFreeWorkoutIdRef = useRef(null);
+  const [activeWorkoutId, setActiveWorkoutId] = useState(() => {
+    const storedWorkoutId = readStoredActiveWorkoutId();
+    const storedWorkout = state.workouts.find((workout) => workout.id === storedWorkoutId);
+
+    return storedWorkout && !storedWorkout.completedAt ? storedWorkout.id : null;
+  });
   const [syncState, setSyncState] = useState({
     status: 'saved',
     message: 'Lokal gespeichert',
@@ -144,6 +184,44 @@ export function AppProvider({ children }) {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
+  useEffect(() => {
+    if (
+      pendingFreeWorkoutIdRef.current &&
+      state.workouts.some((workout) => workout.id === pendingFreeWorkoutIdRef.current)
+    ) {
+      pendingFreeWorkoutIdRef.current = null;
+    }
+
+    if (!activeWorkoutId) {
+      clearStoredActiveWorkoutId();
+      return;
+    }
+
+    const activeWorkout = state.workouts.find((workout) => workout.id === activeWorkoutId);
+
+    if (!activeWorkout || activeWorkout.completedAt) {
+      clearStoredActiveWorkoutId();
+      setActiveWorkoutId(null);
+      return;
+    }
+
+    storeActiveWorkoutId(activeWorkoutId);
+  }, [activeWorkoutId, state.workouts]);
+
+  const activateWorkout = useCallback((workoutId) => {
+    storeActiveWorkoutId(workoutId);
+    setActiveWorkoutId(workoutId);
+  }, []);
+
+  function deactivateWorkout(workoutId = null) {
+    if (workoutId && activeWorkoutId !== workoutId) {
+      return;
+    }
+
+    clearStoredActiveWorkoutId();
+    setActiveWorkoutId(null);
+  }
+
   function setWorkouts(nextWorkouts, nextExercises = state.exercises) {
     setState((current) => ({
       ...current,
@@ -153,11 +231,21 @@ export function AppProvider({ children }) {
   }
 
   function createFreeWorkout() {
-    const persistedDraftId =
-      typeof window !== 'undefined' ? window.sessionStorage.getItem(FREE_DRAFT_KEY) : null;
+    if (pendingFreeWorkoutIdRef.current) {
+      return pendingFreeWorkoutIdRef.current;
+    }
+
+    const activeFreeWorkout = state.workouts.find(
+      (workout) => workout.id === activeWorkoutId && workout.mode === 'free' && !workout.completedAt,
+    );
+
+    if (activeFreeWorkout) {
+      storeActiveWorkoutId(activeFreeWorkout.id);
+      return activeFreeWorkout.id;
+    }
+
     const existingDraft = state.workouts.find(
       (workout) =>
-        (!persistedDraftId || workout.id === persistedDraftId) &&
         workout.mode === 'free' &&
         !workout.completedAt &&
         workout.exercises.length === 0 &&
@@ -165,12 +253,13 @@ export function AppProvider({ children }) {
     );
 
     if (existingDraft) {
+      activateWorkout(existingDraft.id);
       return existingDraft.id;
     }
 
     const createdAt = new Date().toISOString();
     const workout = {
-      id: persistedDraftId || createId('workout'),
+      id: createId('workout'),
       name: 'Freies Workout',
       date: createdAt,
       updatedAt: createdAt,
@@ -180,14 +269,12 @@ export function AppProvider({ children }) {
       exercises: [],
     };
 
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem(FREE_DRAFT_KEY, workout.id);
-    }
-
+    pendingFreeWorkoutIdRef.current = workout.id;
     setState((current) => ({
       ...current,
-      workouts: current.workouts.some((entry) => entry.id === workout.id) ? current.workouts : [workout, ...current.workouts],
+      workouts: [workout, ...current.workouts],
     }));
+    activateWorkout(workout.id);
 
     return workout.id;
   }
@@ -230,6 +317,7 @@ export function AppProvider({ children }) {
       exercises: nextExercises,
       workouts: [workout, ...current.workouts],
     }));
+    activateWorkout(workout.id);
 
     return workout.id;
   }
@@ -379,49 +467,6 @@ export function AppProvider({ children }) {
     setWorkouts(nextWorkouts, nextExercises);
   }
 
-  function reorderExercise(workoutId, entryId, direction) {
-    const nextWorkouts = state.workouts.map((workout) => {
-      if (workout.id !== workoutId) {
-        return workout;
-      }
-
-      const index = workout.exercises.findIndex((exercise) => exercise.id === entryId);
-
-      if (index < 0) {
-        return workout;
-      }
-
-      const targetIndex = direction === 'up' ? index - 1 : index + 1;
-
-      if (targetIndex < 0 || targetIndex >= workout.exercises.length) {
-        return workout;
-      }
-
-      const nextEntries = [...workout.exercises];
-      const [moved] = nextEntries.splice(index, 1);
-      nextEntries.splice(targetIndex, 0, moved);
-
-      return updateStartedWorkout(workout, { exercises: nextEntries });
-    });
-
-    setWorkouts(nextWorkouts);
-  }
-
-  function saveExerciseMachineSettings(workoutId, entryId, settings) {
-    const normalizedSettings = normalizeMachineSettings(settings);
-    const nextWorkouts = state.workouts.map((workout) =>
-      workout.id === workoutId
-        ? updateStartedWorkout(workout, {
-            exercises: workout.exercises.map((exercise) =>
-              exercise.id === entryId ? { ...exercise, machineSettings: normalizedSettings } : exercise,
-            ),
-          })
-        : workout,
-    );
-
-    setWorkouts(nextWorkouts);
-  }
-
   function deleteExercise(workoutId, entryId) {
     const nextWorkouts = state.workouts.map((workout) =>
       workout.id === workoutId
@@ -435,7 +480,15 @@ export function AppProvider({ children }) {
   }
 
   function saveSet(workoutId, entryId, payload) {
-    const weight = Number(payload.weight);
+    const bodyWeight = parseLocalizedNumber(payload.bodyWeight);
+    const bodyweightFactor = parseLocalizedNumber(payload.bodyweightFactor);
+    const addedWeight = parseLocalizedNumber(payload.addedWeight || 0);
+    const bodyweightLoad =
+      payload.weightMode === 'bodyweight'
+        ? calculateBodyweightLoad(bodyWeight, bodyweightFactor, addedWeight)
+        : null;
+    const hasBodyweightData = bodyweightLoad !== null;
+    const weight = hasBodyweightData ? bodyweightLoad : Number(payload.weight);
     const reps = Number(payload.reps);
 
     if (
@@ -482,6 +535,14 @@ export function AppProvider({ children }) {
             comment: payload.comment?.trim() ?? '',
             seatHeight: payload.seatHeight?.trim() ?? '',
             savedAt: new Date().toISOString(),
+            ...(hasBodyweightData
+              ? {
+                  weightMode: 'bodyweight',
+                  bodyWeight,
+                  bodyweightFactor,
+                  addedWeight,
+                }
+              : {}),
           };
           savedSetId = nextSet.id;
 
@@ -534,18 +595,20 @@ export function AppProvider({ children }) {
     );
 
     setWorkouts(nextWorkouts);
-
-    if (typeof window !== 'undefined' && window.sessionStorage.getItem(FREE_DRAFT_KEY) === workoutId) {
-      window.sessionStorage.removeItem(FREE_DRAFT_KEY);
+    if (pendingFreeWorkoutIdRef.current === workoutId) {
+      pendingFreeWorkoutIdRef.current = null;
     }
+    deactivateWorkout(workoutId);
 
     return completedAt;
   }
 
   function deleteWorkout(workoutId) {
-    if (typeof window !== 'undefined' && window.sessionStorage.getItem(FREE_DRAFT_KEY) === workoutId) {
-      window.sessionStorage.removeItem(FREE_DRAFT_KEY);
+    if (pendingFreeWorkoutIdRef.current === workoutId) {
+      pendingFreeWorkoutIdRef.current = null;
     }
+
+    deactivateWorkout(workoutId);
 
     setState((current) => ({
       ...current,
@@ -556,10 +619,8 @@ export function AppProvider({ children }) {
   function importBackup(nextState) {
     const normalizedState = normalizeAppState(nextState);
 
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.removeItem(FREE_DRAFT_KEY);
-    }
-
+    pendingFreeWorkoutIdRef.current = null;
+    deactivateWorkout();
     setState(normalizedState);
   }
 
@@ -598,6 +659,8 @@ export function AppProvider({ children }) {
       value={{
         state,
         syncState,
+        activeWorkoutId,
+        activateWorkout,
         createFreeWorkout,
         createWorkoutFromTemplate,
         saveWorkoutAsTemplate,
@@ -607,8 +670,6 @@ export function AppProvider({ children }) {
         addExerciseToWorkout,
         insertExerciseToWorkout,
         renameExercise,
-        reorderExercise,
-        saveExerciseMachineSettings,
         deleteExercise,
         saveSet,
         deleteSet,
