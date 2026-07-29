@@ -95,11 +95,11 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      <section className="flex flex-wrap justify-end gap-2">
-        <Link to="/workouts/template" className="secondary-button">
+      <section className="mx-auto grid w-full max-w-md grid-cols-2 gap-2">
+        <Link to="/workouts/template" className="secondary-button w-full px-3">
           Aus Vorlage
         </Link>
-        <Link to="/workouts/new" className="action-button">
+        <Link to="/workouts/new" className="action-button w-full px-3">
           Workout starten
         </Link>
       </section>
