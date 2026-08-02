@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import BackupControls from './BackupControls';
 import { useAppData } from './AppProvider';
 import SyncIndicator from './SyncIndicator';
+import { calculateWorkoutStats } from '../utils/workout';
 
 const appVersion = '2.2.0';
 const displayVersion = `v${appVersion.split('.').slice(0, 2).join('.')}`;
@@ -80,6 +81,143 @@ function AppNavigation({ mobile = false, trainingTarget, hasActiveWorkout = fals
   );
 }
 
+function ActiveWorkoutControl({ workout, trainingTarget }) {
+  const navigate = useNavigate();
+  const { updateWorkoutName, saveWorkoutAsTemplate, completeWorkout, deleteWorkout } = useAppData();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [templateSaved, setTemplateSaved] = useState(false);
+  const controlRef = useRef(null);
+  const stats = calculateWorkoutStats(workout);
+  const canComplete = stats.setCount > 0;
+  const usesDefaultName = workout.mode === 'free' && workout.name.trim() === 'Freies Workout';
+  const menuId = `active-workout-menu-${workout.id}`;
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return undefined;
+    }
+
+    function closeOutside(event) {
+      if (!controlRef.current?.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    }
+
+    function closeOnEscape(event) {
+      if (event.key === 'Escape') {
+        setMenuOpen(false);
+      }
+    }
+
+    document.addEventListener('pointerdown', closeOutside);
+    document.addEventListener('keydown', closeOnEscape);
+
+    return () => {
+      document.removeEventListener('pointerdown', closeOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!templateSaved) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => setTemplateSaved(false), 1400);
+    return () => window.clearTimeout(timer);
+  }, [templateSaved]);
+
+  return (
+    <div ref={controlRef} className="relative min-w-0 flex-1 md:max-w-[280px] md:flex-none">
+      <div className="flex min-w-0 items-stretch rounded-sm border border-amber/55 bg-amber-soft">
+        <Link
+          to={trainingTarget}
+          className="min-w-0 flex-1 px-2.5 py-1.5 transition hover:bg-amber/10"
+          aria-label={`Aktives Workout öffnen: ${workout.name}`}
+        >
+          <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-amber-deep">
+            Aktives Workout
+          </span>
+          <span className="block truncate text-xs font-bold text-ink sm:text-sm">{workout.name}</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setMenuOpen((open) => !open)}
+          className={`flex w-11 shrink-0 items-center justify-center border-l border-amber/40 text-lg text-amber-deep transition hover:bg-amber/15 ${
+            menuOpen ? 'bg-amber/15' : ''
+          }`}
+          aria-label="Aktives Workout verwalten"
+          title="Aktives Workout verwalten"
+          aria-expanded={menuOpen}
+          aria-controls={menuId}
+        >
+          <span aria-hidden="true">⚙</span>
+        </button>
+      </div>
+
+      {menuOpen ? (
+        <section
+          id={menuId}
+          className="panel absolute right-0 top-full z-[70] mt-2 w-[min(calc(100vw-1.5rem),22rem)] p-3 shadow-panel sm:p-4"
+        >
+          <label htmlFor="active-workout-name" className="eyebrow mb-2 block">
+            Workout-Name
+          </label>
+          <input
+            id="active-workout-name"
+            className="field font-display text-base font-bold"
+            value={usesDefaultName ? '' : workout.name}
+            onChange={(event) => updateWorkoutName(workout.id, event.target.value)}
+            onBlur={() => {
+              if (!workout.name.trim()) {
+                updateWorkoutName(workout.id, 'Freies Workout');
+              }
+            }}
+            placeholder="Freies Workout"
+            autoComplete="off"
+          />
+          <div className="mt-3 grid gap-2">
+            <button
+              type="button"
+              disabled={!canComplete}
+              title={canComplete ? '' : 'Speichere mindestens einen Satz, bevor du das Workout abschließt.'}
+              onClick={() => {
+                completeWorkout(workout.id);
+                navigate(`/workouts/${workout.id}`);
+              }}
+              className="action-button w-full"
+            >
+              Workout abschließen
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                saveWorkoutAsTemplate(workout.id);
+                setTemplateSaved(true);
+              }}
+              className={`secondary-button w-full ${templateSaved ? 'border-amber/60 bg-amber-soft' : ''}`}
+            >
+              {templateSaved ? 'Als Vorlage gespeichert' : 'Als Vorlage speichern'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm(`Workout "${workout.name}" wirklich löschen?`)) {
+                  deleteWorkout(workout.id);
+                  navigate('/');
+                }
+              }}
+              className="danger-button w-full"
+            >
+              Workout löschen
+            </button>
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
 export default function AppShell() {
   const location = useLocation();
   const { state, activeWorkoutId } = useAppData();
@@ -125,16 +263,7 @@ export default function AppShell() {
           </div>
 
           {activeWorkout ? (
-            <Link
-              to={trainingTarget}
-              className="min-w-0 flex-1 rounded-sm border border-amber/55 bg-amber-soft px-2.5 py-1.5 transition hover:border-amber md:max-w-[240px] md:flex-none"
-              aria-label={`Aktives Workout öffnen: ${activeWorkout.name}`}
-            >
-              <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-amber-deep">
-                Aktives Workout
-              </span>
-              <span className="block truncate text-xs font-bold text-ink sm:text-sm">{activeWorkout.name}</span>
-            </Link>
+            <ActiveWorkoutControl workout={activeWorkout} trainingTarget={trainingTarget} />
           ) : null}
 
           <div className="ml-auto flex items-center gap-2">

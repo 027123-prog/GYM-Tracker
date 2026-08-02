@@ -13,8 +13,6 @@ import {
   getLastExerciseSummaryText,
 } from '../utils/workout';
 
-const DEFAULT_FREE_WORKOUT_NAME = 'Freies Workout';
-
 export default function WorkoutBuilderPage({ mode }) {
   const params = useParams();
   const navigate = useNavigate();
@@ -39,8 +37,6 @@ export default function WorkoutBuilderPage({ mode }) {
   const [exerciseModalOpen, setExerciseModalOpen] = useState(false);
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0);
   const [templateSaved, setTemplateSaved] = useState(false);
-  const [workoutNameFocused, setWorkoutNameFocused] = useState(false);
-  const [workoutSettingsOpen, setWorkoutSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (!templateSaved) {
@@ -150,11 +146,6 @@ export default function WorkoutBuilderPage({ mode }) {
 
   const activeExercise = workout.exercises[activeExerciseIndex] ?? null;
   const isCompact = mode === 'edit';
-  const canComplete = summary.setCount > 0;
-  const usesDefaultFreeWorkoutName =
-    workout.mode === 'free' &&
-    !workout.completedAt &&
-    workout.name.trim() === DEFAULT_FREE_WORKOUT_NAME;
 
   function handleAddExercise(name, placement = 'end') {
     if (isCompact && activeExercise) {
@@ -321,80 +312,6 @@ export default function WorkoutBuilderPage({ mode }) {
           </div>
         )}
 
-        {!workout.completedAt ? (
-          <>
-            <section className="flex items-center gap-2 pt-1">
-              <button
-                type="button"
-                disabled={!canComplete}
-                title={canComplete ? '' : 'Speichere mindestens einen Satz, bevor du das Workout abschließt.'}
-                onClick={() => {
-                  completeWorkout(workout.id);
-                  setSummaryOpen(true);
-                }}
-                className="action-button min-w-0 flex-1"
-              >
-                Workout abschließen
-              </button>
-              <button
-                type="button"
-                onClick={() => setWorkoutSettingsOpen((open) => !open)}
-                className={`icon-button ${workoutSettingsOpen ? 'border-amber/60 bg-amber-soft text-amber-deep' : ''}`}
-                aria-label="Workout-Einstellungen"
-                title="Workout-Einstellungen"
-                aria-expanded={workoutSettingsOpen}
-                aria-controls="workout-settings"
-              >
-                <span aria-hidden="true" className="text-lg leading-none">•••</span>
-              </button>
-            </section>
-
-            {workoutSettingsOpen ? (
-              <section id="workout-settings" className="panel p-3 sm:p-4">
-                <label htmlFor="workout-name" className="eyebrow mb-2 block">
-                  Workout-Name
-                </label>
-                <input
-                  id="workout-name"
-                  className="field font-display text-base font-bold sm:text-lg"
-                  value={usesDefaultFreeWorkoutName ? '' : workout.name}
-                  onChange={(event) => updateWorkoutName(workout.id, event.target.value)}
-                  onFocus={() => setWorkoutNameFocused(true)}
-                  onBlur={() => {
-                    setWorkoutNameFocused(false);
-
-                    if (workout.mode === 'free' && !workout.name.trim()) {
-                      updateWorkoutName(workout.id, DEFAULT_FREE_WORKOUT_NAME);
-                    }
-                  }}
-                  placeholder={
-                    usesDefaultFreeWorkoutName && !workoutNameFocused
-                      ? DEFAULT_FREE_WORKOUT_NAME
-                      : workoutNameFocused
-                        ? ''
-                        : 'Workout benennen'
-                  }
-                  autoComplete="off"
-                />
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      saveWorkoutAsTemplate(workout.id);
-                      setTemplateSaved(true);
-                    }}
-                    className={`secondary-button min-w-0 px-2 ${templateSaved ? 'border-amber/60 bg-amber-soft' : ''}`}
-                  >
-                    {templateSaved ? 'Gespeichert' : 'Als Vorlage speichern'}
-                  </button>
-                  <button type="button" onClick={handleDeleteWorkout} className="danger-button min-w-0 px-2">
-                    Workout löschen
-                  </button>
-                </div>
-              </section>
-            ) : null}
-          </>
-        ) : null}
       </div>
 
       <WorkoutSummaryModal
