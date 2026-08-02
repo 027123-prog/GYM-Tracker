@@ -40,6 +40,7 @@ export default function WorkoutBuilderPage({ mode }) {
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0);
   const [templateSaved, setTemplateSaved] = useState(false);
   const [workoutNameFocused, setWorkoutNameFocused] = useState(false);
+  const [workoutSettingsOpen, setWorkoutSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (!templateSaved) {
@@ -184,49 +185,9 @@ export default function WorkoutBuilderPage({ mode }) {
   return (
     <>
       <div className="space-y-3">
-        <section className="panel p-4 sm:p-5">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div className="min-w-0 flex-1">
-              <label htmlFor="workout-name" className="eyebrow mb-2 block">
-                {workout.completedAt ? 'Abgeschlossenes Workout' : 'Aktives Workout'}
-              </label>
-              <input
-                id="workout-name"
-                className="field max-w-2xl font-display text-lg font-bold sm:text-xl"
-                value={usesDefaultFreeWorkoutName ? '' : workout.name}
-                onChange={(event) => updateWorkoutName(workout.id, event.target.value)}
-                onFocus={() => setWorkoutNameFocused(true)}
-                onBlur={() => {
-                  setWorkoutNameFocused(false);
-
-                  if (workout.mode === 'free' && !workout.name.trim()) {
-                    updateWorkoutName(workout.id, DEFAULT_FREE_WORKOUT_NAME);
-                  }
-                }}
-                placeholder={
-                  usesDefaultFreeWorkoutName && !workoutNameFocused
-                    ? DEFAULT_FREE_WORKOUT_NAME
-                    : workoutNameFocused
-                      ? ''
-                      : 'Workout benennen'
-                }
-                autoComplete="off"
-              />
-            </div>
-            <div className="flex w-full flex-col gap-2 sm:flex-row xl:w-auto">
-              <button
-                type="button"
-                onClick={() => {
-                  saveWorkoutAsTemplate(workout.id);
-                  setTemplateSaved(true);
-                }}
-                className={`secondary-button ${templateSaved ? 'border-amber/60 bg-amber-soft' : ''}`}
-              >
-                {templateSaved ? 'Gespeichert' : 'Als Vorlage speichern'}
-              </button>
-              <button type="button" onClick={handleDeleteWorkout} className="danger-button">
-                Löschen
-              </button>
+        {!workout.completedAt ? (
+          <>
+            <section className="flex items-center gap-2">
               <button
                 type="button"
                 disabled={!canComplete}
@@ -235,22 +196,114 @@ export default function WorkoutBuilderPage({ mode }) {
                   completeWorkout(workout.id);
                   setSummaryOpen(true);
                 }}
-                className="action-button"
+                className="action-button min-w-0 flex-1"
               >
-                {workout.completedAt ? 'Änderungen speichern' : 'Workout abschließen'}
+                Workout abschließen
               </button>
+              <button
+                type="button"
+                onClick={() => setWorkoutSettingsOpen((open) => !open)}
+                className={`icon-button ${workoutSettingsOpen ? 'border-amber/60 bg-amber-soft text-amber-deep' : ''}`}
+                aria-label="Workout-Einstellungen"
+                title="Workout-Einstellungen"
+                aria-expanded={workoutSettingsOpen}
+                aria-controls="workout-settings"
+              >
+                <span aria-hidden="true" className="text-lg leading-none">•••</span>
+              </button>
+            </section>
+
+            {workoutSettingsOpen ? (
+              <section id="workout-settings" className="panel p-3 sm:p-4">
+                <label htmlFor="workout-name" className="eyebrow mb-2 block">
+                  Workout-Name
+                </label>
+                <input
+                  id="workout-name"
+                  className="field font-display text-base font-bold sm:text-lg"
+                  value={usesDefaultFreeWorkoutName ? '' : workout.name}
+                  onChange={(event) => updateWorkoutName(workout.id, event.target.value)}
+                  onFocus={() => setWorkoutNameFocused(true)}
+                  onBlur={() => {
+                    setWorkoutNameFocused(false);
+
+                    if (workout.mode === 'free' && !workout.name.trim()) {
+                      updateWorkoutName(workout.id, DEFAULT_FREE_WORKOUT_NAME);
+                    }
+                  }}
+                  placeholder={
+                    usesDefaultFreeWorkoutName && !workoutNameFocused
+                      ? DEFAULT_FREE_WORKOUT_NAME
+                      : workoutNameFocused
+                        ? ''
+                        : 'Workout benennen'
+                  }
+                  autoComplete="off"
+                />
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      saveWorkoutAsTemplate(workout.id);
+                      setTemplateSaved(true);
+                    }}
+                    className={`secondary-button min-w-0 px-2 ${templateSaved ? 'border-amber/60 bg-amber-soft' : ''}`}
+                  >
+                    {templateSaved ? 'Gespeichert' : 'Als Vorlage speichern'}
+                  </button>
+                  <button type="button" onClick={handleDeleteWorkout} className="danger-button min-w-0 px-2">
+                    Workout löschen
+                  </button>
+                </div>
+              </section>
+            ) : null}
+          </>
+        ) : (
+          <section className="panel p-4 sm:p-5">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+              <div className="min-w-0 flex-1">
+                <label htmlFor="workout-name" className="eyebrow mb-2 block">
+                  Abgeschlossenes Workout
+                </label>
+                <input
+                  id="workout-name"
+                  className="field max-w-2xl font-display text-lg font-bold sm:text-xl"
+                  value={workout.name}
+                  onChange={(event) => updateWorkoutName(workout.id, event.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="flex w-full flex-col gap-2 sm:flex-row xl:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    saveWorkoutAsTemplate(workout.id);
+                    setTemplateSaved(true);
+                  }}
+                  className={`secondary-button ${templateSaved ? 'border-amber/60 bg-amber-soft' : ''}`}
+                >
+                  {templateSaved ? 'Gespeichert' : 'Als Vorlage speichern'}
+                </button>
+                <button type="button" onClick={handleDeleteWorkout} className="danger-button">
+                  Löschen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    completeWorkout(workout.id);
+                    setSummaryOpen(true);
+                  }}
+                  className="action-button"
+                >
+                  Änderungen speichern
+                </button>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {isCompact ? (
           <section className="panel overflow-hidden">
-            <div className="border-b border-line px-3 py-2.5">
-              <div>
-                <p className="eyebrow">Übungen</p>
-                <p className="mt-0.5 text-xs text-muted">{workout.exercises.length} im Workout</p>
-              </div>
-            </div>
             {workout.exercises.length ? (
               <div className="flex gap-1.5 overflow-x-auto p-2" aria-label="Übungen im Workout">
                 {workout.exercises.map((exercise, index) => (
@@ -285,8 +338,6 @@ export default function WorkoutBuilderPage({ mode }) {
                 key={activeExercise.id}
                 exercise={activeExercise}
                 compact={isCompact}
-                activeExerciseIndex={activeExerciseIndex}
-                exerciseCount={workout.exercises.length}
                 canMovePrevExercise={activeExerciseIndex > 0}
                 canMoveNextExercise={activeExerciseIndex < workout.exercises.length - 1}
                 onPrevExercise={() => setActiveExerciseIndex((current) => Math.max(current - 1, 0))}

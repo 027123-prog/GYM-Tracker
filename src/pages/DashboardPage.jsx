@@ -67,10 +67,15 @@ function isMeaningfulDraft(workout, templates) {
 }
 
 export default function DashboardPage() {
-  const { state } = useAppData();
+  const { state, activeWorkoutId } = useAppData();
   const sortedWorkouts = sortWorkoutsByDate(state.workouts);
   const completedWorkouts = sortedWorkouts.filter((workout) => workout.completedAt);
-  const currentDraft = sortedWorkouts.find((workout) => isMeaningfulDraft(workout, state.templates)) ?? null;
+  const activeWorkout = state.workouts.find(
+    (workout) => workout.id === activeWorkoutId && !workout.completedAt,
+  );
+  const currentDraft = activeWorkout
+    ? null
+    : sortedWorkouts.find((workout) => isMeaningfulDraft(workout, state.templates)) ?? null;
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
@@ -95,14 +100,16 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      <section className="mx-auto grid w-full max-w-md grid-cols-2 gap-2">
-        <Link to="/workouts/template" className="secondary-button w-full px-3">
-          Aus Vorlage
-        </Link>
-        <Link to="/workouts/new" className="action-button w-full px-3">
-          Workout starten
-        </Link>
-      </section>
+      {!activeWorkout ? (
+        <section className="mx-auto grid w-full max-w-md grid-cols-2 gap-2">
+          <Link to="/workouts/template" className="secondary-button w-full px-3">
+            Aus Vorlage
+          </Link>
+          <Link to="/workouts/new" className="action-button w-full px-3">
+            Workout starten
+          </Link>
+        </section>
+      ) : null}
 
       {currentDraft ? (
         <section className="panel border-amber/35 bg-gradient-to-r from-amber-soft to-surface p-4 sm:p-5">

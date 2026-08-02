@@ -71,8 +71,6 @@ export default function ExerciseEditorCard({
   libraryEntry,
   lastWorkoutSummary,
   lastWorkoutCommentText,
-  activeExerciseIndex,
-  exerciseCount,
   onPrevExercise,
   onNextExercise,
   onInsertExercise,
@@ -178,17 +176,6 @@ export default function ExerciseEditorCard({
                 }
               }}
             />
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="eyebrow">
-              Übung {activeExerciseIndex + 1} / {exerciseCount}
-            </span>
-            {exercise.targetRepScheme ? (
-              <span className="rounded-sm border border-amber/35 bg-amber-soft px-2 py-1 text-xs font-bold text-amber-deep">
-                Ziel {exercise.targetRepScheme}
-              </span>
-            ) : null}
           </div>
 
           <div

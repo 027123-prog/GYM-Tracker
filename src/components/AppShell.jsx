@@ -25,7 +25,7 @@ function isNavActive(pathname, to) {
   return pathname === to || pathname.startsWith(`${to}/`);
 }
 
-function AppNavigation({ mobile = false, trainingTarget }) {
+function AppNavigation({ mobile = false, trainingTarget, hasActiveWorkout = false }) {
   const location = useLocation();
 
   return (
@@ -39,7 +39,9 @@ function AppNavigation({ mobile = false, trainingTarget }) {
     >
       {navItems.map((item) => {
         const active = isNavActive(location.pathname, item.to);
-        const target = item.to === '/workouts/new' ? trainingTarget : item.to;
+        const isTraining = item.to === '/workouts/new';
+        const target = isTraining ? trainingTarget : item.to;
+        const workoutRunning = isTraining && hasActiveWorkout;
 
         return (
           <NavLink
@@ -48,10 +50,14 @@ function AppNavigation({ mobile = false, trainingTarget }) {
             className={
               mobile
                 ? `flex min-h-0 flex-col items-center justify-center gap-0.5 rounded-sm px-1 text-[10px] font-semibold transition ${
-                    active ? 'bg-amber-soft text-amber-deep' : 'text-muted hover:text-ink'
+                    active
+                      ? 'bg-amber text-paper shadow-[0_0_0_1px_rgba(244,122,36,0.35)]'
+                      : workoutRunning
+                        ? 'bg-amber-soft text-amber-deep ring-1 ring-inset ring-amber/55'
+                        : 'text-muted hover:text-ink'
                   }`
                 : `flex min-h-10 items-center gap-2 rounded-sm border px-3 text-sm font-semibold transition ${
-                    active
+                    active || workoutRunning
                       ? 'border-amber/60 bg-amber-soft text-amber-deep'
                       : 'border-transparent text-muted hover:border-line hover:bg-surface-raised hover:text-ink'
                   }`
@@ -59,7 +65,9 @@ function AppNavigation({ mobile = false, trainingTarget }) {
           >
             <span
               aria-hidden="true"
-              className={`font-display text-xs font-bold ${active ? 'text-amber' : 'text-muted'}`}
+              className={`font-display text-xs font-bold ${
+                active ? (mobile ? 'text-paper' : 'text-amber') : workoutRunning ? 'text-amber' : 'text-muted'
+              }`}
             >
               {item.marker}
             </span>
@@ -73,11 +81,13 @@ function AppNavigation({ mobile = false, trainingTarget }) {
 
 export default function AppShell() {
   const location = useLocation();
-  const { activeWorkoutId } = useAppData();
+  const { state, activeWorkoutId } = useAppData();
   const mainRef = useRef(null);
-  const isWorkoutFocus = /^\/workouts\/.+\/edit$/.test(location.pathname);
-  const trainingTarget = activeWorkoutId
-    ? `/workouts/${encodeURIComponent(activeWorkoutId)}/edit`
+  const activeWorkout = state.workouts.find(
+    (workout) => workout.id === activeWorkoutId && !workout.completedAt,
+  );
+  const trainingTarget = activeWorkout
+    ? `/workouts/${encodeURIComponent(activeWorkout.id)}/edit`
     : '/workouts/new';
 
   useEffect(() => {
@@ -89,7 +99,13 @@ export default function AppShell() {
       data-app-shell
       className="flex h-[100dvh] min-h-0 flex-col overflow-hidden md:h-auto md:min-h-[100dvh] md:overflow-visible"
     >
-      <header className="relative z-40 shrink-0 border-b border-line bg-paper/90 backdrop-blur-xl md:sticky md:top-0">
+      <header
+        className={`relative z-40 shrink-0 border-b backdrop-blur-xl md:sticky md:top-0 ${
+          activeWorkout
+            ? 'border-amber/55 bg-[linear-gradient(90deg,rgba(244,122,36,0.13),rgba(25,25,25,0.94)_62%)]'
+            : 'border-line bg-paper/90'
+        }`}
+      >
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-3 py-2.5 sm:px-5">
           <Link to="/" className="flex shrink-0 items-center" aria-label="Zur Übersicht">
             <span className="relative flex h-10 w-10 items-center justify-center" aria-hidden="true">
@@ -103,15 +119,23 @@ export default function AppShell() {
           </Link>
 
           <div className="hidden flex-1 md:block">
-            <AppNavigation trainingTarget={trainingTarget} />
+            <AppNavigation trainingTarget={trainingTarget} hasActiveWorkout={Boolean(activeWorkout)} />
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
-            {isWorkoutFocus ? (
-              <span className="hidden rounded-sm border border-amber/35 bg-amber-soft px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-deep sm:block">
-                Training aktiv
+          {activeWorkout ? (
+            <Link
+              to={trainingTarget}
+              className="min-w-0 flex-1 rounded-sm border border-amber/55 bg-amber-soft px-2.5 py-1.5 transition hover:border-amber md:max-w-[240px] md:flex-none"
+              aria-label={`Aktives Workout öffnen: ${activeWorkout.name}`}
+            >
+              <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-amber-deep">
+                Aktives Workout
               </span>
-            ) : null}
+              <span className="block truncate text-xs font-bold text-ink sm:text-sm">{activeWorkout.name}</span>
+            </Link>
+          ) : null}
+
+          <div className="ml-auto flex items-center gap-2">
             <SyncIndicator compact />
             <div className="hidden lg:block">
               <BackupControls compact />
@@ -135,7 +159,7 @@ export default function AppShell() {
         data-mobile-navigation
         className="relative z-50 h-[calc(4rem+env(safe-area-inset-bottom))] shrink-0 bg-surface md:hidden"
       >
-        <AppNavigation mobile trainingTarget={trainingTarget} />
+        <AppNavigation mobile trainingTarget={trainingTarget} hasActiveWorkout={Boolean(activeWorkout)} />
       </div>
     </div>
   );
