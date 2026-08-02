@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { sortExerciseCards } from '../src/utils/exerciseSort.js';
+import {
+  normalizeExerciseSortMode,
+  resolveExerciseNavigationOrder,
+  sortExerciseCards,
+} from '../src/utils/exerciseSort.js';
 
 function getNames(exercises) {
   return exercises.map((exercise) => exercise.name);
@@ -99,4 +103,23 @@ test('sortExerciseCards verändert weder Eingabearray noch Einträge', () => {
   assert.deepEqual(exercises, [first, second]);
   assert.strictEqual(sorted[0], second);
   assert.deepEqual(sortExerciseCards(null), []);
+});
+
+test('Diagramm-Navigation übernimmt eine übergebene Übungsreihenfolge sicher', () => {
+  const exercises = [
+    { id: 'alpha', name: 'Alpha' },
+    { id: 'beta', name: 'Beta' },
+    { id: 'gamma', name: 'Gamma' },
+  ];
+
+  assert.deepEqual(
+    resolveExerciseNavigationOrder(exercises, ['gamma', 'alpha', 'gamma', 'unbekannt']).map((item) => item.id),
+    ['gamma', 'alpha'],
+  );
+  assert.deepEqual(
+    resolveExerciseNavigationOrder(exercises).map((item) => item.id),
+    ['alpha', 'beta', 'gamma'],
+  );
+  assert.equal(normalizeExerciseSortMode('count-desc'), 'count-desc');
+  assert.equal(normalizeExerciseSortMode('unbekannt'), 'name-asc');
 });

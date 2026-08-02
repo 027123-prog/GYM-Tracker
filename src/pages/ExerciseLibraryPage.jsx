@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAppData } from '../components/AppProvider';
-import { sortExerciseCards } from '../utils/exerciseSort';
+import { normalizeExerciseSortMode, sortExerciseCards } from '../utils/exerciseSort';
 import { getExerciseWorkoutCount, getLastExerciseSnapshot } from '../utils/workout';
 
 const sortOptions = [
@@ -21,8 +21,9 @@ function normalizeSearch(value) {
 
 export default function ExerciseLibraryPage() {
   const { state } = useAppData();
-  const [query, setQuery] = useState('');
-  const [sortMode, setSortMode] = useState('name-asc');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get('q') ?? '';
+  const sortMode = normalizeExerciseSortMode(searchParams.get('sort'));
 
   const exercises = useMemo(() => {
     const normalizedQuery = normalizeSearch(query.trim());
@@ -45,6 +46,22 @@ export default function ExerciseLibraryPage() {
     return sortExerciseCards(exerciseCards, sortMode);
   }, [query, sortMode, state.exercises, state.workouts]);
 
+  const currentSearch = searchParams.toString();
+  const libraryReturnTo = currentSearch ? `/exercises?${currentSearch}` : '/exercises';
+  const exerciseOrder = exercises.map((exercise) => exercise.id);
+
+  function updateSearchParams(key, value, defaultValue = '') {
+    const nextParams = new URLSearchParams(searchParams);
+
+    if (!value || value === defaultValue) {
+      nextParams.delete(key);
+    } else {
+      nextParams.set(key, value);
+    }
+
+    setSearchParams(nextParams, { replace: true });
+  }
+
   return (
     <div className="space-y-5">
       <section className="flex flex-col gap-4 border-b border-line pb-5 md:flex-row md:items-end md:justify-between">
@@ -60,7 +77,7 @@ export default function ExerciseLibraryPage() {
               type="search"
               className="field"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => updateSearchParams('q', event.target.value)}
               placeholder="Übung suchen …"
             />
           </label>
@@ -69,7 +86,7 @@ export default function ExerciseLibraryPage() {
             <select
               className="secondary-button h-[46px] w-full appearance-none justify-start pl-3 pr-10 text-left sm:w-auto"
               value={sortMode}
-              onChange={(event) => setSortMode(event.target.value)}
+              onChange={(event) => updateSearchParams('sort', event.target.value, 'name-asc')}
             >
               {sortOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -92,6 +109,7 @@ export default function ExerciseLibraryPage() {
           <Link
             key={exercise.id}
             to={`/exercises/${exercise.id}/chart`}
+            state={{ exerciseOrder, libraryReturnTo }}
             className="panel group grid min-h-[92px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 p-4 transition hover:border-amber/55 hover:bg-surface-raised"
           >
             <div className="min-w-0">

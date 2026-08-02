@@ -11,13 +11,10 @@ import {
 } from 'recharts';
 import { useAppData } from '../components/AppProvider';
 import EmptyState from '../components/EmptyState';
+import { formatKilograms } from '../utils/strength';
 
 const dateFormatter = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const shortDateFormatter = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
-
-function formatKg(value) {
-  return `${Number(value).toLocaleString('de-DE', { maximumFractionDigits: 1 })} kg`;
-}
 
 function buildGroups(records) {
   const groups = new Map();
@@ -53,7 +50,7 @@ function StrengthTooltip({ active, payload }) {
 
   return (
     <div className="rounded-sm border border-line bg-surface-raised p-3 shadow-panel">
-      <p className="font-bold text-ink">{formatKg(point.value)}</p>
+      <p className="font-bold text-ink">{formatKilograms(point.value)}</p>
       <p className="mt-1 text-xs text-muted">{point.dateLabel}</p>
     </div>
   );
@@ -244,11 +241,11 @@ export default function MaxStrengthPage() {
           <div className="grid grid-cols-3 gap-px border-b border-line bg-line">
             <div className="bg-surface p-3 sm:p-4">
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Aktuell</p>
-              <p className="mt-1 text-lg font-bold tabular-nums text-ink sm:text-2xl">{formatKg(latest.value)}</p>
+              <p className="mt-1 text-lg font-bold tabular-nums text-ink sm:text-2xl">{formatKilograms(latest.value)}</p>
             </div>
             <div className="bg-surface p-3 sm:p-4">
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Bestwert</p>
-              <p className="mt-1 text-lg font-bold tabular-nums text-amber-deep sm:text-2xl">{formatKg(best.value)}</p>
+              <p className="mt-1 text-lg font-bold tabular-nums text-amber-deep sm:text-2xl">{formatKilograms(best.value)}</p>
             </div>
             <div className="bg-surface p-3 sm:p-4">
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Veränderung</p>
@@ -279,7 +276,9 @@ export default function MaxStrengthPage() {
                   tickLine={false}
                   axisLine={false}
                   domain={[Math.max(0, minValue - padding), maxValue + padding]}
-                  width={56}
+                  tickFormatter={formatKilograms}
+                  tick={{ fontSize: 11 }}
+                  width={76}
                 />
                 <Tooltip content={<StrengthTooltip />} />
                 <ReferenceLine y={latest.value} stroke="#F47A24" strokeOpacity={0.42} />
@@ -306,7 +305,7 @@ export default function MaxStrengthPage() {
               {[...selectedGroup.values].reverse().map((item) => (
                 <div key={item.id} className="grid grid-cols-[1fr_1fr_auto] items-center px-4 py-2.5 text-sm">
                   <span className="text-muted">{item.dateLabel}</span>
-                  <span className="font-bold tabular-nums text-ink">{formatKg(item.value)}</span>
+                  <span className="font-bold tabular-nums text-ink">{formatKilograms(item.value)}</span>
                   <button
                     type="button"
                     className="danger-button min-h-9 px-3"

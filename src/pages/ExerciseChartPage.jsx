@@ -2,13 +2,14 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAppData } from '../components/AppProvider';
 import EmptyState from '../components/EmptyState';
 import ExerciseChartCard from '../components/ExerciseChartCard';
+import { resolveExerciseNavigationOrder } from '../utils/exerciseSort';
 import { buildExerciseChartData } from '../utils/workout';
 
-function ChartBackLink({ returnTo }) {
+function ChartBackLink({ returnTo, libraryReturnTo }) {
   const hasWorkoutContext = Boolean(returnTo);
 
   return (
-    <Link to={returnTo || '/exercises'} className="secondary-button gap-2">
+    <Link to={returnTo || libraryReturnTo || '/exercises'} className="secondary-button gap-2">
       <span aria-hidden="true">←</span>
       {hasWorkoutContext ? 'Zurück zum aktiven Workout' : 'Zur Übungsbibliothek'}
     </Link>
@@ -25,7 +26,16 @@ export default function ExerciseChartPage() {
     typeof requestedReturnTo === 'string' && /^\/workouts\/[^/]+\/edit(?:\?.*)?$/.test(requestedReturnTo)
       ? requestedReturnTo
       : null;
-  const sortedExercises = [...state.exercises].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const requestedLibraryReturnTo = location.state?.libraryReturnTo;
+  const libraryReturnTo =
+    typeof requestedLibraryReturnTo === 'string' && /^\/exercises(?:\?[^#]*)?$/.test(requestedLibraryReturnTo)
+      ? requestedLibraryReturnTo
+      : null;
+  const requestedExerciseOrder = location.state?.exerciseOrder;
+  const requestedExercises = resolveExerciseNavigationOrder(state.exercises, requestedExerciseOrder);
+  const sortedExercises = requestedExercises.some((item) => item.id === exerciseId)
+    ? requestedExercises
+    : resolveExerciseNavigationOrder(state.exercises);
   const exercise = sortedExercises.find((item) => item.id === exerciseId);
   const exerciseIndex = sortedExercises.findIndex((item) => item.id === exerciseId);
   const data = buildExerciseChartData(state.workouts, exerciseId, exercise?.name);
@@ -34,7 +44,7 @@ export default function ExerciseChartPage() {
     return (
       <section className="space-y-6">
         <div className="flex justify-start">
-          <ChartBackLink returnTo={returnTo} />
+          <ChartBackLink returnTo={returnTo} libraryReturnTo={libraryReturnTo} />
         </div>
         <EmptyState title="Übung nicht gefunden" description="Für diese Übung konnte kein Eintrag geladen werden." />
       </section>
@@ -45,7 +55,7 @@ export default function ExerciseChartPage() {
     return (
       <section className="space-y-6">
         <div className="flex justify-start">
-          <ChartBackLink returnTo={returnTo} />
+          <ChartBackLink returnTo={returnTo} libraryReturnTo={libraryReturnTo} />
         </div>
         <EmptyState
           title="Noch keine Trainingshistorie"
@@ -65,14 +75,18 @@ export default function ExerciseChartPage() {
     }
 
     navigate(`/exercises/${sortedExercises[nextIndex].id}/chart`, {
-      state: returnTo ? { returnTo } : null,
+      state: {
+        ...(returnTo ? { returnTo } : {}),
+        ...(libraryReturnTo ? { libraryReturnTo } : {}),
+        exerciseOrder: sortedExercises.map((item) => item.id),
+      },
     });
   }
 
   return (
     <div className="space-y-4">
       <div className="flex justify-start">
-        <ChartBackLink returnTo={returnTo} />
+        <ChartBackLink returnTo={returnTo} libraryReturnTo={libraryReturnTo} />
       </div>
       <ExerciseChartCard
         exerciseName={exercise.name}

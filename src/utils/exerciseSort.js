@@ -100,3 +100,32 @@ export function sortExerciseCards(exercises, sortMode = 'name-asc') {
     .sort((left, right) => compareDecoratedExercises(left, right, sortMode))
     .map(({ exercise }) => exercise);
 }
+
+export function normalizeExerciseSortMode(value) {
+  return ['name-asc', 'name-desc', 'count-desc', 'newest', 'last-trained'].includes(value)
+    ? value
+    : 'name-asc';
+}
+
+export function resolveExerciseNavigationOrder(exercises, requestedOrder) {
+  const alphabeticalFallback = sortExerciseCards(exercises, 'name-asc');
+
+  if (!Array.isArray(requestedOrder) || !requestedOrder.length) {
+    return alphabeticalFallback;
+  }
+
+  const exercisesById = new Map(alphabeticalFallback.map((exercise) => [exercise.id, exercise]));
+  const seen = new Set();
+  const orderedExercises = [];
+
+  requestedOrder.slice(0, alphabeticalFallback.length).forEach((exerciseId) => {
+    if (typeof exerciseId !== 'string' || seen.has(exerciseId) || !exercisesById.has(exerciseId)) {
+      return;
+    }
+
+    seen.add(exerciseId);
+    orderedExercises.push(exercisesById.get(exerciseId));
+  });
+
+  return orderedExercises.length ? orderedExercises : alphabeticalFallback;
+}
