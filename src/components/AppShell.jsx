@@ -5,6 +5,7 @@ import { useAppData } from './AppProvider';
 import SyncIndicator from './SyncIndicator';
 
 const appVersion = '2.0.0';
+const displayVersion = `v${appVersion.split('.').slice(0, 2).join('.')}`;
 
 const navItems = [
   { to: '/', label: 'Übersicht', shortLabel: 'Übersicht', marker: '01' },
@@ -115,6 +116,9 @@ export default function AppShell() {
               <span className="-skew-x-12 font-display text-base font-black tracking-[-0.12em] text-amber">
                 HG
               </span>
+              <span className="absolute -bottom-1 -right-1 rounded-sm bg-paper/95 px-0.5 font-display text-[7px] font-bold leading-3 tracking-tight text-muted">
+                {displayVersion}
+              </span>
             </span>
           </Link>
 
@@ -140,9 +144,6 @@ export default function AppShell() {
             <div className="hidden lg:block">
               <BackupControls compact />
             </div>
-            <span className="hidden text-[10px] font-bold tracking-[0.14em] text-muted xl:block">
-              V{appVersion}
-            </span>
           </div>
         </div>
       </header>
