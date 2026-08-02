@@ -230,7 +230,7 @@ export default function WorkoutBuilderPage({ mode }) {
         ) : null}
 
         {isCompact ? (
-          <section className="panel overflow-hidden">
+          <section className="panel sticky top-0 z-30 overflow-hidden shadow-panel md:top-[4.5rem]">
             {workout.exercises.length ? (
               <div className="flex gap-1.5 overflow-x-auto p-2" aria-label="Übungen im Workout">
                 {workout.exercises.map((exercise, index) => (

@@ -68,6 +68,7 @@ function TrashIcon() {
 
 export default function ExerciseEditorCard({
   exercise,
+  compact = false,
   libraryEntry,
   lastWorkoutSummary,
   lastWorkoutCommentText,
@@ -154,32 +155,34 @@ export default function ExerciseEditorCard({
     <>
       <article className="panel overflow-hidden">
         <div className="border-b border-line p-4 sm:p-5">
-          <div className="min-w-0">
-            <label htmlFor={`exercise-name-${exercise.id}`} className="sr-only">
-              Übungsname
-            </label>
-            <input
-              id={`exercise-name-${exercise.id}`}
-              className="field text-center font-display text-lg font-bold sm:text-2xl"
-              value={draftName}
-              onChange={(event) => setDraftName(event.target.value)}
-              onBlur={() => {
-                if (draftName.trim() && draftName !== exercise.name) {
-                  onRenameExercise(draftName);
-                } else {
-                  setDraftName(exercise.name);
-                }
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.currentTarget.blur();
-                }
-              }}
-            />
-          </div>
+          {!compact ? (
+            <div className="min-w-0">
+              <label htmlFor={`exercise-name-${exercise.id}`} className="sr-only">
+                Übungsname
+              </label>
+              <input
+                id={`exercise-name-${exercise.id}`}
+                className="field text-center font-display text-lg font-bold sm:text-2xl"
+                value={draftName}
+                onChange={(event) => setDraftName(event.target.value)}
+                onBlur={() => {
+                  if (draftName.trim() && draftName !== exercise.name) {
+                    onRenameExercise(draftName);
+                  } else {
+                    setDraftName(exercise.name);
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.currentTarget.blur();
+                  }
+                }}
+              />
+            </div>
+          ) : null}
 
           <div
-            className={`mt-3 grid gap-x-5 gap-y-3 bg-surface-raised px-3 py-3 text-sm ${
+            className={`${compact ? '' : 'mt-3'} grid gap-x-5 gap-y-3 bg-surface-raised px-3 py-3 text-sm ${
               machineSettingsText ? 'md:grid-cols-2' : ''
             }`}
           >
