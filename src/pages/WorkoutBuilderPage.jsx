@@ -242,6 +242,15 @@ export default function WorkoutBuilderPage({ mode }) {
                     <span className="mt-1 block truncate text-sm font-bold">{exercise.name}</span>
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setExerciseModalOpen(true)}
+                  className="flex min-w-14 shrink-0 items-center justify-center rounded-sm border border-amber bg-amber-soft px-4 text-2xl font-bold text-amber-deep transition hover:bg-amber/20"
+                  aria-label="Übung am Ende der Reiter hinzufügen"
+                  title="Übung hinzufügen"
+                >
+                  <span aria-hidden="true">+</span>
+                </button>
               </div>
             ) : null}
           </section>
