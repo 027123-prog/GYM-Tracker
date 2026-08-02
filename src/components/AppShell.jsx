@@ -9,7 +9,7 @@ const displayVersion = `v${appVersion.split('.').slice(0, 2).join('.')}`;
 
 const navItems = [
   { to: '/', label: 'Übersicht', shortLabel: 'Übersicht', marker: '01' },
-  { to: '/workouts/new', label: 'Training', shortLabel: 'Training', marker: '+' },
+  { to: '/workouts/start', label: 'Training', shortLabel: 'Training', marker: '+' },
   { to: '/exercises', label: 'Übungen', shortLabel: 'Übungen', marker: '02' },
   { to: '/max-strength', label: 'Fortschritt', shortLabel: 'Fortschritt', marker: '03' },
 ];
@@ -19,7 +19,7 @@ function isNavActive(pathname, to) {
     return pathname === '/';
   }
 
-  if (to === '/workouts/new') {
+  if (to === '/workouts/start') {
     return pathname.startsWith('/workouts');
   }
 
@@ -40,7 +40,7 @@ function AppNavigation({ mobile = false, trainingTarget, hasActiveWorkout = fals
     >
       {navItems.map((item) => {
         const active = isNavActive(location.pathname, item.to);
-        const isTraining = item.to === '/workouts/new';
+        const isTraining = item.to === '/workouts/start';
         const target = isTraining ? trainingTarget : item.to;
         const workoutRunning = isTraining && hasActiveWorkout;
 
@@ -89,7 +89,7 @@ export default function AppShell() {
   );
   const trainingTarget = activeWorkout
     ? `/workouts/${encodeURIComponent(activeWorkout.id)}/edit`
-    : '/workouts/new';
+    : '/workouts/start';
 
   useEffect(() => {
     mainRef.current?.scrollTo({ top: 0, behavior: 'auto' });
@@ -111,12 +111,10 @@ export default function AppShell() {
           <Link to="/" className="flex shrink-0 items-center" aria-label="Zur Übersicht">
             <span className="relative flex h-10 w-10 items-center justify-center" aria-hidden="true">
               <span className="absolute inset-[2px] rounded-full border-2 border-amber" />
-              <span className="absolute right-0 top-0 h-4 w-2 rotate-[38deg] bg-paper" />
-              <span className="absolute right-[1px] top-[2px] h-[2px] w-2 rotate-[38deg] bg-amber" />
               <span className="-skew-x-12 font-display text-base font-black tracking-[-0.12em] text-amber">
                 HG
               </span>
-              <span className="absolute -bottom-1 -right-1 rounded-sm bg-paper/95 px-0.5 font-display text-[7px] font-bold leading-3 tracking-tight text-muted">
+              <span className="absolute -bottom-1 -right-1 px-0.5 font-display text-[7px] font-bold leading-3 tracking-tight text-muted">
                 {displayVersion}
               </span>
             </span>
