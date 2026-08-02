@@ -185,80 +185,7 @@ export default function WorkoutBuilderPage({ mode }) {
   return (
     <>
       <div className="space-y-3">
-        {!workout.completedAt ? (
-          <>
-            <section className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={!canComplete}
-                title={canComplete ? '' : 'Speichere mindestens einen Satz, bevor du das Workout abschließt.'}
-                onClick={() => {
-                  completeWorkout(workout.id);
-                  setSummaryOpen(true);
-                }}
-                className="action-button min-w-0 flex-1"
-              >
-                Workout abschließen
-              </button>
-              <button
-                type="button"
-                onClick={() => setWorkoutSettingsOpen((open) => !open)}
-                className={`icon-button ${workoutSettingsOpen ? 'border-amber/60 bg-amber-soft text-amber-deep' : ''}`}
-                aria-label="Workout-Einstellungen"
-                title="Workout-Einstellungen"
-                aria-expanded={workoutSettingsOpen}
-                aria-controls="workout-settings"
-              >
-                <span aria-hidden="true" className="text-lg leading-none">•••</span>
-              </button>
-            </section>
-
-            {workoutSettingsOpen ? (
-              <section id="workout-settings" className="panel p-3 sm:p-4">
-                <label htmlFor="workout-name" className="eyebrow mb-2 block">
-                  Workout-Name
-                </label>
-                <input
-                  id="workout-name"
-                  className="field font-display text-base font-bold sm:text-lg"
-                  value={usesDefaultFreeWorkoutName ? '' : workout.name}
-                  onChange={(event) => updateWorkoutName(workout.id, event.target.value)}
-                  onFocus={() => setWorkoutNameFocused(true)}
-                  onBlur={() => {
-                    setWorkoutNameFocused(false);
-
-                    if (workout.mode === 'free' && !workout.name.trim()) {
-                      updateWorkoutName(workout.id, DEFAULT_FREE_WORKOUT_NAME);
-                    }
-                  }}
-                  placeholder={
-                    usesDefaultFreeWorkoutName && !workoutNameFocused
-                      ? DEFAULT_FREE_WORKOUT_NAME
-                      : workoutNameFocused
-                        ? ''
-                        : 'Workout benennen'
-                  }
-                  autoComplete="off"
-                />
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      saveWorkoutAsTemplate(workout.id);
-                      setTemplateSaved(true);
-                    }}
-                    className={`secondary-button min-w-0 px-2 ${templateSaved ? 'border-amber/60 bg-amber-soft' : ''}`}
-                  >
-                    {templateSaved ? 'Gespeichert' : 'Als Vorlage speichern'}
-                  </button>
-                  <button type="button" onClick={handleDeleteWorkout} className="danger-button min-w-0 px-2">
-                    Workout löschen
-                  </button>
-                </div>
-              </section>
-            ) : null}
-          </>
-        ) : (
+        {workout.completedAt ? (
           <section className="panel p-4 sm:p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
               <div className="min-w-0 flex-1">
@@ -300,7 +227,7 @@ export default function WorkoutBuilderPage({ mode }) {
               </div>
             </div>
           </section>
-        )}
+        ) : null}
 
         {isCompact ? (
           <section className="panel overflow-hidden">
@@ -393,6 +320,81 @@ export default function WorkoutBuilderPage({ mode }) {
             ) : null}
           </div>
         )}
+
+        {!workout.completedAt ? (
+          <>
+            <section className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                disabled={!canComplete}
+                title={canComplete ? '' : 'Speichere mindestens einen Satz, bevor du das Workout abschließt.'}
+                onClick={() => {
+                  completeWorkout(workout.id);
+                  setSummaryOpen(true);
+                }}
+                className="action-button min-w-0 flex-1"
+              >
+                Workout abschließen
+              </button>
+              <button
+                type="button"
+                onClick={() => setWorkoutSettingsOpen((open) => !open)}
+                className={`icon-button ${workoutSettingsOpen ? 'border-amber/60 bg-amber-soft text-amber-deep' : ''}`}
+                aria-label="Workout-Einstellungen"
+                title="Workout-Einstellungen"
+                aria-expanded={workoutSettingsOpen}
+                aria-controls="workout-settings"
+              >
+                <span aria-hidden="true" className="text-lg leading-none">•••</span>
+              </button>
+            </section>
+
+            {workoutSettingsOpen ? (
+              <section id="workout-settings" className="panel p-3 sm:p-4">
+                <label htmlFor="workout-name" className="eyebrow mb-2 block">
+                  Workout-Name
+                </label>
+                <input
+                  id="workout-name"
+                  className="field font-display text-base font-bold sm:text-lg"
+                  value={usesDefaultFreeWorkoutName ? '' : workout.name}
+                  onChange={(event) => updateWorkoutName(workout.id, event.target.value)}
+                  onFocus={() => setWorkoutNameFocused(true)}
+                  onBlur={() => {
+                    setWorkoutNameFocused(false);
+
+                    if (workout.mode === 'free' && !workout.name.trim()) {
+                      updateWorkoutName(workout.id, DEFAULT_FREE_WORKOUT_NAME);
+                    }
+                  }}
+                  placeholder={
+                    usesDefaultFreeWorkoutName && !workoutNameFocused
+                      ? DEFAULT_FREE_WORKOUT_NAME
+                      : workoutNameFocused
+                        ? ''
+                        : 'Workout benennen'
+                  }
+                  autoComplete="off"
+                />
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      saveWorkoutAsTemplate(workout.id);
+                      setTemplateSaved(true);
+                    }}
+                    className={`secondary-button min-w-0 px-2 ${templateSaved ? 'border-amber/60 bg-amber-soft' : ''}`}
+                  >
+                    {templateSaved ? 'Gespeichert' : 'Als Vorlage speichern'}
+                  </button>
+                  <button type="button" onClick={handleDeleteWorkout} className="danger-button min-w-0 px-2">
+                    Workout löschen
+                  </button>
+                </div>
+              </section>
+            ) : null}
+          </>
+        ) : null}
       </div>
 
       <WorkoutSummaryModal
