@@ -104,7 +104,7 @@ export function sortExerciseCards(exercises, sortMode = 'name-asc') {
 export function normalizeExerciseSortMode(value) {
   return ['name-asc', 'name-desc', 'count-desc', 'newest', 'last-trained'].includes(value)
     ? value
-    : 'name-asc';
+    : 'count-desc';
 }
 
 export function resolveExerciseNavigationOrder(exercises, requestedOrder) {

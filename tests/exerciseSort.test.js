@@ -121,5 +121,5 @@ test('Diagramm-Navigation übernimmt eine übergebene Übungsreihenfolge sicher'
     ['alpha', 'beta', 'gamma'],
   );
   assert.equal(normalizeExerciseSortMode('count-desc'), 'count-desc');
-  assert.equal(normalizeExerciseSortMode('unbekannt'), 'name-asc');
+  assert.equal(normalizeExerciseSortMode('unbekannt'), 'count-desc');
 });

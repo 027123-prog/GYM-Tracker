@@ -5,8 +5,8 @@ import { normalizeExerciseSortMode, sortExerciseCards } from '../utils/exerciseS
 import { getExerciseWorkoutCount, getLastExerciseSnapshot } from '../utils/workout';
 
 const sortOptions = [
-  { value: 'name-asc', label: 'Alphabet A–Z' },
   { value: 'count-desc', label: 'Anzahl: meiste' },
+  { value: 'name-asc', label: 'Alphabet A–Z' },
   { value: 'newest', label: 'Neueste Übungen' },
   { value: 'last-trained', label: 'Zuletzt trainiert' },
   { value: 'name-desc', label: 'Alphabet Z–A' },
@@ -86,7 +86,7 @@ export default function ExerciseLibraryPage() {
             <select
               className="secondary-button h-[46px] w-full appearance-none justify-start pl-3 pr-10 text-left sm:w-auto"
               value={sortMode}
-              onChange={(event) => updateSearchParams('sort', event.target.value, 'name-asc')}
+              onChange={(event) => updateSearchParams('sort', event.target.value, 'count-desc')}
             >
               {sortOptions.map((option) => (
                 <option key={option.value} value={option.value}>

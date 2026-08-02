@@ -67,7 +67,7 @@ function Stop-PortConflict {
   }
 
   $message = @"
-HardGainWAF v2.2 kann nicht gestartet werden.
+HardGainWAF v2.3 kann nicht gestartet werden.
 
 Port $defaultPort ist bereits durch einen anderen Server belegt.$processDetail
 Die App verwendet aus Sicherheitsgruenden ausschliesslich:
@@ -80,7 +80,7 @@ Bitte beende den fremden Prozess und starte HardGainWAF erneut.
 
   try {
     $popup = New-Object -ComObject WScript.Shell
-    [void]$popup.Popup($message, 0, 'HardGainWAF v2.2', 16)
+    [void]$popup.Popup($message, 0, 'HardGainWAF v2.3', 16)
   } catch {
     # In nicht-interaktiven Umgebungen bleibt die klare Fehlermeldung im Fehlerkanal.
   }
