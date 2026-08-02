@@ -6,22 +6,6 @@ import SetEntryModal from './SetEntryModal';
 const compactIconButtonClass =
   'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-line bg-surface-raised text-ink transition hover:border-amber/70 hover:text-amber-deep disabled:cursor-not-allowed disabled:opacity-35 min-[380px]:h-11 min-[380px]:w-11';
 
-function formatBodyweightFormula(setItem) {
-  if (setItem.weightMode !== 'bodyweight' || !setItem.bodyWeight || !setItem.bodyweightFactor) {
-    return '';
-  }
-
-  const format = (value) =>
-    new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 }).format(value);
-  const percent = format(setItem.bodyweightFactor * 100);
-  const addedWeight = Number(setItem.addedWeight) || 0;
-  const addedLabel = addedWeight
-    ? ` ${addedWeight > 0 ? '+' : '−'} ${format(Math.abs(addedWeight))} kg`
-    : '';
-
-  return `Körpergewicht ${format(setItem.bodyWeight)} kg × ${percent} %${addedLabel}`;
-}
-
 function ChartIcon() {
   return (
     <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" className="h-4 w-4" fill="none">
@@ -311,10 +295,9 @@ export default function ExerciseEditorCard({
                   <p className="font-display text-lg font-bold tabular-nums text-ink">
                     {setItem.weight} kg <span className="text-amber">×</span> {setItem.reps}
                   </p>
-                  {setItem.comment || formatBodyweightFormula(setItem) ? (
+                  {setItem.comment ? (
                     <div className="min-w-0 text-xs italic text-muted">
-                      {setItem.comment ? <p className="truncate">{setItem.comment}</p> : null}
-                      {formatBodyweightFormula(setItem) ? <p>{formatBodyweightFormula(setItem)}</p> : null}
+                      <p className="truncate">{setItem.comment}</p>
                     </div>
                   ) : null}
                   <div className="flex gap-2 sm:col-start-4">

@@ -170,7 +170,7 @@ export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) 
       maxWidth="max-w-lg"
       mobilePosition="top"
     >
-      <div className="flex h-[min(72dvh,36rem)] max-h-[calc(var(--modal-viewport-height,100dvh)-4rem)] min-h-0 flex-col">
+      <div className="flex h-[calc(var(--modal-viewport-height,100dvh)-4rem)] min-h-0 flex-col sm:h-[min(78dvh,42rem)]">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="eyebrow">Workout erweitern</p>

@@ -197,7 +197,7 @@ export default function SetEntryModal({
             </div>
           </div>
         ) : (
-          <WeightSuggestionGrid options={weightOptions} onSelect={setWeight} />
+          <WeightSuggestionGrid options={weightOptions} selectedValue={weight} onSelect={setWeight} />
         )}
 
         <div>
@@ -213,6 +213,7 @@ export default function SetEntryModal({
                     ? 'border-amber bg-amber-soft text-amber-deep'
                     : 'border-line bg-paper text-muted hover:border-amber/55 hover:text-ink'
                 }`}
+                aria-pressed={Number(reps) === preset}
               >
                 {preset}
               </button>
