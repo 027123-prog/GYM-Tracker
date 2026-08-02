@@ -4,7 +4,7 @@ import BackupControls from './BackupControls';
 import { useAppData } from './AppProvider';
 import SyncIndicator from './SyncIndicator';
 
-const appVersion = '2.1.0';
+const appVersion = '2.2.0';
 const displayVersion = `v${appVersion.split('.').slice(0, 2).join('.')}`;
 
 const navItems = [

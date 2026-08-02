@@ -163,7 +163,13 @@ export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) 
   }
 
   return (
-    <ModalShell isOpen={isOpen} onClose={onClose} labelledBy="add-exercise-title" maxWidth="max-w-lg">
+    <ModalShell
+      isOpen={isOpen}
+      onClose={onClose}
+      labelledBy="add-exercise-title"
+      maxWidth="max-w-lg"
+      mobilePosition="top"
+    >
       <div className="flex h-[min(72dvh,36rem)] max-h-[calc(var(--modal-viewport-height,100dvh)-4rem)] min-h-0 flex-col">
         <div className="flex items-start justify-between gap-4">
           <div>

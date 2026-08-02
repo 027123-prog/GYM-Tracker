@@ -1,7 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
-export default function ModalShell({ isOpen, onClose, labelledBy, maxWidth = 'max-w-lg', children }) {
+export default function ModalShell({
+  isOpen,
+  onClose,
+  labelledBy,
+  maxWidth = 'max-w-lg',
+  mobilePosition = 'bottom',
+  children,
+}) {
   const dialogRef = useRef(null);
   const overlayRef = useRef(null);
   const onCloseRef = useRef(onClose);
@@ -128,17 +135,25 @@ export default function ModalShell({ isOpen, onClose, labelledBy, maxWidth = 'ma
     return null;
   }
 
+  const topAligned = mobilePosition === 'top';
+
   return createPortal(
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[60] flex items-end justify-center overscroll-contain bg-black/75 px-0 pt-4 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6"
+      className={`fixed inset-0 z-[60] flex justify-center overscroll-contain bg-black/75 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6 ${
+        topAligned
+          ? 'items-start px-2 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))]'
+          : 'items-end px-0 pt-4'
+      }`}
     >
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
-        className={`panel max-h-[calc(100%_-_1rem)] w-full overscroll-contain overflow-y-auto rounded-b-none border-b-0 p-5 sm:max-h-full sm:rounded-md sm:border-b sm:p-6 ${maxWidth}`}
+        className={`panel max-h-[calc(100%_-_1rem)] w-full overscroll-contain overflow-y-auto p-5 sm:max-h-full sm:rounded-md sm:border-b sm:p-6 ${
+          topAligned ? 'rounded-sm' : 'rounded-b-none border-b-0'
+        } ${maxWidth}`}
       >
         {children}
       </div>
