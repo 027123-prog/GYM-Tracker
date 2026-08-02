@@ -74,9 +74,11 @@ export default function WorkoutDetailPage() {
 
       <section className="space-y-3">
         {workout.exercises.map((exercise, exerciseIndex) => {
-          const machineSettings = (exercise.machineSettings ?? [])
+          const legacyMachineSettings = (exercise.machineSettings ?? [])
             .map((setting) => `${setting.label}: ${setting.value}`)
             .join(' · ');
+          const libraryExercise = state.exercises.find((item) => item.id === exercise.exerciseId);
+          const machineSettings = libraryExercise?.settings?.setupNotes || legacyMachineSettings;
 
           return (
             <article
@@ -117,10 +119,9 @@ export default function WorkoutDetailPage() {
                       <p className="font-display text-lg font-bold tabular-nums text-ink">
                         {setItem.weight} kg <span className="text-amber">×</span> {setItem.reps}
                       </p>
-                      {setItem.comment || setItem.seatHeight ? (
+                      {setItem.comment ? (
                         <div className="text-xs italic text-muted">
-                          {setItem.comment ? <p>{setItem.comment}</p> : null}
-                          {setItem.seatHeight ? <p className="mt-0.5">Setup: {setItem.seatHeight}</p> : null}
+                          <p>{setItem.comment}</p>
                         </div>
                       ) : null}
                     </div>

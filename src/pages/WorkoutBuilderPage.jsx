@@ -26,6 +26,7 @@ export default function WorkoutBuilderPage({ mode }) {
     addExerciseToWorkout,
     insertExerciseToWorkout,
     renameExercise,
+    updateExerciseSettings,
     deleteExercise,
     saveSet,
     deleteSet,
@@ -286,6 +287,9 @@ export default function WorkoutBuilderPage({ mode }) {
                   activeExercise.name,
                 )}
                 onRenameExercise={(name) => renameExercise(workout.id, activeExercise.id, name)}
+                onUpdateExerciseSettings={(settings) =>
+                  updateExerciseSettings(activeExercise.exerciseId, settings)
+                }
                 onDeleteExercise={() => {
                   deleteExercise(workout.id, activeExercise.id);
                   setActiveExerciseIndex((current) => Math.max(current - 1, 0));

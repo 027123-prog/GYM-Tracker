@@ -60,6 +60,11 @@ function ensureExerciseRecord(exercises, name) {
     id: createId('exercise'),
     name: trimmedName,
     weightOptions: [],
+    settings: {
+      loadType: 'normal',
+      bodyweightPercent: 100,
+      setupNotes: '',
+    },
     createdAt: new Date().toISOString(),
   };
 
@@ -468,6 +473,32 @@ export function AppProvider({ children }) {
     setWorkouts(nextWorkouts, nextExercises);
   }
 
+  function updateExerciseSettings(exerciseId, settings) {
+    const loadType = ['bodyweight', 'bodyweight-added'].includes(settings?.loadType)
+      ? settings.loadType
+      : 'normal';
+    const bodyweightPercent = parseLocalizedNumber(settings?.bodyweightPercent);
+
+    setState((current) => ({
+      ...current,
+      exercises: current.exercises.map((exercise) =>
+        exercise.id === exerciseId
+          ? {
+              ...exercise,
+              settings: {
+                loadType,
+                bodyweightPercent:
+                  loadType !== 'normal' && Number.isFinite(bodyweightPercent)
+                    ? Math.min(300, Math.max(1, bodyweightPercent))
+                    : 100,
+                setupNotes: settings?.setupNotes?.trim() ?? '',
+              },
+            }
+          : exercise,
+      ),
+    }));
+  }
+
   function deleteExercise(workoutId, entryId) {
     const nextWorkouts = state.workouts.map((workout) =>
       workout.id === workoutId
@@ -534,7 +565,8 @@ export function AppProvider({ children }) {
             weight,
             reps,
             comment: payload.comment?.trim() ?? '',
-            seatHeight: payload.seatHeight?.trim() ?? '',
+            seatHeight:
+              exercise.sets.find((setItem) => setItem.id === payload.id)?.seatHeight ?? '',
             savedAt: new Date().toISOString(),
             ...(hasBodyweightData
               ? {
@@ -671,6 +703,7 @@ export function AppProvider({ children }) {
         addExerciseToWorkout,
         insertExerciseToWorkout,
         renameExercise,
+        updateExerciseSettings,
         deleteExercise,
         saveSet,
         deleteSet,

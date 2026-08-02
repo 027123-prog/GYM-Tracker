@@ -116,6 +116,11 @@ test('normalizeAppState migriert Namen und bereinigt beschädigte v1-Daten', () 
       id: 'exercise-recovered-0',
       name: 'Bankdrücken',
       weightOptions: [10, 20],
+      settings: {
+        loadType: 'normal',
+        bodyweightPercent: 100,
+        setupNotes: '',
+      },
       createdAt: '2026-06-15T12:00:00.000Z',
     },
   ]);
@@ -343,7 +348,7 @@ test('Backup-Export und -Import ergeben einen verlustfreien normalisierten Round
   const restored = parseBackupPayload(JSON.stringify(backup));
 
   assert.equal(backup.app, 'hardgainwaf');
-  assert.equal(backup.appVersion, '2.4.0');
+  assert.equal(backup.appVersion, '2.5.0');
   assert.equal(backup.storageKey, STORAGE_KEY);
   assert.equal(backup.storageVersion, STORAGE_VERSION);
   assert.match(backup.exportedAt, /^\d{4}-\d{2}-\d{2}T/);
@@ -401,4 +406,42 @@ test('ungültige Körpergewichtsformeln werden beim Import nicht als widersprüc
   assert.equal('bodyWeight' in normalizedSet, false);
   assert.equal('bodyweightFactor' in normalizedSet, false);
   assert.equal('addedWeight' in normalizedSet, false);
+});
+
+test('Übungseinstellungen werden normalisiert und dauerhaft an der Übung gespeichert', () => {
+  const normalized = normalizeAppState({
+    exercises: [
+      {
+        id: 'exercise-dips',
+        name: 'Dips',
+        settings: {
+          loadType: 'bodyweight-added',
+          bodyweightPercent: '67',
+          setupNotes: ' Barren eng ',
+        },
+      },
+      {
+        id: 'exercise-press',
+        name: 'Brustpresse',
+        settings: {
+          loadType: 'unbekannt',
+          bodyweightPercent: 900,
+        },
+      },
+    ],
+    templates: [],
+    workouts: [],
+    maxStrengthRecords: [],
+  });
+
+  assert.deepEqual(normalized.exercises[0].settings, {
+    loadType: 'bodyweight-added',
+    bodyweightPercent: 67,
+    setupNotes: 'Barren eng',
+  });
+  assert.deepEqual(normalized.exercises[1].settings, {
+    loadType: 'normal',
+    bodyweightPercent: 100,
+    setupNotes: '',
+  });
 });

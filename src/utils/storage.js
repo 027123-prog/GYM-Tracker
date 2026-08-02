@@ -65,6 +65,21 @@ function normalizeMachineSettings(settings) {
     .filter((item) => item.label || item.value);
 }
 
+function normalizeExerciseSettings(settings) {
+  const loadType = ['bodyweight', 'bodyweight-added'].includes(settings?.loadType)
+    ? settings.loadType
+    : 'normal';
+
+  return {
+    loadType,
+    bodyweightPercent:
+      loadType === 'normal'
+        ? 100
+        : Math.min(300, Math.max(1, safeNumber(settings?.bodyweightPercent, 100))),
+    setupNotes: safeString(settings?.setupNotes).trim(),
+  };
+}
+
 function normalizeSets(sets) {
   return safeArray(sets)
     .map((item, index) => {
@@ -124,6 +139,7 @@ function normalizeExercises(exercises) {
               .filter((value) => Number.isFinite(value) && value >= 0),
           ),
         ].sort((a, b) => a - b),
+        settings: normalizeExerciseSettings(exercise?.settings),
         ...(createdAt ? { createdAt } : {}),
       };
     })
@@ -351,7 +367,7 @@ export function createBackupPayload(state) {
 
   return {
     app: 'hardgainwaf',
-    appVersion: '2.4.0',
+    appVersion: '2.5.0',
     storageKey: STORAGE_KEY,
     storageVersion: STORAGE_VERSION,
     exportedAt: new Date().toISOString(),
