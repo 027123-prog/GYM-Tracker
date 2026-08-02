@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 
 function SelectedPointDetails({ point, metric, onClose }) {
+  const comments = point.sets
+    .map((setItem, index) => ({
+      id: setItem.id,
+      label: `Satz ${index + 1}`,
+      text: setItem.comment?.trim() ?? '',
+    }))
+    .filter((comment) => comment.text);
+
   return (
     <div
       id="chart-point-details"
@@ -41,6 +49,16 @@ function SelectedPointDetails({ point, metric, onClose }) {
           </span>
         ))}
       </div>
+
+      {comments.length ? (
+        <div className="mt-3 space-y-0.5 text-[10px] italic leading-relaxed text-muted">
+          {comments.map((comment) => (
+            <p key={comment.id}>
+              {comment.label}: {comment.text}
+            </p>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -98,7 +116,7 @@ export default function ExerciseChartCard({
     .map(
       (point) =>
         `${point.date}:${point.volume}:${point.maxWeight}:${point.sets
-          .map((setItem) => `${setItem.id}:${setItem.weight}:${setItem.reps}`)
+          .map((setItem) => `${setItem.id}:${setItem.weight}:${setItem.reps}:${setItem.comment ?? ''}`)
           .join(',')}`,
     )
     .join('|');
