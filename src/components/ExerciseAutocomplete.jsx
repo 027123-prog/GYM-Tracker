@@ -111,6 +111,8 @@ function getExerciseMatch(exercise, query, queryTokens) {
 export default function ExerciseAutocomplete({ exercises, onAdd, compact = false }) {
   const [value, setValue] = useState('');
   const trimmedValue = value.trim();
+  const activeExercises = useMemo(() => exercises.filter((exercise) => !exercise.archivedAt), [exercises]);
+  const archivedExactMatch = exercises.find((exercise) => exercise.archivedAt && normalizeText(exercise.name) === normalizeText(trimmedValue));
 
   const filteredExercises = useMemo(() => {
     const query = normalizeText(value);
@@ -120,17 +122,17 @@ export default function ExerciseAutocomplete({ exercises, onAdd, compact = false
       return [];
     }
 
-    return [...exercises]
+    return activeExercises
       .map((exercise) => getExerciseMatch(exercise, query, queryTokens))
       .filter(Boolean)
       .sort((a, b) => a.score - b.score || a.distance - b.distance || a.exercise.name.localeCompare(b.exercise.name, 'de'))
       .map((item) => item.exercise)
       .slice(0, 8);
-  }, [exercises, value]);
+  }, [activeExercises, value]);
 
   const hasExactExercise = useMemo(
-    () => exercises.some((exercise) => normalizeText(exercise.name) === normalizeText(trimmedValue)),
-    [exercises, trimmedValue],
+    () => activeExercises.some((exercise) => normalizeText(exercise.name) === normalizeText(trimmedValue)),
+    [activeExercises, trimmedValue],
   );
 
   function handleSubmit(event) {
@@ -142,7 +144,7 @@ export default function ExerciseAutocomplete({ exercises, onAdd, compact = false
       return;
     }
 
-    const exactMatch = exercises.find((exercise) => normalizeText(exercise.name) === normalizeText(trimmedValue));
+    const exactMatch = activeExercises.find((exercise) => normalizeText(exercise.name) === normalizeText(trimmedValue)) ?? archivedExactMatch;
     onAdd(exactMatch?.name ?? trimmedValue);
     setValue('');
   }
@@ -181,11 +183,11 @@ export default function ExerciseAutocomplete({ exercises, onAdd, compact = false
               {trimmedValue && !hasExactExercise ? (
                 <button
                   type="button"
-                  onClick={() => handleSelect(trimmedValue)}
+                  onClick={() => handleSelect(archivedExactMatch?.name ?? trimmedValue)}
                   className="mb-1 flex min-h-11 w-full items-center justify-between rounded-sm border border-amber/60 bg-amber-soft px-3 py-2 text-left text-sm font-semibold text-ink transition"
                 >
-                  <span>Neue Übung: {trimmedValue}</span>
-                  <span className="text-xs text-muted">neu</span>
+                  <span>{archivedExactMatch ? 'Wieder aktivieren' : 'Neue Übung'}: {archivedExactMatch?.name ?? trimmedValue}</span>
+                  <span className="text-xs text-muted">{archivedExactMatch ? 'Archiv' : 'neu'}</span>
                 </button>
               ) : null}
               {filteredExercises.map((exercise) => (

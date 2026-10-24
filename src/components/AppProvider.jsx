@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { loadAppState, normalizeAppState, saveAppState, STORAGE_KEY } from '../utils/storage';
 import { createId, normalizeWeightOptions } from '../utils/workout';
-import { editExerciseRecord } from '../utils/exerciseEditing';
+import { editExerciseRecord, ensureExerciseRecord, findExerciseByName, removeExerciseRecord, restoreExerciseRecord } from '../utils/exerciseEditing';
 import { prepareSetValues } from '../utils/setMeasurements';
 
 const AppContext = createContext(null);
@@ -47,32 +47,6 @@ function clearStoredActiveWorkoutId() {
   } catch {
     // Der Provider-State wird unabhängig vom Session-Speicher bereinigt.
   }
-}
-
-function ensureExerciseRecord(exercises, name) {
-  const trimmedName = name.trim();
-  const existing = exercises.find((exercise) => exercise.name.toLowerCase() === trimmedName.toLowerCase());
-
-  if (existing) {
-    return { exercises, exercise: existing };
-  }
-
-  const newExercise = {
-    id: createId('exercise'),
-    name: trimmedName,
-    weightOptions: [],
-    settings: {
-      loadType: 'normal',
-      bodyweightPercent: 100,
-      setupNotes: '',
-    },
-    createdAt: new Date().toISOString(),
-  };
-
-  return {
-    exercises: [...exercises, newExercise],
-    exercise: newExercise,
-  };
 }
 
 function createWorkoutEntry(exercise, options = {}) {
@@ -296,6 +270,8 @@ export function AppProvider({ children }) {
     let nextExercises = state.exercises;
     const templateEntries = template.exerciseTemplates.map((exerciseTemplate) => {
       const existingById = nextExercises.find((exercise) => exercise.id === exerciseTemplate.exerciseId);
+      const existing = existingById ?? findExerciseByName(nextExercises, exerciseTemplate.name);
+      if (existing?.archivedAt) return null;
       const ensured = existingById
         ? { exercises: nextExercises, exercise: existingById }
         : ensureExerciseRecord(nextExercises, exerciseTemplate.name);
@@ -304,7 +280,9 @@ export function AppProvider({ children }) {
         targetRepScheme: exerciseTemplate.repScheme,
         machineSettings: getLastMachineSettings(state.workouts, ensured.exercise.id),
       });
-    });
+    }).filter(Boolean);
+
+    if (!templateEntries.length) return null;
 
     const createdAt = new Date().toISOString();
     const workout = {
@@ -337,11 +315,18 @@ export function AppProvider({ children }) {
     }
 
     const templateName = workout.name.trim() || 'Neue Vorlage';
-    const exerciseTemplates = workout.exercises.map((exercise) => ({
-      exerciseId: exercise.exerciseId,
-      name: exercise.name,
-      repScheme: exercise.targetRepScheme ?? '',
-    }));
+    const exerciseTemplates = workout.exercises
+      .filter((entry) => {
+        const record = state.exercises.find((exercise) => exercise.id === entry.exerciseId)
+          ?? findExerciseByName(state.exercises, entry.name);
+        return !record?.archivedAt;
+      })
+      .map((exercise) => ({
+        exerciseId: exercise.exerciseId,
+        name: exercise.name,
+        repScheme: exercise.targetRepScheme ?? '',
+      }));
+    if (!exerciseTemplates.length) return null;
     const existingTemplate = state.templates.find(
       (template) => template.name.trim().toLowerCase() === templateName.toLowerCase(),
     );
@@ -470,6 +455,23 @@ export function AppProvider({ children }) {
     return editLibraryExercise(exerciseId, { name, settings });
   }
 
+  function renameLibraryExercise(exerciseId, name) {
+    return editLibraryExercise(exerciseId, { name });
+  }
+
+  function removeLibraryExercise(exerciseId) {
+    const timestamp = new Date().toISOString();
+    const result = removeExerciseRecord(state, exerciseId, timestamp);
+    if (!result.error) setState((current) => removeExerciseRecord(current, exerciseId, timestamp).state);
+    return { error: result.error, archived: result.archived, deleted: result.deleted };
+  }
+
+  function restoreLibraryExercise(exerciseId) {
+    const result = restoreExerciseRecord(state, exerciseId);
+    if (!result.error) setState((current) => restoreExerciseRecord(current, exerciseId).state);
+    return result.error;
+  }
+
   function deleteExercise(workoutId, entryId) {
     const nextWorkouts = state.workouts.map((workout) =>
       workout.id === workoutId
@@ -515,13 +517,13 @@ export function AppProvider({ children }) {
             );
           }
 
+          const existingSet = exercise.sets.find((setItem) => setItem.id === payload.id);
           const nextSet = {
             id: payload.id ?? createId('set'),
             ...values,
             comment: payload.comment?.trim() ?? '',
-            seatHeight:
-              exercise.sets.find((setItem) => setItem.id === payload.id)?.seatHeight ?? '',
-            savedAt: new Date().toISOString(),
+            seatHeight: existingSet?.seatHeight ?? '',
+            savedAt: existingSet ? (existingSet.savedAt ?? '') : new Date().toISOString(),
           };
           savedSetId = nextSet.id;
 
@@ -649,6 +651,9 @@ export function AppProvider({ children }) {
         addExerciseToWorkout,
         insertExerciseToWorkout,
         renameExercise,
+        renameLibraryExercise,
+        removeLibraryExercise,
+        restoreLibraryExercise,
         updateExerciseSettings,
         deleteExercise,
         saveSet,

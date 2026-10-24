@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { editExerciseRecord } from '../src/utils/exerciseEditing.js';
+import { editExerciseRecord, ensureExerciseRecord, getExerciseRemovalImpact, removeExerciseRecord, restoreExerciseRecord } from '../src/utils/exerciseEditing.js';
 import { createBackupPayload, parseBackupPayload } from '../src/utils/storage.js';
 import { buildExerciseChartData, getExerciseWorkoutCount } from '../src/utils/workout.js';
 
@@ -88,4 +88,104 @@ test('invalid load settings cannot partially rename an exercise', () => {
 
   assert.ok(result.error);
   assert.equal(result.state, before);
+});
+
+test('removing a used exercise archives it, removes template references and leaves every workout byte unchanged', () => {
+  const before = fixture();
+  before.templates[0].exerciseTemplates.push({ exerciseId: 'lat', name: 'Latzug', repScheme: '2 × 10' });
+  before.workouts.push({ id: 'open', completedAt: null, exercises: [{ id: 'open-entry', exerciseId: 'row', name: 'Rudern', sets: [] }] });
+  const snapshot = structuredClone(before);
+  const archivedAt = '2026-10-24T15:00:00.000Z';
+  const result = removeExerciseRecord(before, 'row', archivedAt);
+
+  assert.equal(result.error, null);
+  assert.equal(result.archived, true);
+  assert.equal(result.deleted, false);
+  assert.deepEqual(getExerciseRemovalImpact(before, 'row'), { archive: true, templateCount: 1 });
+  assert.deepEqual(result.state.exercises[0], { ...before.exercises[0], archivedAt });
+  assert.deepEqual(result.state.templates[0].exerciseTemplates, [before.templates[0].exerciseTemplates[1]]);
+  assert.strictEqual(result.state.workouts, before.workouts);
+  assert.strictEqual(result.state.maxStrengthRecords, before.maxStrengthRecords);
+  assert.deepEqual(before, snapshot);
+
+  const restoredBackup = parseBackupPayload(JSON.stringify(createBackupPayload(result.state)));
+  assert.equal(restoredBackup.exercises.find((exercise) => exercise.id === 'row').archivedAt, archivedAt);
+  assert.deepEqual(restoredBackup.workouts[0].exercises[0].sets, before.workouts[0].exercises[0].sets);
+  assert.deepEqual(restoredBackup.workouts[0].exercises[0].machineSettings, before.workouts[0].exercises[0].machineSettings);
+  assert.equal(removeExerciseRecord(result.state, 'row', '2026-10-25T15:00:00.000Z').state.exercises[0].archivedAt, archivedAt);
+});
+
+test('an exercise used only in a template is really deleted without disturbing other exercises', () => {
+  const before = fixture();
+  before.templates[0].exerciseTemplates.push({ exerciseId: 'lat', name: 'Latzug', repScheme: '2 × 10' });
+  assert.deepEqual(getExerciseRemovalImpact(before, 'lat'), { archive: false, templateCount: 1 });
+  const result = removeExerciseRecord(before, 'lat');
+  assert.equal(result.archived, false);
+  assert.equal(result.deleted, true);
+  assert.deepEqual(result.state.exercises, [before.exercises[0]]);
+  assert.deepEqual(result.state.templates[0].exerciseTemplates, [before.templates[0].exerciseTemplates[0]]);
+  assert.strictEqual(result.state.workouts, before.workouts);
+});
+
+test('open empty entries and independent named strength history both prevent hard deletion', () => {
+  const active = fixture();
+  active.workouts = [{ id: 'open', completedAt: null, exercises: [{ exerciseId: 'lat', name: 'Latzug', sets: [] }] }];
+  assert.equal(removeExerciseRecord(active, 'lat').archived, true);
+
+  const strengthOnly = fixture();
+  strengthOnly.workouts = [];
+  const result = removeExerciseRecord(strengthOnly, 'row');
+  assert.equal(result.archived, true);
+  assert.strictEqual(result.state.maxStrengthRecords, strengthOnly.maxStrengthRecords);
+});
+
+test('restoring keeps the original ID, notes and history without silently rebuilding old templates', () => {
+  const before = fixture();
+  const archived = removeExerciseRecord(before, 'row').state;
+  const result = restoreExerciseRecord(archived, 'row');
+  assert.equal(result.error, null);
+  assert.deepEqual(result.state.exercises[0], before.exercises[0]);
+  assert.strictEqual(result.state.workouts, before.workouts);
+  assert.strictEqual(result.state.templates, archived.templates);
+  assert.deepEqual(result.state.templates[0].exerciseTemplates, []);
+  assert.strictEqual(restoreExerciseRecord(before, 'row').state, before);
+});
+
+test('explicit reuse reactivates the original archived exercise instead of making another ID', () => {
+  const before = fixture();
+  const archived = removeExerciseRecord(before, 'row').state;
+  const reused = ensureExerciseRecord(archived.exercises, ' RUDERN ');
+  assert.deepEqual(reused.exercise, before.exercises[0]);
+  assert.equal(reused.exercises.length, before.exercises.length);
+  assert.equal(reused.exercise.archivedAt, undefined);
+  assert.ok(archived.exercises[0].archivedAt, 'Input remains archived');
+
+  const withActiveDuplicate = [...archived.exercises, { id: 'active-row', name: 'Rudern', weightOptions: [70] }];
+  assert.equal(ensureExerciseRecord(withActiveDuplicate, 'Rudern').exercise.id, 'active-row');
+});
+
+test('restore conflicts and unknown removals never merge or mutate records', () => {
+  const before = fixture();
+  const archived = removeExerciseRecord(before, 'row').state;
+  archived.exercises.push({ id: 'another-row', name: 'Rudern', settings: { setupNotes: 'other machine' } });
+  const collision = restoreExerciseRecord(archived, 'row');
+  assert.ok(collision.error);
+  assert.strictEqual(collision.state, archived);
+  const renamed = editExerciseRecord(archived, 'row', { name: 'Rudern altes Gerät' }).state;
+  assert.equal(restoreExerciseRecord(renamed, 'row').error, null);
+  const missing = removeExerciseRecord(before, 'missing');
+  assert.ok(missing.error);
+  assert.equal(missing.deleted, false);
+  assert.strictEqual(missing.state, before);
+});
+
+test('unresolved legacy references are preserved by archiving and removed from templates', () => {
+  const before = fixture();
+  before.maxStrengthRecords = [];
+  before.workouts[0].exercises[0].exerciseId = 'legacy-unresolved';
+  before.templates[0].exerciseTemplates[0].exerciseId = 'legacy-unresolved';
+  const result = removeExerciseRecord(before, 'row');
+  assert.equal(result.archived, true);
+  assert.deepEqual(result.state.templates[0].exerciseTemplates, []);
+  assert.strictEqual(result.state.workouts, before.workouts);
 });

@@ -8,6 +8,7 @@ import ExerciseEditorCard from '../components/ExerciseEditorCard';
 import TemplatePicker from '../components/TemplatePicker';
 import WorkoutSummaryModal from '../components/WorkoutSummaryModal';
 import { readWorkoutExerciseIndex, saveWorkoutExercisePosition } from '../utils/workoutNavigation';
+import { getExerciseWeightSuggestions } from '../utils/weightSuggestions';
 import {
   calculateWorkoutStats,
   getLastExerciseCommentText,
@@ -309,6 +310,11 @@ export default function WorkoutBuilderPage({ mode }) {
                 }
                 onInsertExercise={() => setExerciseModalOpen(true)}
                 libraryEntry={state.exercises.find((item) => item.id === activeExercise.exerciseId)}
+                weightSuggestions={getExerciseWeightSuggestions(
+                  state.exercises.find((item) => item.id === activeExercise.exerciseId)?.weightOptions,
+                  state.workouts,
+                  activeExercise.exerciseId,
+                )}
                 lastWorkoutSummary={getLastExerciseSummaryText(
                   previousWorkouts,
                   activeExercise.exerciseId,

@@ -2,7 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useAppData } from '../components/AppProvider';
 import EmptyState from '../components/EmptyState';
 import { calculateWorkoutStats } from '../utils/workout';
-import { formatDateTime } from '../utils/date';
+import { formatDateTime, formatSetTime } from '../utils/date';
 import { formatSetSummary } from '../utils/setMeasurements';
 
 function ChartIcon() {
@@ -113,22 +113,38 @@ export default function WorkoutDetailPage() {
 
               {exercise.sets.length ? (
                 <div className="divide-y divide-line">
-                  {exercise.sets.map((setItem, index) => (
-                    <div
-                      key={setItem.id}
-                      className="grid gap-2 px-4 py-3 sm:grid-cols-[70px_150px_minmax(0,1fr)] sm:items-center"
-                    >
-                      <span className="eyebrow">Satz {String(index + 1).padStart(2, '0')}</span>
-                      <p className="font-display text-lg font-bold tabular-nums text-ink">
-                        {formatSetSummary(setItem)}
-                      </p>
-                      {setItem.comment ? (
-                        <div className="text-xs italic text-muted">
-                          <p>{setItem.comment}</p>
+                  {exercise.sets.map((setItem, index) => {
+                    const setTime = workout.completedAt ? formatSetTime(setItem.savedAt) : '';
+
+                    return (
+                      <div
+                        key={setItem.id}
+                        className="grid gap-2 px-4 py-3 sm:grid-cols-[70px_150px_minmax(0,1fr)] sm:items-center"
+                      >
+                        <div>
+                          <span className="eyebrow">Satz {String(index + 1).padStart(2, '0')}</span>
+                          {setTime ? (
+                            <time
+                              dateTime={setItem.savedAt}
+                              className="mt-0.5 block text-[10px] leading-tight tabular-nums text-muted"
+                              title={`Satz gespeichert um ${setTime}`}
+                              aria-label={`Satz gespeichert um ${setTime}`}
+                            >
+                              {setTime}
+                            </time>
+                          ) : null}
                         </div>
-                      ) : null}
-                    </div>
-                  ))}
+                        <p className="font-display text-lg font-bold tabular-nums text-ink">
+                          {formatSetSummary(setItem)}
+                        </p>
+                        {setItem.comment ? (
+                          <div className="text-xs italic text-muted">
+                            <p>{setItem.comment}</p>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="px-4 py-5 text-sm text-muted">
