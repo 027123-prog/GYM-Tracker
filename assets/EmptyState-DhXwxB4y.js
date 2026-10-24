@@ -1,0 +1,1 @@
+import{j as e}from"./index-B2ZI_ZCf.js";function x({title:r,description:t}){return e.jsxs("div",{className:"rounded-sm border border-dashed border-line bg-paper/40 p-7 text-center",children:[e.jsx("h3",{className:"font-display text-xl font-bold text-ink",children:r}),t?e.jsx("p",{className:"mx-auto mt-2 max-w-xl text-sm text-muted",children:t}):null]})}export{x as E};
