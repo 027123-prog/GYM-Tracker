@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { calculateBodyweightLoad, parseLocalizedNumber } from '../utils/bodyweight';
+import { isDurationSet, parseWeightInput, prepareSetValues } from '../utils/setMeasurements';
 import ModalShell from './ModalShell';
 import WeightSuggestionGrid from './WeightSuggestionGrid';
 
 const repPresets = [5, 6, 8, 10, 12, 15];
+const durationPresets = [15, 20, 30, 40, 45, 60];
 const BODY_WEIGHT_KEY = 'hardgainwaf-body-weight-kg';
 
 function readBodyWeight() {
@@ -33,54 +35,62 @@ export default function SetEntryModal({
   onSave,
 }) {
   const configuredLoadType = exerciseSettings?.loadType ?? 'normal';
-  const legacyLoadType = initialSet?.weightMode === 'bodyweight' && configuredLoadType === 'normal'
-    ? (Number(initialSet.addedWeight) ? 'bodyweight-added' : 'bodyweight')
-    : null;
-  const loadType = configuredLoadType !== 'normal' ? configuredLoadType : (legacyLoadType ?? 'normal');
-  const bodyweightPercent = legacyLoadType
+  const loadType = initialSet
+    ? initialSet.weightMode === 'bodyweight'
+      ? (Number(initialSet.addedWeight) || configuredLoadType === 'bodyweight-added' ? 'bodyweight-added' : 'bodyweight')
+      : 'normal'
+    : configuredLoadType;
+  const bodyweightPercent = initialSet?.weightMode === 'bodyweight'
     ? Number(initialSet?.bodyweightFactor || 1) * 100
     : Number(exerciseSettings?.bodyweightPercent || 100);
   const bodyweightFactor = bodyweightPercent / 100;
   const usesBodyweight = loadType !== 'normal';
   const allowsAddedWeight = loadType === 'bodyweight-added';
+  const measurementType = initialSet
+    ? (isDurationSet(initialSet) ? 'duration' : 'reps')
+    : (exerciseSettings?.measurementType ?? 'reps');
+  const duration = measurementType === 'duration';
 
-  const [weight, setWeight] = useState(initialSet?.weight ?? '');
-  const [reps, setReps] = useState(initialSet?.reps ?? '');
+  const [weight, setWeight] = useState(initialSet?.weightInput ?? initialSet?.weight ?? (duration ? 0 : ''));
+  const [reps, setReps] = useState((duration ? initialSet?.durationSeconds : initialSet?.reps) ?? '');
   const [comment, setComment] = useState(initialSet?.comment ?? '');
   const [bodyWeight, setBodyWeight] = useState(initialSet?.bodyWeight ?? '');
-  const [addedWeight, setAddedWeight] = useState(initialSet?.addedWeight ?? 0);
+  const [addedWeight, setAddedWeight] = useState(initialSet?.addedWeightInput ?? initialSet?.addedWeight ?? 0);
   const [error, setError] = useState('');
-  const effectiveBodyweight = calculateBodyweightLoad(
+  const parsedAddedWeight = parseWeightInput(addedWeight, { allowNegative: true });
+  const parsedWeight = parseWeightInput(weight);
+  const effectiveBodyweight = parsedAddedWeight ? calculateBodyweightLoad(
     bodyWeight,
     bodyweightFactor,
-    allowsAddedWeight ? addedWeight : 0,
-  );
+    allowsAddedWeight ? parsedAddedWeight.weight : 0,
+  ) : null;
 
   useEffect(() => {
-    setWeight(initialSet?.weight ?? '');
-    setReps(initialSet?.reps ?? '');
+    setWeight(initialSet?.weightInput ?? initialSet?.weight ?? (duration ? 0 : ''));
+    setReps((duration ? initialSet?.durationSeconds : initialSet?.reps) ?? '');
     setComment(initialSet?.comment ?? '');
     setBodyWeight(initialSet?.bodyWeight ?? readBodyWeight());
-    setAddedWeight(initialSet?.addedWeight ?? 0);
+    setAddedWeight(initialSet?.addedWeightInput ?? initialSet?.addedWeight ?? 0);
     setError('');
-  }, [exerciseName, initialSet, isOpen]);
+  }, [exerciseName, initialSet, isOpen, duration]);
 
   function handleSubmit(event) {
     event.preventDefault();
-    const parsedWeight = usesBodyweight ? effectiveBodyweight : parseLocalizedNumber(weight);
-    const parsedReps = parseLocalizedNumber(reps);
+    const result = prepareSetValues({
+      measurementType,
+      weight,
+      reps,
+      durationSeconds: reps,
+      ...(usesBodyweight ? {
+        weightMode: 'bodyweight',
+        bodyWeight,
+        bodyweightFactor,
+        addedWeight: allowsAddedWeight ? addedWeight : 0,
+      } : {}),
+    });
 
-    if (!Number.isFinite(parsedWeight) || parsedWeight < 0 || parsedWeight > 2000) {
-      setError(
-        usesBodyweight
-          ? 'Bitte trage ein gültiges Körpergewicht ein.'
-          : 'Gewicht muss eine Zahl zwischen 0 und 2.000 kg sein.',
-      );
-      return;
-    }
-
-    if (!Number.isInteger(parsedReps) || parsedReps < 1 || parsedReps > 1000) {
-      setError('Wiederholungen müssen eine ganze Zahl zwischen 1 und 1.000 sein.');
+    if (result.error) {
+      setError(result.error);
       return;
     }
 
@@ -91,17 +101,8 @@ export default function SetEntryModal({
 
     onSave({
       id: initialSet?.id,
-      weight: parsedWeight,
-      reps: parsedReps,
+      ...result.values,
       comment,
-      ...(usesBodyweight
-        ? {
-            weightMode: 'bodyweight',
-            bodyWeight: parsedBodyWeight,
-            bodyweightFactor,
-            addedWeight: allowsAddedWeight ? parseLocalizedNumber(addedWeight || 0) : 0,
-          }
-        : {}),
     });
     onClose();
   }
@@ -141,19 +142,21 @@ export default function SetEntryModal({
               <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Gewicht kg</span>
               <input
                 className="field text-lg font-bold tabular-nums"
-                inputMode="decimal"
+                inputMode="text"
                 value={weight}
                 onChange={(event) => {
                   setWeight(event.target.value);
                   setError('');
                 }}
-                placeholder="62,5"
+                placeholder="30 oder 2x30"
                 autoFocus
               />
+              {parsedWeight?.weightInput ? <span className="mt-1.5 block text-xs text-muted">Gesamtlast: {parsedWeight.weight} kg</span> : null}
+              {duration ? <span className="mt-1.5 block text-xs text-muted">Ohne Zusatzlast: 0 kg</span> : null}
             </label>
           )}
           <label>
-            <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Wiederholungen</span>
+            <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">{duration ? 'Dauer (Sekunden)' : 'Wiederholungen'}</span>
             <input
               className="field text-lg font-bold tabular-nums"
               inputMode="numeric"
@@ -162,7 +165,7 @@ export default function SetEntryModal({
                 setReps(event.target.value);
                 setError('');
               }}
-              placeholder="8"
+              placeholder={duration ? '30' : '8'}
             />
           </label>
         </div>
@@ -176,7 +179,7 @@ export default function SetEntryModal({
                 </span>
                 <input
                   className="field py-2.5"
-                  inputMode="decimal"
+                  inputMode="text"
                   value={addedWeight}
                   onChange={(event) => {
                     setAddedWeight(event.target.value);
@@ -201,9 +204,9 @@ export default function SetEntryModal({
         )}
 
         <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted">Schnellauswahl Reps</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted">{duration ? 'Schnellauswahl Sekunden' : 'Schnellauswahl Reps'}</p>
           <div className="grid grid-cols-3 gap-1.5 min-[350px]:grid-cols-6">
-            {repPresets.map((preset) => (
+            {(duration ? durationPresets : repPresets).map((preset) => (
               <button
                 key={preset}
                 type="button"
@@ -215,7 +218,7 @@ export default function SetEntryModal({
                 }`}
                 aria-pressed={Number(reps) === preset}
               >
-                {preset}
+                {preset}{duration ? ' s' : ''}
               </button>
             ))}
           </div>

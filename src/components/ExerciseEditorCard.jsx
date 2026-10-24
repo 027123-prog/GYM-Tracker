@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import ExerciseSettingsModal from './ExerciseSettingsModal';
 import SetEntryModal from './SetEntryModal';
+import { formatSetSummary } from '../utils/setMeasurements';
 
 const compactIconButtonClass =
   'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-line bg-surface-raised text-ink transition hover:border-amber/70 hover:text-amber-deep disabled:cursor-not-allowed disabled:opacity-35 min-[380px]:h-11 min-[380px]:w-11';
@@ -85,6 +86,7 @@ export default function ExerciseEditorCard({
   const [editingSet, setEditingSet] = useState(null);
   const [recentlySaved, setRecentlySaved] = useState('');
   const [draftName, setDraftName] = useState(exercise.name);
+  const [renameError, setRenameError] = useState('');
   const bottomAnchorRef = useRef(null);
 
   const legacyMachineSettingsText = useMemo(
@@ -98,10 +100,15 @@ export default function ExerciseEditorCard({
         .join(' · '),
     [exercise.machineSettings],
   );
-  const machineSettingsText = libraryEntry?.settings?.setupNotes || legacyMachineSettingsText;
+  const setupNotes = libraryEntry?.settings?.setupNotes ?? '';
+  const machineSettingsText = [
+    setupNotes,
+    legacyMachineSettingsText && !setupNotes.includes(legacyMachineSettingsText) ? legacyMachineSettingsText : '',
+  ].filter(Boolean).join(' · ');
 
   useEffect(() => {
     setDraftName(exercise.name);
+    setRenameError('');
   }, [exercise.name]);
 
   function openNewSet() {
@@ -133,12 +140,16 @@ export default function ExerciseEditorCard({
 
     saveSet({
       weight: latest.weight,
+      weightInput: latest.weightInput,
       reps: latest.reps,
+      measurementType: latest.measurementType,
+      durationSeconds: latest.durationSeconds,
       comment: '',
       weightMode: latest.weightMode,
       bodyWeight: latest.bodyWeight,
       bodyweightFactor: latest.bodyweightFactor,
       addedWeight: latest.addedWeight,
+      addedWeightInput: latest.addedWeightInput,
     });
   }
 
@@ -161,10 +172,13 @@ export default function ExerciseEditorCard({
                 id={`exercise-name-${exercise.id}`}
                 className="field text-center font-display text-lg font-bold sm:text-2xl"
                 value={draftName}
-                onChange={(event) => setDraftName(event.target.value)}
+                onChange={(event) => {
+                  setDraftName(event.target.value);
+                  setRenameError('');
+                }}
                 onBlur={() => {
                   if (draftName.trim() && draftName !== exercise.name) {
-                    onRenameExercise(draftName);
+                    setRenameError(onRenameExercise(draftName) ?? '');
                   } else {
                     setDraftName(exercise.name);
                   }
@@ -175,6 +189,7 @@ export default function ExerciseEditorCard({
                   }
                 }}
               />
+              {renameError ? <p role="alert" className="mt-2 text-sm text-ember">{renameError}</p> : null}
             </div>
           ) : null}
 
@@ -233,8 +248,8 @@ export default function ExerciseEditorCard({
               type="button"
               onClick={() => setSettingsModalOpen(true)}
               className={compactIconButtonClass}
-              aria-label="Übung einstellen"
-              title="Übung einstellen"
+              aria-label="Übung bearbeiten"
+              title="Name und Einstellungen bearbeiten"
             >
               <SettingsIcon />
             </button>
@@ -293,7 +308,7 @@ export default function ExerciseEditorCard({
                 >
                   <span className="eyebrow">Satz {String(index + 1).padStart(2, '0')}</span>
                   <p className="font-display text-lg font-bold tabular-nums text-ink">
-                    {setItem.weight} kg <span className="text-amber">×</span> {setItem.reps}
+                    {formatSetSummary(setItem)}
                   </p>
                   {setItem.comment ? (
                     <div className="min-w-0 text-xs italic text-muted">

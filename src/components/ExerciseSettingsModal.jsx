@@ -21,32 +21,49 @@ const loadTypes = [
 ];
 
 export default function ExerciseSettingsModal({ isOpen, exerciseName, settings, onClose, onSave }) {
+  const [name, setName] = useState(exerciseName ?? '');
+  const [measurementType, setMeasurementType] = useState(settings?.measurementType ?? 'reps');
   const [loadType, setLoadType] = useState(settings?.loadType ?? 'normal');
   const [bodyweightPercent, setBodyweightPercent] = useState(settings?.bodyweightPercent ?? 100);
   const [setupNotes, setSetupNotes] = useState(settings?.setupNotes ?? '');
   const [error, setError] = useState('');
 
   useEffect(() => {
+    setName(exerciseName ?? '');
+    setMeasurementType(settings?.measurementType ?? 'reps');
     setLoadType(settings?.loadType ?? 'normal');
     setBodyweightPercent(settings?.bodyweightPercent ?? 100);
     setSetupNotes(settings?.setupNotes ?? '');
     setError('');
-  }, [isOpen, settings]);
+  }, [isOpen, exerciseName, settings]);
 
   function handleSubmit(event) {
     event.preventDefault();
     const percent = parseLocalizedNumber(bodyweightPercent);
 
-    if (loadType !== 'normal' && (!Number.isFinite(percent) || percent <= 0 || percent > 300)) {
+    if (!name.trim()) {
+      setError('Bitte einen Übungsnamen eingeben.');
+      return;
+    }
+
+    if (loadType !== 'normal' && (!Number.isFinite(percent) || percent < 1 || percent > 300)) {
       setError('Der Körpergewichtsanteil muss zwischen 1 und 300 Prozent liegen.');
       return;
     }
 
-    onSave({
+    const saveError = onSave({
+      name: name.trim(),
+      measurementType,
       loadType,
       bodyweightPercent: loadType === 'normal' ? 100 : percent,
       setupNotes: setupNotes.trim(),
     });
+
+    if (saveError) {
+      setError(saveError);
+      return;
+    }
+
     onClose();
   }
 
@@ -56,7 +73,7 @@ export default function ExerciseSettingsModal({ isOpen, exerciseName, settings, 
         <div>
           <p className="eyebrow">{exerciseName}</p>
           <h2 id="exercise-settings-title" className="mt-2 font-display text-2xl font-bold text-ink">
-            Übung einstellen
+            Übung bearbeiten
           </h2>
         </div>
         <button type="button" onClick={onClose} className="icon-button" aria-label="Dialog schließen">
@@ -65,6 +82,33 @@ export default function ExerciseSettingsModal({ isOpen, exerciseName, settings, 
       </div>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-5">
+        <label className="block">
+          <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Übungsname</span>
+          <input
+            className="field"
+            value={name}
+            onChange={(event) => {
+              setName(event.target.value);
+              setError('');
+            }}
+            placeholder="Name der Übung"
+          />
+          <span className="mt-1.5 block text-xs text-muted">Gilt für Bibliothek, Vorlagen und Workouts. Dein Verlauf bleibt erhalten.</span>
+        </label>
+
+        <fieldset>
+          <legend className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted">Satzerfassung</legend>
+          <div className="grid grid-cols-2 gap-2">
+            {[{ value: 'reps', label: 'Wiederholungen' }, { value: 'duration', label: 'Dauer in Sekunden' }].map((option) => (
+              <label key={option.value} className={`flex cursor-pointer items-center gap-2 rounded-sm border p-3 text-sm font-bold ${measurementType === option.value ? 'border-amber bg-amber-soft' : 'border-line bg-surface-raised'}`}>
+                <input type="radio" name="measurement-type" value={option.value} checked={measurementType === option.value} onChange={() => setMeasurementType(option.value)} className="accent-amber" />
+                {option.label}
+              </label>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-muted">Gilt für neue Sätze. Bereits gespeicherte Sätze behalten ihre Einheit.</p>
+        </fieldset>
+
         <fieldset>
           <legend className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted">Belastungsart</legend>
           <div className="space-y-2">

@@ -1,5 +1,6 @@
 import { defaultData } from '../data/defaultData.js';
 import { calculateBodyweightLoad } from './bodyweight.js';
+import { isDurationSet, parseWeightInput } from './setMeasurements.js';
 
 export const STORAGE_KEY = 'gym-tracker-state-v2';
 export const LEGACY_STORAGE_KEY = 'gym-tracker-state-v1';
@@ -72,6 +73,7 @@ function normalizeExerciseSettings(settings) {
 
   return {
     loadType,
+    ...(settings?.measurementType ? { measurementType: settings.measurementType === 'duration' ? 'duration' : 'reps' } : {}),
     bodyweightPercent:
       loadType === 'normal'
         ? 100
@@ -96,11 +98,19 @@ function normalizeSets(sets) {
       const effectiveBodyweight = hasBodyweightData
         ? calculateBodyweightLoad(bodyWeight, bodyweightFactor, addedWeight)
         : null;
+      const duration = isDurationSet(item);
+      const durationSeconds = safeNumber(item?.durationSeconds, Number.NaN);
+      const weight = effectiveBodyweight ?? Math.max(0, safeNumber(item?.weight));
+      const weightExpression = parseWeightInput(item?.weightInput);
+      const addedExpression = parseWeightInput(item?.addedWeightInput, { allowNegative: true });
 
       return {
         id: safeId(item?.id, 'set', index),
-        weight: effectiveBodyweight ?? Math.max(0, safeNumber(item?.weight)),
-        reps: Math.max(0, Math.round(safeNumber(item?.reps))),
+        weight,
+        reps: duration ? 0 : Math.max(0, Math.round(safeNumber(item?.reps))),
+        ...(duration ? { measurementType: 'duration', durationSeconds } : {}),
+        ...(effectiveBodyweight === null && weightExpression?.weightInput && weightExpression.weight === weight
+          ? { weightInput: weightExpression.weightInput } : {}),
         comment: safeString(item?.comment).trim(),
         seatHeight: safeString(item?.seatHeight).trim(),
         savedAt: safeString(item?.savedAt),
@@ -110,11 +120,15 @@ function normalizeSets(sets) {
               bodyWeight,
               bodyweightFactor,
               addedWeight,
+              ...(addedExpression?.weightInput && addedExpression.weight === addedWeight
+                ? { addedWeightInput: addedExpression.weightInput } : {}),
             }
           : {}),
       };
     })
-    .filter((item) => item.reps > 0);
+    .filter((item) => isDurationSet(item)
+      ? Number.isInteger(item.durationSeconds) && item.durationSeconds > 0 && item.durationSeconds <= 86400
+      : item.reps > 0);
 }
 
 function normalizeExercises(exercises) {
@@ -367,7 +381,7 @@ export function createBackupPayload(state) {
 
   return {
     app: 'hardgainwaf',
-    appVersion: '2.6.0',
+    appVersion: '2.7.0',
     storageKey: STORAGE_KEY,
     storageVersion: STORAGE_VERSION,
     exportedAt: new Date().toISOString(),

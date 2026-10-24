@@ -1,3 +1,5 @@
+import { parseWeightInput } from '../utils/setMeasurements';
+
 export default function WeightSuggestionGrid({ options, selectedValue, onSelect }) {
   if (!options.length) {
     return null;
@@ -8,7 +10,7 @@ export default function WeightSuggestionGrid({ options, selectedValue, onSelect 
       <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted">Bekannte Gewichte</p>
       <div className="flex max-h-24 flex-wrap gap-1.5 overflow-y-auto">
         {options.map((weight) => {
-          const selected = Number(selectedValue) === Number(weight);
+          const selected = parseWeightInput(selectedValue)?.weight === Number(weight);
 
           return (
             <button

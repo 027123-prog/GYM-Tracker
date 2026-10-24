@@ -26,6 +26,7 @@ export default function WorkoutSummaryModal({ isOpen, summary, onClose, onGoDash
           <p className="mt-2 text-xl font-bold tabular-nums text-ink">{summary.setCount}</p>
         </div>
       </div>
+      {summary.totalDurationSeconds ? <p className="mt-3 text-sm text-muted">Haltezeit: {summary.totalDurationSeconds} s · separat vom Wiederholungsvolumen</p> : null}
       <p className="mt-4 rounded-sm border border-sage/25 bg-mist px-3 py-2 text-sm text-sage">
         Lokal gespeichert. Exportiere regelmäßig eine Sicherung für ein zweites Gerät.
       </p>

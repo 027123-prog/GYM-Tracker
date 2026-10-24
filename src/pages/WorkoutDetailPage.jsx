@@ -3,6 +3,7 @@ import { useAppData } from '../components/AppProvider';
 import EmptyState from '../components/EmptyState';
 import { calculateWorkoutStats } from '../utils/workout';
 import { formatDateTime } from '../utils/date';
+import { formatSetSummary } from '../utils/setMeasurements';
 
 function ChartIcon() {
   return (
@@ -70,6 +71,7 @@ export default function WorkoutDetailPage() {
             <p className="mt-1 text-xl font-bold tabular-nums text-ink">{stats.setCount}</p>
           </div>
         </div>
+        {stats.totalDurationSeconds ? <p className="mt-3 text-sm text-muted">Haltezeit: {stats.totalDurationSeconds} s · separat vom Wiederholungsvolumen</p> : null}
       </section>
 
       <section className="space-y-3">
@@ -78,7 +80,8 @@ export default function WorkoutDetailPage() {
             .map((setting) => `${setting.label}: ${setting.value}`)
             .join(' · ');
           const libraryExercise = state.exercises.find((item) => item.id === exercise.exerciseId);
-          const machineSettings = libraryExercise?.settings?.setupNotes || legacyMachineSettings;
+          const setupNotes = libraryExercise?.settings?.setupNotes ?? '';
+          const machineSettings = [setupNotes, legacyMachineSettings && !setupNotes.includes(legacyMachineSettings) ? legacyMachineSettings : ''].filter(Boolean).join(' · ');
 
           return (
             <article
@@ -117,7 +120,7 @@ export default function WorkoutDetailPage() {
                     >
                       <span className="eyebrow">Satz {String(index + 1).padStart(2, '0')}</span>
                       <p className="font-display text-lg font-bold tabular-nums text-ink">
-                        {setItem.weight} kg <span className="text-amber">×</span> {setItem.reps}
+                        {formatSetSummary(setItem)}
                       </p>
                       {setItem.comment ? (
                         <div className="text-xs italic text-muted">

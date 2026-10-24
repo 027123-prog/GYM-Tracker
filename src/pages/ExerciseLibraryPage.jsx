@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useAppData } from '../components/AppProvider';
 import { normalizeExerciseSortMode, sortExerciseCards } from '../utils/exerciseSort';
 import { getExerciseWorkoutCount, getLastExerciseSnapshot } from '../utils/workout';
+import { formatSetSummary } from '../utils/setMeasurements';
 
 const sortOptions = [
   { value: 'count-desc', label: 'Anzahl: meiste' },
@@ -38,7 +39,7 @@ export default function ExerciseLibraryPage() {
           workoutCount: getExerciseWorkoutCount(state.workouts, exercise.id, exercise.name),
           lastTrainedAt: latestSnapshot?.workoutDate ?? null,
           latestSummary:
-            latestSnapshot?.sets.map((setItem) => `${setItem.weight}kgx${setItem.reps}`).join(' ') ?? '',
+            latestSnapshot?.sets.map(formatSetSummary).join(' · ') ?? '',
         };
       })
       .filter((exercise) => !normalizedQuery || normalizeSearch(exercise.name).includes(normalizedQuery));

@@ -26,6 +26,7 @@ export default function WorkoutCard({ workout, compact = false }) {
             ) : null}
           </div>
           <h3 className="mt-1 truncate text-base font-bold text-ink sm:text-lg">{workout.name}</h3>
+          {stats.totalDurationSeconds ? <p className="mt-1 text-xs text-muted">{stats.totalDurationSeconds} s Haltezeit</p> : null}
         </div>
         <div className="grid grid-cols-3 gap-4 text-left sm:min-w-[250px] sm:text-right">
           <div>
@@ -56,6 +57,7 @@ export default function WorkoutCard({ workout, compact = false }) {
           <span className="text-xs text-muted">{formatDate(workout.date)}</span>
         </div>
         <h3 className="mt-3 font-display text-2xl font-bold text-ink">{workout.name}</h3>
+        {stats.totalDurationSeconds ? <p className="mt-1 text-xs text-muted">{stats.totalDurationSeconds} s Haltezeit</p> : null}
       </div>
       <div className="grid grid-cols-3 border-t border-line pt-3 text-sm">
         <span className="font-bold tabular-nums text-ink">{formatVolume(stats.totalVolume)} kg</span>

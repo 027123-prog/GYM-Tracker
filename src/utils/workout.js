@@ -1,3 +1,5 @@
+import { formatSetSummary, getSetRepVolume, isDurationSet } from './setMeasurements';
+
 export function createId(prefix) {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return `${prefix}-${crypto.randomUUID()}`;
@@ -9,12 +11,14 @@ export function createId(prefix) {
 export function calculateWorkoutStats(workout) {
   const activeExercises = (workout.exercises || []).filter((exercise) => !exercise.skipped);
   const sets = activeExercises.flatMap((exercise) => exercise.sets || []);
-  const totalVolume = sets.reduce((sum, setItem) => sum + Number(setItem.weight || 0) * Number(setItem.reps || 0), 0);
+  const totalVolume = sets.reduce((sum, setItem) => sum + getSetRepVolume(setItem), 0);
+  const totalDurationSeconds = sets.reduce((sum, setItem) => sum + (isDurationSet(setItem) ? Number(setItem.durationSeconds || 0) : 0), 0);
 
   return {
     exerciseCount: activeExercises.length,
     setCount: sets.length,
     totalVolume,
+    ...(totalDurationSeconds ? { totalDurationSeconds } : {}),
   };
 }
 
@@ -124,7 +128,7 @@ export function getLastExerciseSummaryText(workouts, exerciseId, excludeWorkoutI
     return '';
   }
 
-  return snapshot.sets.map((setItem) => `${setItem.weight}kgx${setItem.reps}`).join(' ');
+  return snapshot.sets.map(formatSetSummary).join(' · ');
 }
 
 export function getLastExerciseComments(workouts, exerciseId, excludeWorkoutId = null, exerciseName = '') {
@@ -190,18 +194,26 @@ export function buildExerciseChartData(workouts, exerciseId, exerciseName = '') 
       }
 
       const sets = matchingExercises.flatMap((exercise) => exercise.sets);
-      const maxWeight = Math.max(...sets.map((setItem) => Number(setItem.weight || 0)));
-      const maxSet = sets.find((setItem) => Number(setItem.weight || 0) === maxWeight);
+      const repSets = sets.filter((setItem) => !isDurationSet(setItem));
+      const durationSets = sets.filter(isDurationSet);
+      const maxWeight = repSets.length ? Math.max(...repSets.map((setItem) => Number(setItem.weight || 0))) : null;
+      const maxSet = repSets.find((setItem) => Number(setItem.weight || 0) === maxWeight);
+      const maxDurationSeconds = durationSets.length ? Math.max(...durationSets.map((setItem) => Number(setItem.durationSeconds))) : null;
+      const longestSet = durationSets.find((setItem) => Number(setItem.durationSeconds) === maxDurationSeconds);
+      const maxDurationWeight = durationSets.length ? Math.max(...durationSets.map((setItem) => Number(setItem.weight || 0))) : null;
+      const heaviestDurationSet = durationSets.find((setItem) => Number(setItem.weight || 0) === maxDurationWeight);
 
       return {
         date: workout.date,
         shortDate: new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit' }).format(new Date(workout.date)),
-        volume: sets.reduce(
-          (sum, setItem) => sum + Number(setItem.weight || 0) * Number(setItem.reps || 0),
-          0,
-        ),
+        volume: repSets.length ? repSets.reduce((sum, setItem) => sum + getSetRepVolume(setItem), 0) : null,
         maxWeight,
-        maxWeightReps: maxSet?.reps ?? 0,
+        maxWeightReps: maxSet?.reps ?? null,
+        totalDurationSeconds: durationSets.length ? durationSets.reduce((sum, setItem) => sum + Number(setItem.durationSeconds), 0) : null,
+        maxDurationSeconds,
+        longestSetWeight: longestSet?.weight ?? null,
+        maxDurationWeight,
+        maxDurationWeightSeconds: heaviestDurationSet?.durationSeconds ?? null,
         sets,
         workoutName: workout.name,
       };

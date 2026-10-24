@@ -1,7 +1,22 @@
 import { useEffect, useState } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import { formatSetSummary, isDurationSet } from '../utils/setMeasurements';
+
+const chartMetrics = {
+  volume: { field: 'volume', label: 'Volumen (Wdh.)', unit: 'kg', hint: 'Gewicht × Wiederholungen pro Training' },
+  maxWeight: { field: 'maxWeight', label: 'Max. Gewicht (Wdh.)', unit: 'kg', hint: 'Höchstes Gewicht bei Wiederholungssätzen' },
+  duration: { field: 'maxDurationSeconds', label: 'Längste Haltezeit', unit: 's', hint: 'Längster einzelner Haltesatz pro Training' },
+  durationWeight: { field: 'maxDurationWeight', label: 'Haltegewicht', unit: 'kg', hint: 'Höchstes Gewicht bei Zeitsätzen · Dauer im Punktdetail' },
+};
 
 function SelectedPointDetails({ point, metric, onClose }) {
+  const config = chartMetrics[metric];
+  const duration = metric === 'duration' || metric === 'durationWeight';
+  const highlightedSet = point.sets.find((setItem) => duration
+    ? isDurationSet(setItem) && (metric === 'duration'
+      ? setItem.durationSeconds === point.maxDurationSeconds
+      : setItem.weight === point.maxDurationWeight)
+    : !isDurationSet(setItem) && setItem.weight === point.maxWeight);
   const comments = point.sets
     .map((setItem, index) => ({
       id: setItem.id,
@@ -29,15 +44,15 @@ function SelectedPointDetails({ point, metric, onClose }) {
 
       <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
         <p className="rounded-sm bg-paper/70 px-3 py-2 text-muted">
-          {metric === 'volume' ? 'Volumen' : 'Max. Gewicht'}
+          {config.label}
           <strong className="mt-0.5 block font-display text-lg tabular-nums text-ink">
-            {metric === 'volume' ? `${point.volume.toFixed(0)} kg` : `${point.maxWeight} kg`}
+            {point[config.field] == null ? '–' : `${point[config.field]} ${config.unit}`}
           </strong>
         </p>
         <p className="rounded-sm bg-paper/70 px-3 py-2 text-muted">
-          Stärkster Satz
+          {duration ? 'Haltesatz' : 'Satz mit höchstem Gewicht'}
           <strong className="mt-0.5 block font-display text-lg tabular-nums text-ink">
-            {point.maxWeight} kg × {point.maxWeightReps}
+            {highlightedSet ? formatSetSummary(highlightedSet) : '–'}
           </strong>
         </p>
       </div>
@@ -45,7 +60,7 @@ function SelectedPointDetails({ point, metric, onClose }) {
       <div className="mt-3 flex flex-wrap gap-1.5">
         {point.sets.map((setItem, index) => (
           <span key={setItem.id} className="rounded-sm bg-paper/70 px-2.5 py-1.5 text-xs text-muted">
-            {index + 1}. <strong className="text-ink">{setItem.weight} kg × {setItem.reps}</strong>
+            {index + 1}. <strong className="text-ink">{formatSetSummary(setItem)}</strong>
           </span>
         ))}
       </div>
@@ -104,19 +119,29 @@ function SelectableChartDot({ cx, cy, payload, color, isSelected, onSelect }) {
 
 export default function ExerciseChartCard({
   exerciseName,
+  measurementType = 'reps',
   data,
   canGoPrev,
   canGoNext,
   onPrevExercise,
   onNextExercise,
 }) {
-  const [metric, setMetric] = useState('volume');
+  const [requestedMetric, setMetric] = useState(null);
+  const hasReps = data.some((point) => point.maxWeight != null);
+  const hasDuration = data.some((point) => point.maxDurationSeconds != null);
+  const availableMetrics = [
+    ...(hasReps ? ['volume', 'maxWeight'] : []),
+    ...(hasDuration ? ['duration'] : []),
+    ...(data.some((point) => point.maxDurationWeight > 0) ? ['durationWeight'] : []),
+  ];
+  const defaultMetric = hasDuration && (measurementType === 'duration' || !hasReps) ? 'duration' : 'volume';
+  const metric = availableMetrics.includes(requestedMetric) ? requestedMetric : defaultMetric;
   const [selectedPoint, setSelectedPoint] = useState(null);
   const dataSignature = data
     .map(
       (point) =>
         `${point.date}:${point.volume}:${point.maxWeight}:${point.sets
-          .map((setItem) => `${setItem.id}:${setItem.weight}:${setItem.reps}:${setItem.comment ?? ''}`)
+          .map((setItem) => `${setItem.id}:${formatSetSummary(setItem)}:${setItem.comment ?? ''}`)
           .join(',')}`,
     )
     .join('|');
@@ -125,11 +150,13 @@ export default function ExerciseChartCard({
     setSelectedPoint(null);
   }, [dataSignature, exerciseName, metric]);
 
+  useEffect(() => setMetric(null), [exerciseName, measurementType]);
+
   useEffect(() => {
     function handleKeyDown(event) {
       const tagName = event.target?.tagName;
 
-      if (tagName === 'INPUT' || tagName === 'TEXTAREA') {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tagName) || event.target?.isContentEditable || event.target?.closest?.('[role="dialog"]')) {
         return;
       }
 
@@ -148,8 +175,9 @@ export default function ExerciseChartCard({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [canGoNext, canGoPrev, onNextExercise, onPrevExercise]);
 
-  const metricLabel = metric === 'volume' ? 'Gesamtvolumen' : 'Max Gewicht';
-  const metricHint = metric === 'volume' ? 'X: Datum · Y: Gesamtvolumen pro Tag' : 'X: Datum · Y: Max Gewicht';
+  const config = chartMetrics[metric];
+  const metricLabel = config.label;
+  const metricHint = `X: Datum · Y: ${config.unit} · ${config.hint}`;
   const strokeColor = metric === 'volume' ? '#F47A24' : '#73B991';
   const dotColor = metric === 'volume' ? '#F47A24' : '#73B991';
   const titleSizeClass = exerciseName.length > 22 ? 'text-2xl' : 'text-3xl';
@@ -186,20 +214,11 @@ export default function ExerciseChartCard({
         </div>
         <div className="flex flex-col items-start gap-2 sm:items-end">
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setMetric('volume')}
-              className={metric === 'volume' ? 'action-button' : 'secondary-button'}
-            >
-              Gesamtvolumen
-            </button>
-            <button
-              type="button"
-              onClick={() => setMetric('maxWeight')}
-              className={metric === 'maxWeight' ? 'action-button' : 'secondary-button'}
-            >
-              Max Gewicht
-            </button>
+            {availableMetrics.map((option) => (
+              <button key={option} type="button" onClick={() => setMetric(option)} className={metric === option ? 'action-button' : 'secondary-button'}>
+                {chartMetrics[option].label}
+              </button>
+            ))}
           </div>
           <p className="text-xs text-muted">{metricHint}</p>
         </div>
@@ -224,7 +243,7 @@ export default function ExerciseChartCard({
             <YAxis stroke="#AAA6A2" tickLine={false} axisLine={false} width={52} />
             <Line
               type="monotone"
-              dataKey={metric === 'volume' ? 'volume' : 'maxWeight'}
+              dataKey={config.field}
               name={metricLabel}
               stroke={strokeColor}
               strokeWidth={3}
@@ -241,6 +260,7 @@ export default function ExerciseChartCard({
           </LineChart>
         </ResponsiveContainer>
       </div>
+      {hasDuration ? <p className="border-t border-line px-4 py-2 text-xs text-muted">Haltezeit und Wiederholungsvolumen werden getrennt ausgewertet.</p> : null}
       {selectedPoint ? (
         <SelectedPointDetails point={selectedPoint} metric={metric} onClose={() => setSelectedPoint(null)} />
       ) : (

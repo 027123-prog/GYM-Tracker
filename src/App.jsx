@@ -1,15 +1,14 @@
-import { Component, lazy, Suspense, useEffect, useState } from 'react';
+import { Component, lazy, Suspense } from 'react';
 import {
   BrowserRouter,
   HashRouter,
   Navigate,
   Route,
   Routes,
-  useLocation,
-  useNavigate,
 } from 'react-router-dom';
 import { AppProvider } from './components/AppProvider';
 import AppShell from './components/AppShell';
+import WorkoutResumeGate from './components/WorkoutResumeGate';
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ExerciseChartPage = lazy(() => import('./pages/ExerciseChartPage'));
@@ -60,101 +59,16 @@ function PageLoader() {
   );
 }
 
-function InitialDashboardGate({ children }) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    if (isReady) {
-      return;
-    }
-
-    if (location.pathname !== '/') {
-      navigate('/', { replace: true });
-      return;
-    }
-
-    setIsReady(true);
-  }, [isReady, location.pathname, navigate]);
-
-  return isReady ? children : <PageLoader />;
-}
-
-function findScrollableParent(element) {
-  let current = element;
-
-  while (current && current !== document.body) {
-    if (!(current instanceof HTMLElement)) {
-      current = current.parentElement;
-      continue;
-    }
-
-    const style = window.getComputedStyle(current);
-    const overflowY = style.overflowY;
-
-    if ((overflowY === 'auto' || overflowY === 'scroll') && current.scrollHeight > current.clientHeight) {
-      return current;
-    }
-
-    current = current.parentElement;
-  }
-
-  return null;
-}
-
 export default function App() {
   const useHashRouting =
     window.location.protocol === 'file:' || window.location.hostname.endsWith('github.io');
   const Router = useHashRouting ? HashRouter : BrowserRouter;
 
-  useEffect(() => {
-    let touchStartY = 0;
-    let touchTarget = null;
-
-    function handleTouchStart(event) {
-      if (event.touches.length !== 1) {
-        return;
-      }
-
-      touchStartY = event.touches[0].clientY;
-      touchTarget = event.target;
-    }
-
-    function handleTouchMove(event) {
-      if (event.touches.length !== 1) {
-        return;
-      }
-
-      const currentY = event.touches[0].clientY;
-      const isPullingDown = currentY > touchStartY;
-
-      if (!isPullingDown) {
-        return;
-      }
-
-      const scrollableParent = findScrollableParent(touchTarget);
-      const isAtTop = scrollableParent ? scrollableParent.scrollTop <= 0 : window.scrollY <= 0;
-
-      if (isAtTop) {
-        event.preventDefault();
-      }
-    }
-
-    document.addEventListener('touchstart', handleTouchStart, { passive: true });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-
-    return () => {
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-    };
-  }, []);
-
   return (
     <Router>
       <AppErrorBoundary>
-        <InitialDashboardGate>
-          <AppProvider>
+        <AppProvider>
+          <WorkoutResumeGate>
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route element={<AppShell />}>
@@ -172,8 +86,8 @@ export default function App() {
                 </Route>
               </Routes>
             </Suspense>
-          </AppProvider>
-        </InitialDashboardGate>
+          </WorkoutResumeGate>
+        </AppProvider>
       </AppErrorBoundary>
     </Router>
   );

@@ -5,7 +5,7 @@ import { useAppData } from './AppProvider';
 import SyncIndicator from './SyncIndicator';
 import { calculateWorkoutStats } from '../utils/workout';
 
-const appVersion = '2.6.0';
+const appVersion = '2.7.0';
 const displayVersion = `v${appVersion.split('.').slice(0, 2).join('.')}`;
 
 const navItems = [
@@ -278,7 +278,7 @@ export default function AppShell() {
       <main
         ref={mainRef}
         data-app-scroll-container
-        className="mx-auto min-h-0 w-full max-w-7xl flex-1 touch-pan-y overflow-y-auto overscroll-contain px-3 pb-4 pt-4 [-webkit-overflow-scrolling:touch] sm:px-5 sm:pt-6 md:overflow-visible md:overscroll-auto md:pb-8"
+        className="mx-auto min-h-0 w-full max-w-7xl flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-4 [-webkit-overflow-scrolling:touch] sm:px-5 sm:pt-6 md:overflow-visible md:overscroll-auto md:pb-8"
       >
         <Outlet />
       </main>

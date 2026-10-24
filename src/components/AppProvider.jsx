@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { loadAppState, normalizeAppState, saveAppState, STORAGE_KEY } from '../utils/storage';
-import { calculateBodyweightLoad, parseLocalizedNumber } from '../utils/bodyweight';
 import { createId, normalizeWeightOptions } from '../utils/workout';
+import { editExerciseRecord } from '../utils/exerciseEditing';
+import { prepareSetValues } from '../utils/setMeasurements';
 
 const AppContext = createContext(null);
 const ACTIVE_WORKOUT_KEY = 'gym-tracker-active-workout';
@@ -447,56 +448,26 @@ export function AppProvider({ children }) {
   }
 
   function renameExercise(workoutId, entryId, nextName) {
-    const trimmedName = nextName.trim();
+    const entry = state.workouts.find((workout) => workout.id === workoutId)
+      ?.exercises.find((exercise) => exercise.id === entryId);
 
-    if (!trimmedName) {
-      return;
-    }
-
-    const { exercises: nextExercises, exercise } = ensureExerciseRecord(state.exercises, trimmedName);
-    const nextWorkouts = state.workouts.map((workout) =>
-      workout.id === workoutId
-        ? updateStartedWorkout(workout, {
-            exercises: workout.exercises.map((exerciseEntry) =>
-              exerciseEntry.id === entryId
-                ? {
-                    ...exerciseEntry,
-                    name: exercise.name,
-                    exerciseId: exercise.id,
-                  }
-                : exerciseEntry,
-            ),
-          })
-        : workout,
-    );
-
-    setWorkouts(nextWorkouts, nextExercises);
+    return editLibraryExercise(entry?.exerciseId, { name: nextName });
   }
 
-  function updateExerciseSettings(exerciseId, settings) {
-    const loadType = ['bodyweight', 'bodyweight-added'].includes(settings?.loadType)
-      ? settings.loadType
-      : 'normal';
-    const bodyweightPercent = parseLocalizedNumber(settings?.bodyweightPercent);
+  function editLibraryExercise(exerciseId, changes) {
+    const result = editExerciseRecord(state, exerciseId, changes);
 
-    setState((current) => ({
-      ...current,
-      exercises: current.exercises.map((exercise) =>
-        exercise.id === exerciseId
-          ? {
-              ...exercise,
-              settings: {
-                loadType,
-                bodyweightPercent:
-                  loadType !== 'normal' && Number.isFinite(bodyweightPercent)
-                    ? Math.min(300, Math.max(1, bodyweightPercent))
-                    : 100,
-                setupNotes: settings?.setupNotes?.trim() ?? '',
-              },
-            }
-          : exercise,
-      ),
-    }));
+    if (result.error) {
+      return result.error;
+    }
+
+    setState((current) => editExerciseRecord(current, exerciseId, changes).state);
+    return null;
+  }
+
+  function updateExerciseSettings(exerciseId, payload = {}) {
+    const { name, ...settings } = payload;
+    return editLibraryExercise(exerciseId, { name, settings });
   }
 
   function deleteExercise(workoutId, entryId) {
@@ -512,25 +483,9 @@ export function AppProvider({ children }) {
   }
 
   function saveSet(workoutId, entryId, payload) {
-    const bodyWeight = parseLocalizedNumber(payload.bodyWeight);
-    const bodyweightFactor = parseLocalizedNumber(payload.bodyweightFactor);
-    const addedWeight = parseLocalizedNumber(payload.addedWeight || 0);
-    const bodyweightLoad =
-      payload.weightMode === 'bodyweight'
-        ? calculateBodyweightLoad(bodyWeight, bodyweightFactor, addedWeight)
-        : null;
-    const hasBodyweightData = bodyweightLoad !== null;
-    const weight = hasBodyweightData ? bodyweightLoad : Number(payload.weight);
-    const reps = Number(payload.reps);
+    const { values, error } = prepareSetValues(payload);
 
-    if (
-      !Number.isFinite(weight) ||
-      weight < 0 ||
-      weight > 2000 ||
-      !Number.isInteger(reps) ||
-      reps < 1 ||
-      reps > 1000
-    ) {
+    if (error) {
       return null;
     }
 
@@ -554,7 +509,7 @@ export function AppProvider({ children }) {
               item.id === existingExercise.id
                 ? {
                     ...item,
-                    weightOptions: normalizeWeightOptions([...(item.weightOptions || []), weight]),
+                    weightOptions: normalizeWeightOptions([...(item.weightOptions || []), values.weight]),
                   }
                 : item,
             );
@@ -562,20 +517,11 @@ export function AppProvider({ children }) {
 
           const nextSet = {
             id: payload.id ?? createId('set'),
-            weight,
-            reps,
+            ...values,
             comment: payload.comment?.trim() ?? '',
             seatHeight:
               exercise.sets.find((setItem) => setItem.id === payload.id)?.seatHeight ?? '',
             savedAt: new Date().toISOString(),
-            ...(hasBodyweightData
-              ? {
-                  weightMode: 'bodyweight',
-                  bodyWeight,
-                  bodyweightFactor,
-                  addedWeight,
-                }
-              : {}),
           };
           savedSetId = nextSet.id;
 

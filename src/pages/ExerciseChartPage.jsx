@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAppData } from '../components/AppProvider';
 import EmptyState from '../components/EmptyState';
 import ExerciseChartCard from '../components/ExerciseChartCard';
+import ExerciseSettingsModal from '../components/ExerciseSettingsModal';
 import { resolveExerciseNavigationOrder } from '../utils/exerciseSort';
 import { buildExerciseChartData } from '../utils/workout';
 
@@ -20,7 +22,8 @@ export default function ExerciseChartPage() {
   const { exerciseId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { state } = useAppData();
+  const { state, updateExerciseSettings } = useAppData();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const requestedReturnTo = location.state?.returnTo;
   const returnTo =
     typeof requestedReturnTo === 'string' && /^\/workouts\/[^/]+\/edit(?:\?.*)?$/.test(requestedReturnTo)
@@ -51,21 +54,17 @@ export default function ExerciseChartPage() {
     );
   }
 
-  if (!data.length) {
-    return (
-      <section className="space-y-6">
-        <div className="flex justify-start">
-          <ChartBackLink returnTo={returnTo} libraryReturnTo={libraryReturnTo} />
-        </div>
-        <EmptyState
-          title="Noch keine Trainingshistorie"
-          description="Sobald für diese Übung abgeschlossene Workouts vorhanden sind, erscheint hier das Diagramm."
-        />
-      </section>
-    );
-  }
-
   const latest = data[data.length - 1];
+  const showDuration = latest?.maxDurationSeconds != null && (exercise.settings?.measurementType === 'duration' || latest.maxWeight == null);
+  const latestMetrics = latest ? (showDuration ? [
+    { label: 'Gesamte Haltezeit', value: `${latest.totalDurationSeconds} s` },
+    { label: 'Längster Satz', value: `${latest.maxDurationSeconds} s` },
+    { label: 'Gewicht dabei', value: `${latest.longestSetWeight} kg` },
+  ] : [
+    { label: 'Volumen (Wdh.)', value: `${latest.volume.toFixed(0)} kg` },
+    { label: 'Max. Gewicht', value: `${latest.maxWeight} kg` },
+    { label: 'Reps bei Max', value: latest.maxWeightReps },
+  ]) : [];
 
   function goToRelativeExercise(direction) {
     const nextIndex = exerciseIndex + direction;
@@ -85,31 +84,48 @@ export default function ExerciseChartPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-start">
+      <div className="flex flex-wrap justify-between gap-2">
         <ChartBackLink returnTo={returnTo} libraryReturnTo={libraryReturnTo} />
+        <button type="button" className="secondary-button" onClick={() => setSettingsOpen(true)}>
+          Übung bearbeiten
+        </button>
       </div>
-      <ExerciseChartCard
+      {latest ? (
+        <>
+          <ExerciseChartCard
+            exerciseName={exercise.name}
+            measurementType={exercise.settings?.measurementType}
+            data={data}
+            canGoPrev={exerciseIndex > 0}
+            canGoNext={exerciseIndex < sortedExercises.length - 1}
+            onPrevExercise={() => goToRelativeExercise(-1)}
+            onNextExercise={() => goToRelativeExercise(1)}
+          />
+          <section className="grid grid-cols-3 gap-2">
+            {latestMetrics.map((item) => (
+              <div key={item.label} className="metric">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">{item.label}</p>
+                <p className="mt-2 text-xl font-bold tabular-nums text-ink">{item.value}</p>
+              </div>
+            ))}
+          </section>
+        </>
+      ) : (
+        <>
+          <h1 className="font-display text-2xl font-bold text-ink">{exercise.name}</h1>
+          <EmptyState
+            title="Noch keine Trainingshistorie"
+            description="Sobald für diese Übung abgeschlossene Workouts vorhanden sind, erscheint hier das Diagramm."
+          />
+        </>
+      )}
+      <ExerciseSettingsModal
+        isOpen={settingsOpen}
         exerciseName={exercise.name}
-        data={data}
-        canGoPrev={exerciseIndex > 0}
-        canGoNext={exerciseIndex < sortedExercises.length - 1}
-        onPrevExercise={() => goToRelativeExercise(-1)}
-        onNextExercise={() => goToRelativeExercise(1)}
+        settings={exercise.settings}
+        onClose={() => setSettingsOpen(false)}
+        onSave={(settings) => updateExerciseSettings(exercise.id, settings)}
       />
-      <section className="grid grid-cols-3 gap-2">
-        <div className="metric">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Volumen</p>
-          <p className="mt-2 text-xl font-bold tabular-nums text-ink">{latest.volume.toFixed(0)} kg</p>
-        </div>
-        <div className="metric">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Max. Gewicht</p>
-          <p className="mt-2 text-xl font-bold tabular-nums text-ink">{latest.maxWeight} kg</p>
-        </div>
-        <div className="metric">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Reps bei Max</p>
-          <p className="mt-2 text-xl font-bold tabular-nums text-ink">{latest.maxWeightReps}</p>
-        </div>
-      </section>
     </div>
   );
 }

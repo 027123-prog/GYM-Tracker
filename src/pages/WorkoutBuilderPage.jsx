@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppData } from '../components/AppProvider';
 import AddExerciseModal from '../components/AddExerciseModal';
@@ -7,6 +7,7 @@ import ExerciseAutocomplete from '../components/ExerciseAutocomplete';
 import ExerciseEditorCard from '../components/ExerciseEditorCard';
 import TemplatePicker from '../components/TemplatePicker';
 import WorkoutSummaryModal from '../components/WorkoutSummaryModal';
+import { readWorkoutExerciseIndex, saveWorkoutExercisePosition } from '../utils/workoutNavigation';
 import {
   calculateWorkoutStats,
   getLastExerciseCommentText,
@@ -36,7 +37,8 @@ export default function WorkoutBuilderPage({ mode }) {
   const [workoutId, setWorkoutId] = useState(params.workoutId ?? null);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [exerciseModalOpen, setExerciseModalOpen] = useState(false);
-  const [activeExerciseIndex, setActiveExerciseIndex] = useState(0);
+  const [exerciseSelection, setExerciseSelection] = useState(null);
+  const exerciseTabsRef = useRef(null);
   const [templateSaved, setTemplateSaved] = useState(false);
 
   useEffect(() => {
@@ -65,6 +67,29 @@ export default function WorkoutBuilderPage({ mode }) {
   }, [createFreeWorkout, mode, navigate, params.workoutId]);
 
   const workout = state.workouts.find((item) => item.id === workoutId);
+  const activeExerciseIndex = Math.max(
+    0,
+    Math.min(
+      exerciseSelection && exerciseSelection.workoutId === workout?.id
+        ? exerciseSelection.index
+        : readWorkoutExerciseIndex(workout),
+      (workout?.exercises?.length ?? 1) - 1,
+    ),
+  );
+  const activeExercise = workout?.exercises[activeExerciseIndex] ?? null;
+  const isCompact = mode === 'edit';
+
+  function setActiveExerciseIndex(nextIndex) {
+    setExerciseSelection((current) => {
+      const currentIndex = current && current.workoutId === workout?.id
+        ? Math.max(0, Math.min(current.index, (workout?.exercises?.length ?? 1) - 1))
+        : activeExerciseIndex;
+      return {
+        workoutId: workout?.id,
+        index: typeof nextIndex === 'function' ? nextIndex(currentIndex) : nextIndex,
+      };
+    });
+  }
 
   useEffect(() => {
     if (mode === 'edit' && workout && !workout.completedAt) {
@@ -73,13 +98,22 @@ export default function WorkoutBuilderPage({ mode }) {
   }, [activateWorkout, mode, workout?.completedAt, workout?.id]);
 
   useEffect(() => {
-    if (!workout?.exercises?.length) {
-      setActiveExerciseIndex(0);
+    saveWorkoutExercisePosition(workout?.id, activeExercise?.id);
+
+    const tabs = exerciseTabsRef.current;
+    const selectedTab = tabs?.querySelector('[aria-current="step"]');
+    if (!tabs || !selectedTab) {
       return;
     }
 
-    setActiveExerciseIndex((current) => Math.min(current, workout.exercises.length - 1));
-  }, [workout?.exercises?.length]);
+    const tabBounds = selectedTab.getBoundingClientRect();
+    const viewportBounds = tabs.getBoundingClientRect();
+    if (tabBounds.left < viewportBounds.left) {
+      tabs.scrollLeft += tabBounds.left - viewportBounds.left - 8;
+    } else if (tabBounds.right > viewportBounds.right) {
+      tabs.scrollLeft += tabBounds.right - viewportBounds.right + 8;
+    }
+  }, [workout?.id, activeExercise?.id, isCompact]);
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -106,7 +140,7 @@ export default function WorkoutBuilderPage({ mode }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [workout?.exercises?.length]);
+  }, [workout?.id, workout?.exercises?.length, activeExerciseIndex]);
 
   const previousWorkouts = useMemo(
     () => state.workouts.filter((item) => item.id !== workoutId),
@@ -144,9 +178,6 @@ export default function WorkoutBuilderPage({ mode }) {
     name: workout.name,
     ...calculateWorkoutStats(workout),
   };
-
-  const activeExercise = workout.exercises[activeExerciseIndex] ?? null;
-  const isCompact = mode === 'edit';
 
   function handleAddExercise(name, placement = 'end') {
     if (isCompact && activeExercise) {
@@ -224,13 +255,17 @@ export default function WorkoutBuilderPage({ mode }) {
         {isCompact ? (
           <section className="panel sticky top-0 z-30 overflow-hidden shadow-panel md:top-[4.5rem]">
             {workout.exercises.length ? (
-              <div className="flex gap-1.5 overflow-x-auto p-2" aria-label="Übungen im Workout">
+              <div
+                ref={exerciseTabsRef}
+                className="flex gap-1.5 overflow-x-auto overscroll-x-contain p-2 [-webkit-overflow-scrolling:touch]"
+                aria-label="Übungen im Workout"
+              >
                 {workout.exercises.map((exercise, index) => (
                   <button
                     key={exercise.id}
                     type="button"
                     onClick={() => setActiveExerciseIndex(index)}
-                    className={`min-w-[150px] rounded-sm border px-3 py-2 text-left transition ${
+                    className={`w-40 shrink-0 rounded-sm border px-3 py-2 text-left transition ${
                       index === activeExerciseIndex
                         ? 'border-amber bg-amber-soft text-ink'
                         : 'border-line bg-paper text-muted hover:border-amber/45 hover:text-ink'
