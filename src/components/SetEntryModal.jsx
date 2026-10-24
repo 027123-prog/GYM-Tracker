@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { calculateBodyweightLoad, parseLocalizedNumber } from '../utils/bodyweight';
-import { isDurationSet, parseWeightInput, prepareSetValues } from '../utils/setMeasurements';
+import { isDurationSet, isWeightlessSet, parseWeightInput, prepareSetValues } from '../utils/setMeasurements';
 import ModalShell from './ModalShell';
 import WeightSuggestionGrid from './WeightSuggestionGrid';
 
@@ -29,14 +29,13 @@ export default function SetEntryModal({
   initialSet,
   exerciseName,
   exerciseSettings,
-  lastWorkoutSummary,
   weightOptions,
   onClose,
   onSave,
 }) {
   const configuredLoadType = exerciseSettings?.loadType ?? 'normal';
   const loadType = initialSet
-    ? initialSet.weightMode === 'bodyweight'
+    ? isWeightlessSet(initialSet) ? 'none' : initialSet.weightMode === 'bodyweight'
       ? (Number(initialSet.addedWeight) || configuredLoadType === 'bodyweight-added' ? 'bodyweight-added' : 'bodyweight')
       : 'normal'
     : configuredLoadType;
@@ -44,7 +43,8 @@ export default function SetEntryModal({
     ? Number(initialSet?.bodyweightFactor || 1) * 100
     : Number(exerciseSettings?.bodyweightPercent || 100);
   const bodyweightFactor = bodyweightPercent / 100;
-  const usesBodyweight = loadType !== 'normal';
+  const usesBodyweight = loadType === 'bodyweight' || loadType === 'bodyweight-added';
+  const withoutWeight = loadType === 'none';
   const allowsAddedWeight = loadType === 'bodyweight-added';
   const measurementType = initialSet
     ? (isDurationSet(initialSet) ? 'duration' : 'reps')
@@ -65,7 +65,7 @@ export default function SetEntryModal({
     allowsAddedWeight ? parsedAddedWeight.weight : 0,
   ) : null;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setWeight(initialSet?.weightInput ?? initialSet?.weight ?? (duration ? 0 : ''));
     setReps((duration ? initialSet?.durationSeconds : initialSet?.reps) ?? '');
     setComment(initialSet?.comment ?? '');
@@ -81,6 +81,7 @@ export default function SetEntryModal({
       weight,
       reps,
       durationSeconds: reps,
+      ...(withoutWeight ? { weightMode: 'none' } : {}),
       ...(usesBodyweight ? {
         weightMode: 'bodyweight',
         bodyWeight,
@@ -113,15 +114,14 @@ export default function SetEntryModal({
         <div>
           <p className="eyebrow">{exerciseName || 'Übung'}</p>
           <h2 id="set-entry-title" className="mt-2 font-display text-2xl font-bold text-ink">
-            {initialSet ? 'Satz ändern' : 'Satz erfassen'}
+            {initialSet ? 'Satz ändern' : 'Neuer Satz'}
           </h2>
-          <p className="mt-1 text-sm text-muted">{lastWorkoutSummary || 'Noch keine abgeschlossene Historie'}</p>
         </div>
         <button type="button" onClick={onClose} className="icon-button" aria-label="Dialog schließen">×</button>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className={`grid gap-3 ${withoutWeight ? '' : 'grid-cols-2'}`}>
           {usesBodyweight ? (
             <label>
               <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Dein Gewicht</span>
@@ -135,9 +135,10 @@ export default function SetEntryModal({
                 }}
                 placeholder="z. B. 90"
                 autoFocus
+                data-autofocus
               />
             </label>
-          ) : (
+          ) : !withoutWeight ? (
             <label>
               <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Gewicht kg</span>
               <input
@@ -150,13 +151,13 @@ export default function SetEntryModal({
                 }}
                 placeholder="30 oder 2x30"
                 autoFocus
+                data-autofocus
               />
               {parsedWeight?.weightInput ? <span className="mt-1.5 block text-xs text-muted">Gesamtlast: {parsedWeight.weight} kg</span> : null}
-              {duration ? <span className="mt-1.5 block text-xs text-muted">Ohne Zusatzlast: 0 kg</span> : null}
             </label>
-          )}
+          ) : null}
           <label>
-            <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">{duration ? 'Dauer (Sekunden)' : 'Wiederholungen'}</span>
+            <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">{duration ? 'Sekunden' : 'Wiederholungen'}</span>
             <input
               className="field text-lg font-bold tabular-nums"
               inputMode="numeric"
@@ -166,6 +167,8 @@ export default function SetEntryModal({
                 setError('');
               }}
               placeholder={duration ? '30' : '8'}
+              autoFocus={withoutWeight}
+              data-autofocus={withoutWeight || undefined}
             />
           </label>
         </div>
@@ -199,12 +202,11 @@ export default function SetEntryModal({
               </p>
             </div>
           </div>
-        ) : (
+        ) : !withoutWeight ? (
           <WeightSuggestionGrid options={weightOptions} selectedValue={weight} onSelect={setWeight} />
-        )}
+        ) : null}
 
         <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted">{duration ? 'Schnellauswahl Sekunden' : 'Schnellauswahl Reps'}</p>
           <div className="grid grid-cols-3 gap-1.5 min-[350px]:grid-cols-6">
             {(duration ? durationPresets : repPresets).map((preset) => (
               <button
@@ -224,7 +226,7 @@ export default function SetEntryModal({
           </div>
         </div>
 
-        <label>
+        <label className="block">
           <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Kommentar</span>
           <textarea
             className="field min-h-[88px] resize-y"

@@ -18,9 +18,7 @@ export default function TemplatesPage() {
   return (
     <div className="space-y-5">
       <section className="border-b border-line pb-5">
-        <p className="eyebrow">Training planen</p>
-        <h1 className="mt-2 font-display text-3xl font-bold uppercase text-ink sm:text-4xl">Vorlagen</h1>
-        <p className="mt-2 text-sm text-muted">Wiederkehrende Abläufe starten, kopieren oder aufräumen.</p>
+        <h1 className="font-display text-3xl font-bold uppercase text-ink sm:text-4xl">Vorlagen</h1>
       </section>
 
       {state.templates.length ? (

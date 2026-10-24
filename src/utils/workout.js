@@ -1,4 +1,4 @@
-import { formatSetSummary, getSetRepVolume, isDurationSet } from './setMeasurements';
+import { formatSetSummary, getSetRepVolume, isDurationSet, isWeightlessSet } from './setMeasurements';
 
 export function createId(prefix) {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -13,12 +13,14 @@ export function calculateWorkoutStats(workout) {
   const sets = activeExercises.flatMap((exercise) => exercise.sets || []);
   const totalVolume = sets.reduce((sum, setItem) => sum + getSetRepVolume(setItem), 0);
   const totalDurationSeconds = sets.reduce((sum, setItem) => sum + (isDurationSet(setItem) ? Number(setItem.durationSeconds || 0) : 0), 0);
+  const totalReps = sets.reduce((sum, setItem) => sum + (isWeightlessSet(setItem) && !isDurationSet(setItem) ? Number(setItem.reps || 0) : 0), 0);
 
   return {
     exerciseCount: activeExercises.length,
     setCount: sets.length,
     totalVolume,
     ...(totalDurationSeconds ? { totalDurationSeconds } : {}),
+    ...(totalReps ? { totalReps } : {}),
   };
 }
 
@@ -118,7 +120,7 @@ export function getLastExerciseWeight(workouts, exerciseId, excludeWorkoutId = n
   const snapshot = getLastExerciseSnapshot(workouts, exerciseId, excludeWorkoutId, exerciseName);
   const lastSet = snapshot?.sets?.[snapshot.sets.length - 1];
 
-  return lastSet?.weight ?? null;
+  return isWeightlessSet(lastSet) ? null : lastSet?.weight ?? null;
 }
 
 export function getLastExerciseSummaryText(workouts, exerciseId, excludeWorkoutId = null, exerciseName = '') {
@@ -194,14 +196,16 @@ export function buildExerciseChartData(workouts, exerciseId, exerciseName = '') 
       }
 
       const sets = matchingExercises.flatMap((exercise) => exercise.sets);
-      const repSets = sets.filter((setItem) => !isDurationSet(setItem));
+      const repSets = sets.filter((setItem) => !isDurationSet(setItem) && !isWeightlessSet(setItem));
+      const weightlessRepSets = sets.filter((setItem) => !isDurationSet(setItem) && isWeightlessSet(setItem));
       const durationSets = sets.filter(isDurationSet);
+      const loadedDurationSets = durationSets.filter((setItem) => !isWeightlessSet(setItem));
       const maxWeight = repSets.length ? Math.max(...repSets.map((setItem) => Number(setItem.weight || 0))) : null;
       const maxSet = repSets.find((setItem) => Number(setItem.weight || 0) === maxWeight);
       const maxDurationSeconds = durationSets.length ? Math.max(...durationSets.map((setItem) => Number(setItem.durationSeconds))) : null;
       const longestSet = durationSets.find((setItem) => Number(setItem.durationSeconds) === maxDurationSeconds);
-      const maxDurationWeight = durationSets.length ? Math.max(...durationSets.map((setItem) => Number(setItem.weight || 0))) : null;
-      const heaviestDurationSet = durationSets.find((setItem) => Number(setItem.weight || 0) === maxDurationWeight);
+      const maxDurationWeight = loadedDurationSets.length ? Math.max(...loadedDurationSets.map((setItem) => Number(setItem.weight || 0))) : null;
+      const heaviestDurationSet = loadedDurationSets.find((setItem) => Number(setItem.weight || 0) === maxDurationWeight);
 
       return {
         date: workout.date,
@@ -209,9 +213,11 @@ export function buildExerciseChartData(workouts, exerciseId, exerciseName = '') 
         volume: repSets.length ? repSets.reduce((sum, setItem) => sum + getSetRepVolume(setItem), 0) : null,
         maxWeight,
         maxWeightReps: maxSet?.reps ?? null,
+        maxReps: weightlessRepSets.length ? Math.max(...weightlessRepSets.map((setItem) => Number(setItem.reps || 0))) : null,
+        totalReps: weightlessRepSets.length ? weightlessRepSets.reduce((sum, setItem) => sum + Number(setItem.reps || 0), 0) : null,
         totalDurationSeconds: durationSets.length ? durationSets.reduce((sum, setItem) => sum + Number(setItem.durationSeconds), 0) : null,
         maxDurationSeconds,
-        longestSetWeight: longestSet?.weight ?? null,
+        longestSetWeight: isWeightlessSet(longestSet) ? null : longestSet?.weight ?? null,
         maxDurationWeight,
         maxDurationWeightSeconds: heaviestDurationSet?.durationSeconds ?? null,
         sets,

@@ -1,9 +1,11 @@
 import ModalShell from './ModalShell';
+import { getWorkoutLoadMetrics } from '../utils/workoutPresentation';
 
 export default function WorkoutSummaryModal({ isOpen, summary, onClose, onGoDashboard }) {
   if (!summary) {
     return null;
   }
+  const { primary, additional } = getWorkoutLoadMetrics(summary);
 
   return (
     <ModalShell isOpen={isOpen} onClose={onClose} labelledBy="workout-summary-title" maxWidth="max-w-xl">
@@ -13,9 +15,9 @@ export default function WorkoutSummaryModal({ isOpen, summary, onClose, onGoDash
       </h2>
       <div className="mt-5 grid grid-cols-3 gap-2">
         <div className="metric px-3">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Volumen</p>
-          <p className="mt-2 text-xl font-bold tabular-nums text-ink">{summary.totalVolume.toFixed(0)}</p>
-          <p className="text-[10px] text-muted">kg</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">{primary.label}</p>
+          <p className="mt-2 text-xl font-bold tabular-nums text-ink">{primary.display}</p>
+          {primary.unit ? <p className="text-[10px] text-muted">{primary.unit}</p> : null}
         </div>
         <div className="metric px-3">
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Übungen</p>
@@ -26,16 +28,13 @@ export default function WorkoutSummaryModal({ isOpen, summary, onClose, onGoDash
           <p className="mt-2 text-xl font-bold tabular-nums text-ink">{summary.setCount}</p>
         </div>
       </div>
-      {summary.totalDurationSeconds ? <p className="mt-3 text-sm text-muted">Haltezeit: {summary.totalDurationSeconds} s · separat vom Wiederholungsvolumen</p> : null}
-      <p className="mt-4 rounded-sm border border-sage/25 bg-mist px-3 py-2 text-sm text-sage">
-        Lokal gespeichert. Exportiere regelmäßig eine Sicherung für ein zweites Gerät.
-      </p>
+      {additional ? <p className="mt-3 text-sm text-muted">{additional}</p> : null}
       <div className="mt-5 grid grid-cols-2 gap-2">
         <button type="button" onClick={onClose} className="secondary-button">
-          Weiter bearbeiten
+          Bearbeiten
         </button>
         <button type="button" onClick={onGoDashboard} className="action-button">
-          Zur Übersicht
+          Übersicht
         </button>
       </div>
     </ModalShell>

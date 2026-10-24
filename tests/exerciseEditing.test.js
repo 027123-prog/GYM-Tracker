@@ -90,6 +90,27 @@ test('invalid load settings cannot partially rename an exercise', () => {
   assert.equal(result.state, before);
 });
 
+test('switching to no-weight reps or seconds changes only the exercise settings, never historical sets', () => {
+  for (const measurementType of ['reps', 'duration']) {
+    const before = fixture();
+    const snapshot = structuredClone(before);
+    const { state, error } = editExerciseRecord(before, 'row', {
+      settings: { loadType: 'none', measurementType, bodyweightPercent: 'invalid stale value' },
+    });
+    assert.equal(error, null);
+    assert.equal(state.exercises[0].settings.loadType, 'none');
+    assert.equal(state.exercises[0].settings.measurementType, measurementType);
+    assert.equal(state.exercises[0].settings.bodyweightPercent, 100);
+    assert.equal(state.exercises[0].settings.setupNotes, before.exercises[0].settings.setupNotes);
+    assert.strictEqual(state.workouts, before.workouts);
+    assert.strictEqual(state.templates, before.templates);
+    assert.deepEqual(before, snapshot);
+    const restored = parseBackupPayload(JSON.stringify(createBackupPayload(state)));
+    assert.equal(restored.exercises[0].settings.loadType, 'none');
+    assert.deepEqual(restored.workouts[0].exercises[0].sets, before.workouts[0].exercises[0].sets);
+  }
+});
+
 test('removing a used exercise archives it, removes template references and leaves every workout byte unchanged', () => {
   const before = fixture();
   before.templates[0].exerciseTemplates.push({ exerciseId: 'lat', name: 'Latzug', repScheme: '2 × 10' });

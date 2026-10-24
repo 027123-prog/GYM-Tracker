@@ -4,9 +4,7 @@ export default function WorkoutStartPage() {
   return (
     <section className="mx-auto w-full max-w-lg space-y-4">
       <div className="border-b border-line pb-4 text-center">
-        <p className="eyebrow">Training</p>
-        <h1 className="mt-2 font-display text-3xl font-bold uppercase text-ink">Workout starten</h1>
-        <p className="mt-2 text-sm text-muted">Wähle, wie du heute trainieren möchtest.</p>
+        <h1 className="font-display text-3xl font-bold uppercase text-ink">Training starten</h1>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -16,7 +14,6 @@ export default function WorkoutStartPage() {
         >
           <span aria-hidden="true" className="font-display text-3xl font-bold text-amber">+</span>
           <span className="mt-2 text-lg font-bold text-ink">Freies Workout</span>
-          <span className="mt-1 text-xs text-muted">Ohne feste Vorlage beginnen</span>
         </Link>
 
         <Link
@@ -25,7 +22,6 @@ export default function WorkoutStartPage() {
         >
           <span aria-hidden="true" className="font-display text-xl font-bold text-amber">01</span>
           <span className="mt-2 text-lg font-bold text-ink">Aus Vorlage</span>
-          <span className="mt-1 text-xs text-muted">Gespeicherten Ablauf wählen</span>
         </Link>
       </div>
     </section>

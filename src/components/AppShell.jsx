@@ -5,7 +5,7 @@ import { useAppData } from './AppProvider';
 import SyncIndicator from './SyncIndicator';
 import { calculateWorkoutStats } from '../utils/workout';
 
-const appVersion = '2.8.0';
+const appVersion = '2.9.0';
 const displayVersion = `v${appVersion.split('.').slice(0, 2).join('.')}`;
 
 const navItems = [
@@ -136,7 +136,7 @@ function ActiveWorkoutControl({ workout, trainingTarget }) {
           aria-label={`Aktives Workout öffnen: ${workout.name}`}
         >
           <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-amber-deep">
-            Aktives Workout
+            Läuft
           </span>
           <span className="block truncate text-xs font-bold text-ink sm:text-sm">{workout.name}</span>
         </Link>
@@ -161,7 +161,7 @@ function ActiveWorkoutControl({ workout, trainingTarget }) {
           className="panel absolute right-0 top-full z-[70] mt-2 w-[min(calc(100vw-1.5rem),22rem)] p-3 shadow-panel sm:p-4"
         >
           <label htmlFor="active-workout-name" className="eyebrow mb-2 block">
-            Workout-Name
+            Name
           </label>
           <input
             id="active-workout-name"
@@ -187,7 +187,7 @@ function ActiveWorkoutControl({ workout, trainingTarget }) {
               }}
               className="action-button w-full"
             >
-              Workout abschließen
+              Abschließen
             </button>
             <button
               type="button"
@@ -197,7 +197,7 @@ function ActiveWorkoutControl({ workout, trainingTarget }) {
               }}
               className={`secondary-button w-full ${templateSaved ? 'border-amber/60 bg-amber-soft' : ''}`}
             >
-              {templateSaved ? 'Als Vorlage gespeichert' : 'Als Vorlage speichern'}
+              {templateSaved ? 'Gespeichert' : 'Als Vorlage speichern'}
             </button>
             <button
               type="button"

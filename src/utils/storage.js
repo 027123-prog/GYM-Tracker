@@ -1,6 +1,6 @@
 import { defaultData } from '../data/defaultData.js';
 import { calculateBodyweightLoad } from './bodyweight.js';
-import { isDurationSet, parseWeightInput } from './setMeasurements.js';
+import { isDurationSet, isWeightlessSet, parseWeightInput } from './setMeasurements.js';
 
 export const STORAGE_KEY = 'gym-tracker-state-v2';
 export const LEGACY_STORAGE_KEY = 'gym-tracker-state-v1';
@@ -67,7 +67,7 @@ function normalizeMachineSettings(settings) {
 }
 
 function normalizeExerciseSettings(settings) {
-  const loadType = ['bodyweight', 'bodyweight-added'].includes(settings?.loadType)
+  const loadType = ['bodyweight', 'bodyweight-added', 'none'].includes(settings?.loadType)
     ? settings.loadType
     : 'normal';
 
@@ -75,7 +75,7 @@ function normalizeExerciseSettings(settings) {
     loadType,
     ...(settings?.measurementType ? { measurementType: settings.measurementType === 'duration' ? 'duration' : 'reps' } : {}),
     bodyweightPercent:
-      loadType === 'normal'
+      loadType === 'normal' || loadType === 'none'
         ? 100
         : Math.min(300, Math.max(1, safeNumber(settings?.bodyweightPercent, 100))),
     setupNotes: safeString(settings?.setupNotes).trim(),
@@ -100,16 +100,18 @@ function normalizeSets(sets) {
         : null;
       const duration = isDurationSet(item);
       const durationSeconds = safeNumber(item?.durationSeconds, Number.NaN);
-      const weight = effectiveBodyweight ?? Math.max(0, safeNumber(item?.weight));
+      const weightless = isWeightlessSet(item);
+      const weight = weightless ? 0 : effectiveBodyweight ?? Math.max(0, safeNumber(item?.weight));
       const weightExpression = parseWeightInput(item?.weightInput);
       const addedExpression = parseWeightInput(item?.addedWeightInput, { allowNegative: true });
 
       return {
         id: safeId(item?.id, 'set', index),
         weight,
+        ...(weightless ? { weightMode: 'none' } : {}),
         reps: duration ? 0 : Math.max(0, Math.round(safeNumber(item?.reps))),
         ...(duration ? { measurementType: 'duration', durationSeconds } : {}),
-        ...(effectiveBodyweight === null && weightExpression?.weightInput && weightExpression.weight === weight
+        ...(!weightless && effectiveBodyweight === null && weightExpression?.weightInput && weightExpression.weight === weight
           ? { weightInput: weightExpression.weightInput } : {}),
         comment: safeString(item?.comment).trim(),
         seatHeight: safeString(item?.seatHeight).trim(),
@@ -381,7 +383,7 @@ export function createBackupPayload(state) {
 
   return {
     app: 'hardgainwaf',
-    appVersion: '2.8.0',
+    appVersion: '2.9.0',
     storageKey: STORAGE_KEY,
     storageVersion: STORAGE_VERSION,
     exportedAt: new Date().toISOString(),

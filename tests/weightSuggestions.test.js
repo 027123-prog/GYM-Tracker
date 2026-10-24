@@ -33,3 +33,12 @@ test('paired quick selections survive backup roundtrip without changing legacy n
   assert.deepEqual(state.exercises[0].weightOptions, [60]);
   assert.deepEqual(getExerciseWeightSuggestions(state.exercises[0].weightOptions, state.workouts, 'db'), ['2x30']);
 });
+
+test('no-weight sets do not add zero or stale weights to suggestions', () => {
+  const workouts = [{ exercises: [{ exerciseId: 'raise', sets: [
+    { weightMode: 'none', weight: 0, reps: 12 },
+    { weightMode: 'none', weight: 60, weightInput: '2x30', reps: 12 },
+    { weight: 20, reps: 10 },
+  ] }] }];
+  assert.deepEqual(getExerciseWeightSuggestions([], workouts, 'raise'), [20]);
+});

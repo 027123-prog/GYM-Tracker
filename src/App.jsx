@@ -37,10 +37,9 @@ class AppErrorBoundary extends Component {
     return (
       <div className="mx-auto flex min-h-[100dvh] max-w-xl items-center px-4 py-10">
         <section className="panel w-full p-5 text-center sm:p-6">
-          <p className="eyebrow">HardGainWAF aktualisiert</p>
-          <h1 className="mt-2 font-display text-2xl font-bold text-ink">Ansicht neu laden</h1>
+          <h1 className="font-display text-2xl font-bold text-ink">Ansicht konnte nicht geladen werden</h1>
           <p className="mt-2 text-sm text-muted">
-            Deine Trainingsdaten sind sicher. Lade nur die App neu, um die aktuelle Version zu öffnen.
+            Lade die App neu. Gespeicherte Daten bleiben erhalten.
           </p>
           <button type="button" onClick={() => window.location.reload()} className="action-button mt-5 w-full">
             App neu laden

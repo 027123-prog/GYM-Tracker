@@ -26,6 +26,10 @@ export function isDurationSet(setItem) {
   return setItem?.measurementType === 'duration';
 }
 
+export function isWeightlessSet(setItem) {
+  return setItem?.weightMode === 'none';
+}
+
 export function prepareSetValues(payload) {
   const duration = isDurationSet(payload);
   const quantity = parseLocalizedNumber(duration ? payload.durationSeconds : payload.reps);
@@ -40,7 +44,9 @@ export function prepareSetValues(payload) {
 
   let load;
 
-  if (payload.weightMode === 'bodyweight') {
+  if (isWeightlessSet(payload)) {
+    load = { weight: 0, weightMode: 'none' };
+  } else if (payload.weightMode === 'bodyweight') {
     const bodyWeight = parseLocalizedNumber(payload.bodyWeight);
     const bodyweightFactor = parseLocalizedNumber(payload.bodyweightFactor);
     const added = parseWeightInput(payload.addedWeightInput ?? payload.addedWeight ?? 0, { allowNegative: true });
@@ -78,6 +84,7 @@ export function prepareSetValues(payload) {
 }
 
 export function formatSetWeight(setItem) {
+  if (isWeightlessSet(setItem)) return '';
   const expression = parseWeightInput(setItem?.weightInput);
   return expression?.weightInput && expression.weight === Number(setItem.weight)
     ? `${expression.weightInput} kg`
@@ -86,12 +93,13 @@ export function formatSetWeight(setItem) {
 
 export function formatSetSummary(setItem) {
   if (isDurationSet(setItem)) {
-    return `${setItem.durationSeconds} s${Number(setItem.weight) ? ` · ${formatSetWeight(setItem)}` : ''}`;
+    return `${setItem.durationSeconds} s${!isWeightlessSet(setItem) && Number(setItem.weight) ? ` · ${formatSetWeight(setItem)}` : ''}`;
   }
 
+  if (isWeightlessSet(setItem)) return `${setItem.reps} Wdh.`;
   return `${formatSetWeight(setItem)} × ${setItem.reps}`;
 }
 
 export function getSetRepVolume(setItem) {
-  return isDurationSet(setItem) ? 0 : Number(setItem.weight || 0) * Number(setItem.reps || 0);
+  return isDurationSet(setItem) || isWeightlessSet(setItem) ? 0 : Number(setItem.weight || 0) * Number(setItem.reps || 0);
 }

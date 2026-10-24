@@ -29,8 +29,7 @@ export default function TemplatePicker({ templates, onSelect, onDelete, onDuplic
           <article key={template.id} className="panel p-4 sm:p-5">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="eyebrow">Vorlage</p>
-                <h3 className="mt-2 break-words font-display text-xl font-bold text-ink sm:text-2xl">
+                <h3 className="break-words font-display text-xl font-bold text-ink sm:text-2xl">
                   {template.name}
                 </h3>
               </div>
@@ -50,7 +49,7 @@ export default function TemplatePicker({ templates, onSelect, onDelete, onDuplic
                 className="action-button w-full"
                 aria-label={`Training mit ${template.name} starten`}
               >
-                Training starten
+                Starten
               </button>
               <button
                 type="button"
@@ -59,7 +58,7 @@ export default function TemplatePicker({ templates, onSelect, onDelete, onDuplic
                 aria-expanded={isExpanded}
                 aria-controls={detailsId}
               >
-                {isExpanded ? 'Übungen einklappen' : 'Übungen anzeigen'}
+                {isExpanded ? 'Weniger' : 'Übungen'}
                 <svg
                   viewBox="0 0 20 20"
                   fill="none"
@@ -87,7 +86,7 @@ export default function TemplatePicker({ templates, onSelect, onDelete, onDuplic
                   ))}
                 </ol>
               ) : (
-                <p className="text-sm text-muted">Diese Vorlage enthält noch keine Übungen.</p>
+                <p className="text-sm text-muted">Keine Übungen</p>
               )}
 
               {onDuplicate || onDelete ? (

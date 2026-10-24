@@ -13,7 +13,7 @@ function ChartBackLink({ returnTo, libraryReturnTo }) {
   return (
     <Link to={returnTo || libraryReturnTo || '/exercises'} className="secondary-button gap-2">
       <span aria-hidden="true">←</span>
-      {hasWorkoutContext ? 'Zurück zum aktiven Workout' : 'Zur Übungsbibliothek'}
+      {hasWorkoutContext ? 'Workout' : 'Bibliothek'}
     </Link>
   );
 }
@@ -49,21 +49,25 @@ export default function ExerciseChartPage() {
         <div className="flex justify-start">
           <ChartBackLink returnTo={returnTo} libraryReturnTo={libraryReturnTo} />
         </div>
-        <EmptyState title="Übung nicht gefunden" description="Für diese Übung konnte kein Eintrag geladen werden." />
+        <EmptyState title="Übung nicht gefunden" />
       </section>
     );
   }
 
   const latest = data[data.length - 1];
-  const showDuration = latest?.maxDurationSeconds != null && (exercise.settings?.measurementType === 'duration' || latest.maxWeight == null);
+  const showDuration = latest?.maxDurationSeconds != null && (exercise.settings?.measurementType === 'duration' || (latest.maxWeight == null && latest.maxReps == null));
+  const showWeightlessReps = latest?.maxReps != null && (exercise.settings?.loadType === 'none' || latest.maxWeight == null);
   const latestMetrics = latest ? (showDuration ? [
-    { label: 'Gesamte Haltezeit', value: `${latest.totalDurationSeconds} s` },
+    { label: 'Gesamt', value: `${latest.totalDurationSeconds} s` },
     { label: 'Längster Satz', value: `${latest.maxDurationSeconds} s` },
-    { label: 'Gewicht dabei', value: `${latest.longestSetWeight} kg` },
+    ...(latest.longestSetWeight > 0 ? [{ label: 'Gewicht dabei', value: `${latest.longestSetWeight} kg` }] : []),
+  ] : showWeightlessReps ? [
+    { label: 'Wdh. gesamt', value: latest.totalReps },
+    { label: 'Max. Wdh.', value: latest.maxReps },
   ] : [
-    { label: 'Volumen (Wdh.)', value: `${latest.volume.toFixed(0)} kg` },
+    { label: 'Volumen', value: `${latest.volume?.toFixed(0) ?? '–'} kg` },
     { label: 'Max. Gewicht', value: `${latest.maxWeight} kg` },
-    { label: 'Reps bei Max', value: latest.maxWeightReps },
+    { label: 'Wdh. dabei', value: latest.maxWeightReps },
   ]) : [];
 
   function goToRelativeExercise(direction) {
@@ -87,7 +91,7 @@ export default function ExerciseChartPage() {
       <div className="flex flex-wrap justify-between gap-2">
         <ChartBackLink returnTo={returnTo} libraryReturnTo={libraryReturnTo} />
         <button type="button" className="secondary-button" onClick={() => setSettingsOpen(true)}>
-          Übung bearbeiten
+          Bearbeiten
         </button>
       </div>
       {latest ? (
@@ -95,13 +99,14 @@ export default function ExerciseChartPage() {
           <ExerciseChartCard
             exerciseName={exercise.name}
             measurementType={exercise.settings?.measurementType}
+            loadType={exercise.settings?.loadType}
             data={data}
             canGoPrev={exerciseIndex > 0}
             canGoNext={exerciseIndex < sortedExercises.length - 1}
             onPrevExercise={() => goToRelativeExercise(-1)}
             onNextExercise={() => goToRelativeExercise(1)}
           />
-          <section className="grid grid-cols-3 gap-2">
+          <section className={`grid gap-2 ${latestMetrics.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`} aria-label="Letztes Training">
             {latestMetrics.map((item) => (
               <div key={item.label} className="metric">
                 <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">{item.label}</p>
@@ -114,8 +119,7 @@ export default function ExerciseChartPage() {
         <>
           <h1 className="font-display text-2xl font-bold text-ink">{exercise.name}</h1>
           <EmptyState
-            title="Noch keine Trainingshistorie"
-            description="Sobald für diese Übung abgeschlossene Workouts vorhanden sind, erscheint hier das Diagramm."
+            title="Noch kein abgeschlossenes Training"
           />
         </>
       )}

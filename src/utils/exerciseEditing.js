@@ -116,10 +116,11 @@ export function editExerciseRecord(state, exerciseId, changes = {}) {
 
   if (changes.settings) {
     const merged = { ...exercise.settings, ...changes.settings };
-    const loadType = ['bodyweight', 'bodyweight-added'].includes(merged.loadType) ? merged.loadType : 'normal';
+    const loadType = ['bodyweight', 'bodyweight-added', 'none'].includes(merged.loadType) ? merged.loadType : 'normal';
+    const usesBodyweight = loadType === 'bodyweight' || loadType === 'bodyweight-added';
     const percent = parseLocalizedNumber(merged.bodyweightPercent ?? 100);
 
-    if (loadType !== 'normal' && (!Number.isFinite(percent) || percent < 1 || percent > 300)) {
+    if (usesBodyweight && (!Number.isFinite(percent) || percent < 1 || percent > 300)) {
       return { state, error: 'Der Körpergewichtsanteil muss zwischen 1 und 300 Prozent liegen.' };
     }
 
@@ -127,7 +128,7 @@ export function editExerciseRecord(state, exerciseId, changes = {}) {
       ...merged,
       loadType,
       ...(merged.measurementType ? { measurementType: merged.measurementType === 'duration' ? 'duration' : 'reps' } : {}),
-      bodyweightPercent: loadType === 'normal' ? 100 : percent,
+      bodyweightPercent: usesBodyweight ? percent : 100,
       setupNotes: merged.setupNotes?.trim() ?? '',
     };
   }

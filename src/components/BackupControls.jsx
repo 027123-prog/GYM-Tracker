@@ -7,7 +7,7 @@ function createBackupFilename(prefix = 'hardgainwaf-backup') {
   return `${prefix}-${timestamp}.json`;
 }
 
-export default function BackupControls({ compact = false }) {
+export default function BackupControls() {
   const { state, importBackup } = useAppData();
   const fileInputRef = useRef(null);
   const [status, setStatus] = useState('');
@@ -37,7 +37,7 @@ export default function BackupControls({ compact = false }) {
       const rawText = await file.text();
       const importedState = parseBackupPayload(rawText);
       const shouldImport = window.confirm(
-        `Sicherung importieren?\n\n${importedState.workouts.length} Workouts\n${importedState.exercises.length} Übungen\n${importedState.templates.length} Vorlagen\n\nDer aktuelle Stand wird vorher als lokaler Rücksetzpunkt gespeichert.`,
+        `Aktuellen Datenstand ersetzen?\n\n${importedState.workouts.length} Workouts\n${importedState.exercises.length} Übungen\n${importedState.templates.length} Vorlagen\n\nDer bisherige Stand wird lokal als Rücksetzpunkt gesichert.`,
       );
 
       if (!shouldImport) {
@@ -58,10 +58,10 @@ export default function BackupControls({ compact = false }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <button type="button" onClick={handleExport} className="secondary-button">
-        {compact ? 'Export' : 'Daten exportieren'}
+        Export
       </button>
       <button type="button" onClick={() => fileInputRef.current?.click()} className="secondary-button">
-        {compact ? 'Import' : 'Daten importieren'}
+        Import
       </button>
       {status ? (
         <span className="max-w-xs text-xs font-medium text-amber-deep" role="status" aria-live="polite">

@@ -24,7 +24,7 @@ export function getExerciseWeightSuggestions(weightOptions = [], workouts = [], 
     for (const exercise of workout.exercises ?? []) {
       if (exercise.exerciseId !== exerciseId) continue;
       for (const setItem of exercise.sets ?? []) {
-        if (setItem.weightMode === 'bodyweight') continue;
+        if (setItem.weightMode === 'bodyweight' || setItem.weightMode === 'none') continue;
         add(setItem.weight);
         add(setItem.weightInput, setItem.weight);
       }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import ExerciseSettingsModal from './ExerciseSettingsModal';
 import SetEntryModal from './SetEntryModal';
-import { formatSetSummary } from '../utils/setMeasurements';
+import { formatSetSummary, isDurationSet, isWeightlessSet } from '../utils/setMeasurements';
 
 const compactIconButtonClass =
   'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-line bg-surface-raised text-ink transition hover:border-amber/70 hover:text-amber-deep disabled:cursor-not-allowed disabled:opacity-35 min-[380px]:h-11 min-[380px]:w-11';
@@ -139,6 +139,30 @@ export default function ExerciseEditorCard({
       return;
     }
 
+    const settings = libraryEntry?.settings;
+    const measurementType = settings?.measurementType ?? 'reps';
+    const loadType = settings?.loadType ?? 'normal';
+    const latestLoadType = isWeightlessSet(latest) ? 'none' : latest.weightMode === 'bodyweight' ? 'bodyweight' : 'normal';
+    const currentLoadType = loadType.startsWith('bodyweight') ? 'bodyweight' : loadType;
+
+    if ((isDurationSet(latest) ? 'duration' : 'reps') !== measurementType ||
+        (currentLoadType !== 'none' && latestLoadType !== currentLoadType)) {
+      openNewSet();
+      return;
+    }
+
+    if (currentLoadType === 'none') {
+      saveSet({
+        weightMode: 'none',
+        weight: 0,
+        measurementType,
+        reps: measurementType === 'duration' ? 0 : latest.reps,
+        ...(measurementType === 'duration' ? { durationSeconds: latest.durationSeconds } : {}),
+        comment: '',
+      });
+      return;
+    }
+
     saveSet({
       weight: latest.weight,
       weightInput: latest.weightInput,
@@ -194,23 +218,23 @@ export default function ExerciseEditorCard({
             </div>
           ) : null}
 
-          <div
+          {lastWorkoutSummary || lastWorkoutCommentText || machineSettingsText ? <div
             className={`${compact ? '' : 'mt-3'} grid gap-x-5 gap-y-3 bg-surface-raised px-3 py-3 text-sm ${
               machineSettingsText ? 'md:grid-cols-2' : ''
             }`}
           >
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Letztes Workout</p>
-              <p className="mt-1 italic text-ink">{lastWorkoutSummary || 'Noch keine abgeschlossene Historie'}</p>
+            {lastWorkoutSummary || lastWorkoutCommentText ? <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Zuletzt</p>
+              {lastWorkoutSummary ? <p className="mt-1 italic text-ink">{lastWorkoutSummary}</p> : null}
               {lastWorkoutCommentText ? <p className="mt-1 text-xs italic text-muted">{lastWorkoutCommentText}</p> : null}
-            </div>
+            </div> : null}
             {machineSettingsText ? (
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Setup</p>
                 <p className="mt-1 italic text-ink">{machineSettingsText}</p>
               </div>
             ) : null}
-          </div>
+          </div> : null}
 
           <div
             className="mt-3 flex w-full items-center justify-between gap-0.5 min-[380px]:gap-1"
@@ -279,13 +303,12 @@ export default function ExerciseEditorCard({
         <div className="p-3 sm:p-4">
           <div className="mb-3 flex flex-col gap-3 min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between">
             <div>
-              <p className="eyebrow">Arbeitssätze</p>
-              <p className="mt-1 text-xs text-muted">{exercise.sets.length} gespeichert</p>
+              <p className="eyebrow">Sätze · {exercise.sets.length}</p>
             </div>
             <div className="grid grid-cols-2 gap-2 min-[380px]:flex">
               {exercise.sets.length ? (
                 <button type="button" onClick={repeatLastSet} className="secondary-button w-full min-[380px]:w-auto">
-                  Letzten wiederholen
+                  Wiederholen
                 </button>
               ) : null}
               <button
@@ -339,7 +362,7 @@ export default function ExerciseEditorCard({
             </div>
           ) : (
             <div className="rounded-sm border border-dashed border-line px-4 py-7 text-center text-sm text-muted">
-              Noch keine Sätze. Starte mit Gewicht und Wiederholungen.
+              Noch keine Sätze
             </div>
           )}
           <div ref={bottomAnchorRef} />

@@ -1,22 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { parseLocalizedNumber } from '../utils/bodyweight';
 import ModalShell from './ModalShell';
 
 const loadTypes = [
+  { value: 'none', label: 'Ohne Gewicht' },
   {
     value: 'normal',
-    label: 'Normal',
-    description: 'Das eingetragene Gewicht ist die komplette Trainingslast.',
+    label: 'Gewicht',
   },
   {
     value: 'bodyweight',
     label: 'Körpergewicht',
-    description: 'Die Last wird aus deinem Körpergewicht und dem Anteil berechnet.',
   },
   {
     value: 'bodyweight-added',
-    label: 'Körpergewicht + Zusatz',
-    description: 'Körpergewichtsanteil plus zusätzliches oder unterstützendes Gewicht.',
+    label: 'Körpergewicht ± Zusatz',
   },
 ];
 
@@ -27,8 +25,9 @@ export default function ExerciseSettingsModal({ isOpen, exerciseName, settings, 
   const [bodyweightPercent, setBodyweightPercent] = useState(settings?.bodyweightPercent ?? 100);
   const [setupNotes, setSetupNotes] = useState(settings?.setupNotes ?? '');
   const [error, setError] = useState('');
+  const usesBodyweight = loadType === 'bodyweight' || loadType === 'bodyweight-added';
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setName(exerciseName ?? '');
     setMeasurementType(settings?.measurementType ?? 'reps');
     setLoadType(settings?.loadType ?? 'normal');
@@ -46,7 +45,7 @@ export default function ExerciseSettingsModal({ isOpen, exerciseName, settings, 
       return;
     }
 
-    if (loadType !== 'normal' && (!Number.isFinite(percent) || percent < 1 || percent > 300)) {
+    if (usesBodyweight && (!Number.isFinite(percent) || percent < 1 || percent > 300)) {
       setError('Der Körpergewichtsanteil muss zwischen 1 und 300 Prozent liegen.');
       return;
     }
@@ -55,7 +54,7 @@ export default function ExerciseSettingsModal({ isOpen, exerciseName, settings, 
       name: name.trim(),
       measurementType,
       loadType,
-      bodyweightPercent: loadType === 'normal' ? 100 : percent,
+      bodyweightPercent: usesBodyweight ? percent : 100,
       setupNotes: setupNotes.trim(),
     });
 
@@ -71,8 +70,7 @@ export default function ExerciseSettingsModal({ isOpen, exerciseName, settings, 
     <ModalShell isOpen={isOpen} onClose={onClose} labelledBy="exercise-settings-title" maxWidth="max-w-xl">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="eyebrow">{exerciseName}</p>
-          <h2 id="exercise-settings-title" className="mt-2 font-display text-2xl font-bold text-ink">
+          <h2 id="exercise-settings-title" className="font-display text-2xl font-bold text-ink">
             Übung bearbeiten
           </h2>
         </div>
@@ -93,20 +91,19 @@ export default function ExerciseSettingsModal({ isOpen, exerciseName, settings, 
             }}
             placeholder="Name der Übung"
           />
-          <span className="mt-1.5 block text-xs text-muted">Gilt für Bibliothek, Vorlagen und Workouts. Dein Verlauf bleibt erhalten.</span>
+          <span className="mt-1.5 block text-xs text-muted">Name gilt überall.</span>
         </label>
 
         <fieldset>
           <legend className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted">Satzerfassung</legend>
           <div className="grid grid-cols-2 gap-2">
-            {[{ value: 'reps', label: 'Wiederholungen' }, { value: 'duration', label: 'Dauer in Sekunden' }].map((option) => (
+            {[{ value: 'reps', label: 'Wdh.', accessibleLabel: 'Wiederholungen' }, { value: 'duration', label: 'Sekunden' }].map((option) => (
               <label key={option.value} className={`flex cursor-pointer items-center gap-2 rounded-sm border p-3 text-sm font-bold ${measurementType === option.value ? 'border-amber bg-amber-soft' : 'border-line bg-surface-raised'}`}>
-                <input type="radio" name="measurement-type" value={option.value} checked={measurementType === option.value} onChange={() => setMeasurementType(option.value)} className="accent-amber" />
+                <input type="radio" name="measurement-type" value={option.value} aria-label={option.accessibleLabel} checked={measurementType === option.value} onChange={() => setMeasurementType(option.value)} className="accent-amber" />
                 {option.label}
               </label>
             ))}
           </div>
-          <p className="mt-1.5 text-xs text-muted">Gilt für neue Sätze. Bereits gespeicherte Sätze behalten ihre Einheit.</p>
         </fieldset>
 
         <fieldset>
@@ -133,16 +130,18 @@ export default function ExerciseSettingsModal({ isOpen, exerciseName, settings, 
                   className="mt-1 accent-amber"
                 />
                 <span>
-                  <span className="block font-bold text-ink">{option.label}</span>
-                  <span className="mt-0.5 block text-xs text-muted">{option.description}</span>
+                  <span className="block font-bold text-ink">{option.value === 'none'
+                    ? (measurementType === 'duration' ? 'Sekunden ohne Gewicht' : 'Nur Wiederholungen')
+                    : option.label}</span>
                 </span>
               </label>
             ))}
           </div>
+          <p className="mt-1.5 text-xs text-muted">Gilt für neue Sätze. Verlauf bleibt erhalten.</p>
         </fieldset>
 
-        {loadType !== 'normal' ? (
-          <label>
+        {usesBodyweight ? (
+          <label className="block">
             <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">
               Anteil des Körpergewichts
             </span>
@@ -159,13 +158,12 @@ export default function ExerciseSettingsModal({ isOpen, exerciseName, settings, 
               />
               <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center font-bold text-muted">%</span>
             </div>
-            <span className="mt-1.5 block text-xs text-muted">Zum Beispiel 67 % bei Übungen mit teilweisem Körpergewicht.</span>
           </label>
         ) : null}
 
-        <label>
+        <label className="block">
           <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">
-            Maschine / Sitz / Setup
+            Setup
           </span>
           <textarea
             className="field min-h-[96px] resize-y"
@@ -173,7 +171,6 @@ export default function ExerciseSettingsModal({ isOpen, exerciseName, settings, 
             onChange={(event) => setSetupNotes(event.target.value)}
             placeholder="z. B. Sitz 4 · Lehne 2 · Griff neutral"
           />
-          <span className="mt-1.5 block text-xs text-muted">Wird bei dieser Übung in jedem Workout angezeigt.</span>
         </label>
 
         {error ? (

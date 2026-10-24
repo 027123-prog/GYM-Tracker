@@ -8,18 +8,18 @@ import { getExerciseWorkoutCount, getLastExerciseSnapshot } from '../utils/worko
 import { formatSetSummary } from '../utils/setMeasurements';
 
 const sortOptions = [
-  { value: 'count-desc', label: 'Am häufigsten trainiert' },
-  { value: 'name-asc', label: 'Alphabet A–Z' },
-  { value: 'newest', label: 'Neueste Übungen' },
+  { value: 'count-desc', label: 'Am häufigsten' },
+  { value: 'name-asc', label: 'A–Z' },
+  { value: 'newest', label: 'Neueste' },
   { value: 'last-trained', label: 'Zuletzt trainiert' },
-  { value: 'name-desc', label: 'Alphabet Z–A' },
+  { value: 'name-desc', label: 'Z–A' },
 ];
 
 const filters = [
-  { value: 'all', label: 'Alle', description: 'Aktive Übungen in deiner Bibliothek.' },
-  { value: 'templates', label: 'In Vorlagen', description: 'Übungen aus deinen gespeicherten Trainingsplänen.' },
-  { value: 'unused', label: 'Unbenutzt', description: 'Ohne Sätze, ohne Vorlage und ohne Verweis in einem offenen Training.' },
-  { value: 'archive', label: 'Archiv', description: 'Ausgeblendete Übungen mit erhaltenem Verlauf. Wiederherstellen ergänzt sie wieder in der Auswahl; Vorlagen bleiben wie eingerichtet.' },
+  { value: 'all', label: 'Alle' },
+  { value: 'templates', label: 'In Vorlagen' },
+  { value: 'unused', label: 'Unbenutzt', description: 'Ohne Sätze, Vorlage oder offenes Training.' },
+  { value: 'archive', label: 'Archiv', description: 'Verlauf bleibt erhalten. Wiederherstellen ergänzt keine Vorlagen.' },
 ];
 
 function normalizeSearch(value) {
@@ -101,9 +101,7 @@ export default function ExerciseLibraryPage() {
     <div className="space-y-4">
       <section className="space-y-4 border-b border-line pb-4">
         <div>
-          <p className="eyebrow">Bibliothek</p>
-          <h1 className="mt-1 font-display text-3xl font-bold uppercase text-ink sm:text-4xl">Übungen</h1>
-          <p className="mt-1 text-sm text-muted">{counts.all} aktiv · {counts.archive} im Archiv</p>
+          <h1 className="font-display text-3xl font-bold uppercase text-ink sm:text-4xl">Übungen</h1>
         </div>
         <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
           <label>
@@ -126,15 +124,15 @@ export default function ExerciseLibraryPage() {
             </button>
           ))}
         </div>
-        <p className="text-xs leading-relaxed text-muted">{filter.description}</p>
+        {filter.description ? <p className="text-xs leading-relaxed text-muted">{filter.description}</p> : null}
       </section>
 
       {notice ? <p role={notice.error ? 'alert' : 'status'} className={`rounded-sm border p-3 text-sm ${notice.error ? 'border-ember/35 bg-ember/10 text-ember' : 'border-amber/35 bg-amber-soft text-ink'}`}>{notice.text}</p> : null}
 
-      <div className="flex items-center justify-between text-xs text-muted">
-        <span>{exercises.length} {exercises.length === 1 ? 'Übung' : 'Übungen'} angezeigt</span>
-        {query ? <button type="button" className="min-h-9 px-2 font-semibold text-amber" onClick={() => updateSearchParams('q', '')}>Suche löschen</button> : null}
-      </div>
+      {query ? <div className="flex items-center justify-between text-xs text-muted">
+        <span>{exercises.length} Treffer</span>
+        <button type="button" className="min-h-9 px-2 font-semibold text-amber" onClick={() => updateSearchParams('q', '')}>Suche löschen</button>
+      </div> : null}
       <section className="grid gap-3 lg:grid-cols-2" aria-label="Übungsliste">
         {exercises.map((exercise) => (
           <article key={exercise.id} className="panel flex min-w-0 flex-col overflow-hidden" aria-label={exercise.name}>
@@ -143,9 +141,9 @@ export default function ExerciseLibraryPage() {
                 <h2 className="min-w-0 break-words font-bold text-ink">{exercise.name}</h2>
                 <span className="shrink-0 rounded-sm bg-paper px-2 py-1 text-[11px] tabular-nums text-muted">{exercise.workoutCount} {exercise.workoutCount === 1 ? 'Training' : 'Trainings'}</span>
               </div>
-              <p className="line-clamp-2 text-xs leading-relaxed text-muted">{exercise.latestSummary ? `Zuletzt: ${exercise.latestSummary}` : 'Noch keine abgeschlossenen Sätze'}</p>
-              {exercise.templateNames.length ? <p className="break-words text-xs leading-relaxed text-amber-deep">Vorlagen: {exercise.templateNames.join(' · ')}</p> : null}
-              {exercise.hasOpenWorkout ? <p className="text-xs text-muted">In einem offenen Training enthalten</p> : null}
+              {exercise.latestSummary ? <p className="line-clamp-2 text-xs leading-relaxed text-muted">Zuletzt: {exercise.latestSummary}</p> : null}
+              {exercise.templateNames.length ? <p className="break-words text-xs leading-relaxed text-amber-deep">{exercise.templateNames.join(' · ')}</p> : null}
+              {exercise.hasOpenWorkout ? <p className="text-xs text-muted">Im offenen Training</p> : null}
             </div>
             <div className={`grid ${exercise.archivedAt ? 'grid-cols-2' : 'grid-cols-3'} gap-1 border-t border-line p-2`}>
               <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder, libraryReturnTo }} className="secondary-button px-1 text-xs" aria-label={`Verlauf von ${exercise.name}`}>Verlauf</Link>

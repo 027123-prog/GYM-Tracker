@@ -175,8 +175,7 @@ export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) 
       <div className="flex h-[calc(var(--modal-viewport-height,100dvh)-4rem)] min-h-0 flex-col sm:h-[min(78dvh,42rem)]">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="eyebrow">Workout erweitern</p>
-            <h2 id="add-exercise-title" className="mt-2 font-display text-2xl font-bold text-ink">
+            <h2 id="add-exercise-title" className="font-display text-2xl font-bold text-ink">
               Übung einfügen
             </h2>
           </div>
@@ -194,7 +193,7 @@ export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) 
         >
           <div className="shrink-0">
             <label htmlFor="modal-exercise-search" className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">
-              Übung suchen oder neu anlegen
+              Suchen oder neu anlegen
             </label>
             <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
               <input
@@ -254,7 +253,6 @@ export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) 
                   className="mb-1 flex min-h-11 w-full items-center justify-between rounded-sm border border-amber/60 bg-amber-soft px-3 py-2 text-left text-sm font-semibold text-ink transition"
                 >
                   <span>{archivedExactMatch ? 'Wieder aktivieren' : 'Neue Übung'}: {archivedExactMatch?.name ?? trimmedValue}</span>
-                  <span className="text-xs text-muted">{archivedExactMatch ? 'Archiv' : 'neu'}</span>
                 </button>
               ) : null}
               {filteredExercises.map((exercise) => (
@@ -266,7 +264,6 @@ export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) 
                   className="flex min-h-11 w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm text-ink transition hover:bg-amber-soft"
                 >
                   <span>{exercise.name}</span>
-                  <span className="text-xs text-muted">{exercise.weightOptions?.length ?? 0} Gewichte</span>
                 </button>
               ))}
             </div>

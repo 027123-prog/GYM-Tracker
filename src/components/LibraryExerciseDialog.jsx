@@ -32,8 +32,7 @@ export default function LibraryExerciseDialog({ action, exercise, impact, onRena
     <ModalShell isOpen onClose={onClose} labelledBy="library-exercise-dialog-title" maxWidth="max-w-lg">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="eyebrow">Bibliothek</p>
-          <h2 id="library-exercise-dialog-title" className="mt-2 font-display text-2xl font-bold text-ink">
+          <h2 id="library-exercise-dialog-title" className="font-display text-2xl font-bold text-ink">
             {renaming ? 'Übung umbenennen' : 'Übung entfernen?'}
           </h2>
         </div>
@@ -52,15 +51,15 @@ export default function LibraryExerciseDialog({ action, exercise, impact, onRena
                 autoComplete="off"
               />
             </label>
-            <p className="text-sm text-muted">Der Name wird in der Bibliothek, in Vorlagen und im Trainingsverlauf aktualisiert. Sätze und Einstellungen bleiben erhalten.</p>
+            <p className="text-sm text-muted">Gilt auch für Vorlagen und Verlauf. Sätze und Einstellungen bleiben erhalten.</p>
           </>
         ) : (
           <>
             <p className="break-words font-bold text-ink">{exercise.name}</p>
             <p className="text-sm leading-relaxed text-muted">
               {impact.archive
-                ? 'Die Übung wird ins Archiv verschoben und aus der Übungsauswahl entfernt. Gespeicherte Trainings, Sätze und Einstellungen bleiben erhalten.'
-                : 'Diese Übung hat keinen Trainingsverlauf. Sie wird mit ihren Einstellungen endgültig aus der Bibliothek gelöscht.'}
+                ? 'Aus der Auswahl ins Archiv. Trainings, Sätze und Einstellungen bleiben erhalten.'
+                : 'Ohne Trainingsverlauf. Übung und Einstellungen werden endgültig gelöscht.'}
             </p>
             {impact.templateCount > 0 ? (
               <div className="rounded-sm border border-amber/35 bg-amber-soft p-3 text-sm text-ink">
@@ -74,7 +73,7 @@ export default function LibraryExerciseDialog({ action, exercise, impact, onRena
         <div className="flex flex-wrap gap-2 border-t border-line pt-4">
           <button type="button" onClick={onClose} className="secondary-button flex-1">Abbrechen</button>
           <button type="submit" className={`${renaming ? 'action-button' : 'danger-button'} flex-1`}>
-            {renaming ? 'Namen speichern' : impact.archive ? 'Ins Archiv verschieben' : 'Endgültig löschen'}
+            {renaming ? 'Speichern' : impact.archive ? 'Archivieren' : 'Endgültig löschen'}
           </button>
         </div>
       </form>

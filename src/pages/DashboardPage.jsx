@@ -106,7 +106,7 @@ export default function DashboardPage() {
             Aus Vorlage
           </Link>
           <Link to="/workouts/new" className="action-button w-full px-3">
-            Workout starten
+            Freies Training
           </Link>
         </section>
       ) : null}
@@ -118,7 +118,7 @@ export default function DashboardPage() {
               <p className="eyebrow">Offenes Training</p>
               <h2 className="mt-1 text-xl font-bold text-ink">{currentDraft.name}</h2>
               <p className="mt-1 text-sm text-muted">
-                {currentDraft.exercises.length} Übungen · {calculateWorkoutStats(currentDraft).setCount} Sätze erfasst
+                {currentDraft.exercises.length} Übungen · {calculateWorkoutStats(currentDraft).setCount} Sätze
               </p>
             </div>
             <Link to={`/workouts/${currentDraft.id}/edit`} className="action-button">
@@ -154,7 +154,6 @@ export default function DashboardPage() {
       <section className="panel overflow-hidden">
         <div className="flex items-center justify-between border-b border-line px-4 py-3 sm:px-5">
           <div>
-            <p className="eyebrow">Verlauf</p>
             <h2 className="mt-1 text-lg font-bold text-ink">Letzte Workouts</h2>
           </div>
           <span className="text-xs font-semibold text-muted">{completedWorkouts.length} gesamt</span>
@@ -167,14 +166,12 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="p-4">
-            <EmptyState title="Noch kein Workout abgeschlossen" description="Starte dein erstes Training." />
+            <EmptyState title="Noch kein Training abgeschlossen" />
           </div>
         )}
       </section>
 
       <section className="panel p-4 lg:hidden">
-        <p className="eyebrow">Daten</p>
-        <p className="mb-3 mt-1 text-sm text-muted">Sicherung exportieren oder wieder einspielen.</p>
         <BackupControls />
       </section>
     </div>

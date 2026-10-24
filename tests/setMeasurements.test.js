@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { formatSetSummary, getSetRepVolume, parseWeightInput, prepareSetValues } from '../src/utils/setMeasurements.js';
+import { formatSetSummary, formatSetWeight, getSetRepVolume, parseWeightInput, prepareSetValues } from '../src/utils/setMeasurements.js';
 import { createBackupPayload, normalizeAppState, parseBackupPayload } from '../src/utils/storage.js';
 import { buildExerciseChartData, calculateWorkoutStats, getLastExerciseSummaryText } from '../src/utils/workout.js';
 
@@ -120,4 +120,97 @@ test('a normal expression is repeated and edited without losing its representati
   assert.deepEqual(repeated, original);
   assert.equal(formatSetSummary(edited), '2x30 kg × 10');
   assert.equal(getSetRepVolume(edited), 600);
+});
+
+test('no-weight sets validate only their quantity and strip stale load metadata', () => {
+  const stale = {
+    weightMode: 'none', weight: 93, weightInput: '2x46,5', bodyWeight: 93,
+    bodyweightFactor: 1, addedWeight: 10, addedWeightInput: '2x5', reps: 12,
+  };
+  const result = prepareSetValues(stale);
+  assert.equal(result.error, null);
+  assert.deepEqual(result.values, { weight: 0, weightMode: 'none', reps: 12 });
+  assert.equal(formatSetWeight(stale), '');
+  assert.equal(formatSetSummary(stale), '12 Wdh.');
+  assert.equal(getSetRepVolume(stale), 0);
+  assert.equal(stale.weight, 93, 'Validation does not mutate the original set');
+
+  const timed = prepareSetValues({ ...stale, weightInput: 'invalid', measurementType: 'duration', durationSeconds: 35 });
+  assert.deepEqual(timed.values, { weight: 0, weightMode: 'none', measurementType: 'duration', durationSeconds: 35, reps: 0 });
+  assert.equal(formatSetSummary({ ...stale, ...timed.values, weight: 93 }), '35 s');
+  assert.deepEqual(prepareSetValues(timed.values).values, timed.values, 'Repeating keeps the explicit no-weight mode');
+
+  for (const reps of [0, -1, 1.5, 1001, '', 'invalid']) {
+    assert.ok(prepareSetValues({ weightMode: 'none', reps }).error);
+  }
+  for (const durationSeconds of [0, -1, 1.5, 86401, '', 'invalid']) {
+    assert.ok(prepareSetValues({ weightMode: 'none', measurementType: 'duration', durationSeconds }).error);
+  }
+});
+
+test('no-weight settings and explicit sets survive import/export without reinterpreting old sets', () => {
+  const source = sampleState();
+  source.exercises[0].settings = { ...source.exercises[0].settings, loadType: 'none' };
+  const originalSets = structuredClone(source.workouts[0].exercises[0].sets);
+  source.workouts[0].exercises[0].sets.push({
+    id: 'none', weightMode: 'none', weight: 93, weightInput: '2x46,5', bodyWeight: 93,
+    bodyweightFactor: 1, addedWeight: 10, addedWeightInput: '2x5', reps: 12,
+    comment: 'Weiterhin erhalten', savedAt: '2026-10-24T12:30:00Z',
+  }, {
+    id: 'none-duration', weightMode: 'none', weight: 93, weightInput: '2x46,5', measurementType: 'duration', durationSeconds: 35, reps: 99,
+  });
+
+  const before = normalizeAppState(source);
+  const after = parseBackupPayload(JSON.stringify(createBackupPayload(before)));
+  assert.deepEqual(after, before);
+  assert.equal(after.exercises[0].settings.loadType, 'none');
+  const sets = after.workouts[0].exercises[0].sets;
+  assert.deepEqual(sets.slice(0, 3), normalizeAppState(sampleState()).workouts[0].exercises[0].sets);
+  assert.deepEqual(source.workouts[0].exercises[0].sets.slice(0, 3), originalSets);
+  assert.equal(sets[3].weightMode, 'none');
+  assert.equal(sets[3].weight, 0);
+  assert.equal(sets[3].reps, 12);
+  assert.equal(sets[3].savedAt, '2026-10-24T12:30:00Z');
+  assert.equal(sets[3].comment, 'Weiterhin erhalten');
+  for (const key of ['weightInput', 'bodyWeight', 'bodyweightFactor', 'addedWeight', 'addedWeightInput']) {
+    assert.equal(key in sets[3], false, key);
+  }
+  assert.equal(formatSetSummary(sets[4]), '35 s');
+  assert.equal(sets[4].weight, 0);
+  assert.equal(sets[4].reps, 0);
+});
+
+test('mixed no-weight history keeps repetition counts separate from loaded reps and timed load', () => {
+  const { workouts } = normalizeAppState(sampleState());
+  workouts[0].exercises[0].sets.push(
+    { id: 'none-1', weightMode: 'none', weight: 999, reps: 12 },
+    { id: 'none-2', weightMode: 'none', weight: 0, reps: 9 },
+    { id: 'none-duration', weightMode: 'none', weight: 999, measurementType: 'duration', durationSeconds: 70, reps: 0 },
+  );
+  const stats = calculateWorkoutStats(workouts[0]);
+  assert.equal(stats.totalVolume, 300);
+  assert.equal(stats.totalReps, 21);
+  assert.equal(stats.totalDurationSeconds, 175);
+  assert.equal(stats.setCount, 6);
+
+  const [mixed] = buildExerciseChartData(workouts, 'carry');
+  assert.equal(mixed.maxReps, 12);
+  assert.equal(mixed.totalReps, 21);
+  assert.equal(mixed.volume, 300);
+  assert.equal(mixed.maxWeight, 30);
+  assert.equal(mixed.maxWeightReps, 10);
+  assert.equal(mixed.maxDurationSeconds, 70);
+  assert.equal(mixed.longestSetWeight, null);
+  assert.equal(mixed.maxDurationWeight, 60);
+  assert.equal(mixed.maxDurationWeightSeconds, 45);
+  assert.match(getLastExerciseSummaryText(workouts, 'carry'), /12 Wdh\. · 9 Wdh\. · 70 s$/);
+
+  workouts[0].exercises[0].sets = workouts[0].exercises[0].sets.slice(3);
+  const [noWeightOnly] = buildExerciseChartData(workouts, 'carry');
+  assert.equal(noWeightOnly.volume, null);
+  assert.equal(noWeightOnly.maxWeight, null);
+  assert.equal(noWeightOnly.maxWeightReps, null);
+  assert.equal(noWeightOnly.maxDurationWeight, null);
+  assert.equal(noWeightOnly.maxDurationWeightSeconds, null);
+  assert.equal(noWeightOnly.totalReps, 21);
 });

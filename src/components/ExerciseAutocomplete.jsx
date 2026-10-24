@@ -187,7 +187,6 @@ export default function ExerciseAutocomplete({ exercises, onAdd, compact = false
                   className="mb-1 flex min-h-11 w-full items-center justify-between rounded-sm border border-amber/60 bg-amber-soft px-3 py-2 text-left text-sm font-semibold text-ink transition"
                 >
                   <span>{archivedExactMatch ? 'Wieder aktivieren' : 'Neue Übung'}: {archivedExactMatch?.name ?? trimmedValue}</span>
-                  <span className="text-xs text-muted">{archivedExactMatch ? 'Archiv' : 'neu'}</span>
                 </button>
               ) : null}
               {filteredExercises.map((exercise) => (
@@ -199,7 +198,6 @@ export default function ExerciseAutocomplete({ exercises, onAdd, compact = false
                   role="option"
                 >
                   <span>{exercise.name}</span>
-                  <span className="text-xs text-muted">{exercise.weightOptions?.length ?? 0}</span>
                 </button>
               ))}
             </div>

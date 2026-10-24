@@ -146,12 +146,11 @@ export default function MaxStrengthPage() {
     return (
       <div className="space-y-5">
         <section className="border-b border-line pb-5">
-          <p className="eyebrow">Progression</p>
-          <h1 className="mt-2 font-display text-3xl font-bold uppercase text-ink">Fortschritt</h1>
+          <h1 className="font-display text-3xl font-bold uppercase text-ink">Fortschritt</h1>
         </section>
-        <EmptyState title="Noch keine Maximalkraftwerte" description="Lege den ersten Wert für eine Übung an." />
+        <EmptyState title="Noch keine Maximalkraftwerte" />
         <button type="button" onClick={() => setCreatingExercise(true)} className="action-button w-full">
-          Erste Übung anlegen
+          + Übung
         </button>
       </div>
     );
@@ -185,12 +184,11 @@ export default function MaxStrengthPage() {
     <div className="space-y-5">
       <section className="flex flex-col gap-4 border-b border-line pb-5 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="eyebrow">Progression</p>
-          <h1 className="mt-2 font-display text-3xl font-bold uppercase text-ink sm:text-4xl">Fortschritt</h1>
-          <p className="mt-2 text-sm text-muted">Maximalkraft kompakt verfolgen und vergleichen.</p>
+          <h1 className="font-display text-3xl font-bold uppercase text-ink sm:text-4xl">Fortschritt</h1>
+          <p className="mt-1 text-sm text-muted">Maximalkraft</p>
         </div>
         <button type="button" onClick={() => setCreatingExercise((current) => !current)} className="secondary-button">
-          + Neue Übung
+          + Übung
         </button>
       </section>
 
@@ -299,7 +297,7 @@ export default function MaxStrengthPage() {
             <div className="grid grid-cols-[1fr_1fr_auto] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
               <span>Datum</span>
               <span>Wert</span>
-              <span>Aktion</span>
+              <span className="sr-only">Aktion</span>
             </div>
             <div className="max-h-[320px] divide-y divide-line overflow-y-auto">
               {[...selectedGroup.values].reverse().map((item) => (

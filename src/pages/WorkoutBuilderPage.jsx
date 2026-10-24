@@ -152,9 +152,7 @@ export default function WorkoutBuilderPage({ mode }) {
     return (
       <section className="space-y-5">
         <div className="border-b border-line pb-5">
-          <p className="eyebrow">Training starten</p>
-          <h1 className="mt-2 font-display text-3xl font-bold uppercase text-ink">Vorlage wählen</h1>
-          <p className="mt-2 text-sm text-muted">Wähle einen Ablauf. Gewichte und Einstellungen bleiben flexibel.</p>
+          <h1 className="font-display text-3xl font-bold uppercase text-ink">Vorlage wählen</h1>
         </div>
         <TemplatePicker
           templates={state.templates}
@@ -172,7 +170,7 @@ export default function WorkoutBuilderPage({ mode }) {
   }
 
   if (!workout) {
-    return <EmptyState title="Workout nicht gefunden" description="Die Session existiert nicht oder wurde entfernt." />;
+    return <EmptyState title="Workout nicht gefunden" />;
   }
 
   const summary = {
@@ -246,7 +244,7 @@ export default function WorkoutBuilderPage({ mode }) {
                   }}
                   className="action-button"
                 >
-                  Änderungen speichern
+                  Fertig
                 </button>
               </div>
             </div>
@@ -343,24 +341,17 @@ export default function WorkoutBuilderPage({ mode }) {
         ) : (
           <div className="space-y-3">
             <EmptyState
-              title="Noch keine Übungen im Workout"
-              description={
-                isCompact
-                  ? 'Füge die erste Übung hinzu oder lege durch freie Eingabe direkt eine neue an.'
-                  : 'Füge oben eine bestehende Übung hinzu oder lege durch freie Eingabe direkt eine neue an.'
-              }
+              title="Noch keine Übungen"
             />
             {isCompact ? (
               <button
                 type="button"
                 onClick={() => setExerciseModalOpen(true)}
-                className="icon-button mx-auto"
+                className="action-button mx-auto"
                 aria-label="Erste Übung einfügen"
                 title="Erste Übung einfügen"
               >
-                <span aria-hidden="true" className="text-xl leading-none">
-                  +
-                </span>
+                + Übung
               </button>
             ) : null}
           </div>

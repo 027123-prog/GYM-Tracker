@@ -4,6 +4,7 @@ import EmptyState from '../components/EmptyState';
 import { calculateWorkoutStats } from '../utils/workout';
 import { formatDateTime, formatSetTime } from '../utils/date';
 import { formatSetSummary } from '../utils/setMeasurements';
+import { getWorkoutLoadMetrics } from '../utils/workoutPresentation';
 
 function ChartIcon() {
   return (
@@ -20,10 +21,6 @@ function ChartIcon() {
   );
 }
 
-function formatVolume(value) {
-  return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 }).format(value);
-}
-
 export default function WorkoutDetailPage() {
   const { workoutId } = useParams();
   const { state } = useAppData();
@@ -33,20 +30,19 @@ export default function WorkoutDetailPage() {
     return (
       <EmptyState
         title="Workout nicht gefunden"
-        description="Die angeforderte Session ist nicht in deinem lokalen Datenbestand vorhanden."
       />
     );
   }
 
   const stats = calculateWorkoutStats(workout);
+  const { primary, additional } = getWorkoutLoadMetrics(stats);
 
   return (
     <div className="space-y-4">
       <section className="panel p-4 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="eyebrow">{workout.mode === 'template' ? 'Vorlagen-Workout' : 'Freies Workout'}</p>
-            <h1 className="mt-2 font-display text-3xl font-bold text-ink sm:text-4xl">{workout.name}</h1>
+            <h1 className="font-display text-3xl font-bold text-ink sm:text-4xl">{workout.name}</h1>
             <p className="mt-2 text-sm text-muted">
               {workout.completedAt ? `Abgeschlossen ${formatDateTime(workout.completedAt)}` : 'Noch nicht abgeschlossen'}
             </p>
@@ -58,9 +54,9 @@ export default function WorkoutDetailPage() {
 
         <div className="mt-5 grid grid-cols-3 gap-2 border-t border-line pt-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Volumen</p>
-            <p className="mt-1 text-xl font-bold tabular-nums text-ink">{formatVolume(stats.totalVolume)}</p>
-            <p className="text-[10px] text-muted">kg</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">{primary.label}</p>
+            <p className="mt-1 text-xl font-bold tabular-nums text-ink">{primary.display}</p>
+            {primary.unit ? <p className="text-[10px] text-muted">{primary.unit}</p> : null}
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Übungen</p>
@@ -71,7 +67,7 @@ export default function WorkoutDetailPage() {
             <p className="mt-1 text-xl font-bold tabular-nums text-ink">{stats.setCount}</p>
           </div>
         </div>
-        {stats.totalDurationSeconds ? <p className="mt-3 text-sm text-muted">Haltezeit: {stats.totalDurationSeconds} s · separat vom Wiederholungsvolumen</p> : null}
+        {additional ? <p className="mt-3 text-sm text-muted">{additional}</p> : null}
       </section>
 
       <section className="space-y-3">
@@ -148,7 +144,7 @@ export default function WorkoutDetailPage() {
                 </div>
               ) : (
                 <p className="px-4 py-5 text-sm text-muted">
-                  {exercise.skipped ? 'Diese Übung wurde ausgelassen.' : 'Keine Sätze gespeichert.'}
+                  {exercise.skipped ? 'Ausgelassen' : 'Keine Sätze'}
                 </p>
               )}
             </article>

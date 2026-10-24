@@ -1,13 +1,11 @@
 import { Link } from 'react-router-dom';
 import { calculateWorkoutStats } from '../utils/workout';
 import { formatDate } from '../utils/date';
-
-function formatVolume(value) {
-  return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 }).format(value);
-}
+import { getWorkoutLoadMetrics } from '../utils/workoutPresentation';
 
 export default function WorkoutCard({ workout, compact = false }) {
   const stats = calculateWorkoutStats(workout);
+  const { primary, additional } = getWorkoutLoadMetrics(stats);
 
   if (compact) {
     return (
@@ -26,12 +24,12 @@ export default function WorkoutCard({ workout, compact = false }) {
             ) : null}
           </div>
           <h3 className="mt-1 truncate text-base font-bold text-ink sm:text-lg">{workout.name}</h3>
-          {stats.totalDurationSeconds ? <p className="mt-1 text-xs text-muted">{stats.totalDurationSeconds} s Haltezeit</p> : null}
+          {additional ? <p className="mt-1 text-xs text-muted">{additional}</p> : null}
         </div>
         <div className="grid grid-cols-3 gap-4 text-left sm:min-w-[250px] sm:text-right">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Volumen</p>
-            <p className="mt-1 text-sm font-bold tabular-nums text-ink">{formatVolume(stats.totalVolume)}</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">{primary.label}</p>
+            <p className="mt-1 text-sm font-bold tabular-nums text-ink">{primary.display}{primary.unit ? ` ${primary.unit}` : ''}</p>
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Übungen</p>
@@ -57,10 +55,10 @@ export default function WorkoutCard({ workout, compact = false }) {
           <span className="text-xs text-muted">{formatDate(workout.date)}</span>
         </div>
         <h3 className="mt-3 font-display text-2xl font-bold text-ink">{workout.name}</h3>
-        {stats.totalDurationSeconds ? <p className="mt-1 text-xs text-muted">{stats.totalDurationSeconds} s Haltezeit</p> : null}
+        {additional ? <p className="mt-1 text-xs text-muted">{additional}</p> : null}
       </div>
       <div className="grid grid-cols-3 border-t border-line pt-3 text-sm">
-        <span className="font-bold tabular-nums text-ink">{formatVolume(stats.totalVolume)} kg</span>
+        <span className="font-bold tabular-nums text-ink">{primary.display}{primary.unit ? ` ${primary.unit}` : ''}</span>
         <span className="text-center font-bold tabular-nums text-ink">{stats.exerciseCount} Üb.</span>
         <span className="text-right font-bold tabular-nums text-ink">{stats.setCount} Sätze</span>
       </div>
