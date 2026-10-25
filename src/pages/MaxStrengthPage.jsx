@@ -200,7 +200,10 @@ export default function MaxStrengthPage() {
           <span />
           <h1 className="font-display text-lg font-bold text-ink">Fortschritt</h1>
           <div className="flex justify-self-end">
-            <button type="button" onClick={() => setCreatingExercise((current) => !current)} className="action-button h-11 w-11 shrink-0 px-0 text-2xl" aria-label="Maximalkraft-Übung hinzufügen" title="Übung hinzufügen" aria-expanded={creatingExercise}>+</button>
+            <button type="button" onClick={() => setCreatingExercise((current) => !current)} className="action-button h-11 w-11 shrink-0 flex-col gap-0 px-0" aria-label="Maximalkraft-Übung hinzufügen" title="Übung hinzufügen" aria-expanded={creatingExercise}>
+              <span aria-hidden="true" className="text-xl leading-5">+</span>
+              <span className="text-[9px] leading-3">Übung</span>
+            </button>
           </div>
         </div>
         <label className="block">
@@ -249,8 +252,9 @@ export default function MaxStrengthPage() {
                 ))}
               </select>
             </label>
-            <button type="button" onClick={() => setAddingValue((current) => !current)} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-amber-soft text-xl font-bold text-amber transition hover:bg-amber/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber" aria-label="Messwert hinzufügen" title="Messwert hinzufügen" aria-expanded={addingValue}>
-              +
+            <button type="button" onClick={() => setAddingValue((current) => !current)} className="inline-flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-sm bg-amber-soft font-bold text-amber transition hover:bg-amber/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber" aria-label="Messwert hinzufügen" title="Messwert hinzufügen" aria-expanded={addingValue}>
+              <span aria-hidden="true" className="text-lg leading-5">+</span>
+              <span className="text-[9px] leading-3">Wert</span>
             </button>
           </div>
 
