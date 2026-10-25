@@ -201,8 +201,8 @@ export default function MaxStrengthPage() {
           <h1 className="font-display text-lg font-bold text-ink">Fortschritt</h1>
           <div className="flex justify-self-end">
             <button type="button" onClick={() => setCreatingExercise((current) => !current)} className="action-button h-11 w-11 shrink-0 flex-col gap-0 px-0" aria-label="Maximalkraft-Übung hinzufügen" title="Übung hinzufügen" aria-expanded={creatingExercise}>
-              <span aria-hidden="true" className="text-xl leading-5">+</span>
-              <span className="text-[9px] leading-3">Übung</span>
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" className="h-4 w-4 shrink-0"><path d="M12 5v14M5 12h14" /></svg>
+              <span className="text-[9px] font-normal leading-3">Übung</span>
             </button>
           </div>
         </div>
@@ -252,9 +252,9 @@ export default function MaxStrengthPage() {
                 ))}
               </select>
             </label>
-            <button type="button" onClick={() => setAddingValue((current) => !current)} className="inline-flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-sm bg-amber-soft font-bold text-amber transition hover:bg-amber/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber" aria-label="Messwert hinzufügen" title="Messwert hinzufügen" aria-expanded={addingValue}>
-              <span aria-hidden="true" className="text-lg leading-5">+</span>
-              <span className="text-[9px] leading-3">Wert</span>
+            <button type="button" onClick={() => setAddingValue((current) => !current)} className="inline-flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-sm bg-amber-soft text-amber transition hover:bg-amber/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber" aria-label="Messwert hinzufügen" title="Messwert hinzufügen" aria-expanded={addingValue}>
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" className="h-3.5 w-3.5 shrink-0"><path d="M12 5v14M5 12h14" /></svg>
+              <span className="text-[9px] font-normal leading-3">Wert</span>
             </button>
           </div>
 
@@ -306,6 +306,7 @@ export default function MaxStrengthPage() {
                   type="monotone"
                   dataKey="value"
                   name="Maximalkraft"
+                  animationDuration={1250}
                   stroke="#F47A24"
                   strokeWidth={3}
                   dot={{ r: 4, fill: '#222222', stroke: '#F47A24', strokeWidth: 2 }}
