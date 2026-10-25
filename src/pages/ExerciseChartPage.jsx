@@ -117,7 +117,11 @@ export default function ExerciseChartPage() {
         </>
       ) : (
         <>
-          <h1 className="font-display text-2xl font-bold text-ink">{exercise.name}</h1>
+          <div className="flex items-center gap-3">
+            <button type="button" className="icon-button" aria-label="Vorherige Übung" disabled={exerciseIndex <= 0} onClick={() => goToRelativeExercise(-1)}>←</button>
+            <h1 className="min-w-0 break-words font-display text-2xl font-bold text-ink">{exercise.name}</h1>
+            <button type="button" className="icon-button" aria-label="Nächste Übung" disabled={exerciseIndex >= sortedExercises.length - 1} onClick={() => goToRelativeExercise(1)}>→</button>
+          </div>
           <EmptyState
             title="Noch kein abgeschlossenes Training"
           />

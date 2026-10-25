@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   CartesianGrid,
   Line,
@@ -11,6 +12,9 @@ import {
 } from 'recharts';
 import { useAppData } from '../components/AppProvider';
 import EmptyState from '../components/EmptyState';
+import ModalShell from '../components/ModalShell';
+import InterfaceIcon, { compactIconButtonClass } from '../components/InterfaceIcon';
+import { exerciseSortOptions, normalizeExerciseSortMode, sortExerciseCards } from '../utils/exerciseSort';
 import { formatKilograms } from '../utils/strength';
 
 const dateFormatter = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -120,7 +124,24 @@ function ValueForm({ exerciseName, onSave, onCancel }) {
 
 export default function MaxStrengthPage() {
   const { state, addMaxStrengthRecord, deleteMaxStrengthRecord } = useAppData();
-  const groups = useMemo(() => buildGroups(state.maxStrengthRecords || []), [state.maxStrengthRecords]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get('q') ?? '';
+  const sortMode = normalizeExerciseSortMode(searchParams.get('sort'));
+  const [sortOpen, setSortOpen] = useState(false);
+  const allGroups = useMemo(() => buildGroups(state.maxStrengthRecords || []), [state.maxStrengthRecords]);
+  const groups = useMemo(() => {
+    const normalize = (value) => value.toLocaleLowerCase('de-DE').normalize('NFD').replace(/\p{Diacritic}/gu, '');
+    const term = normalize(query.trim());
+    return sortExerciseCards(allGroups
+      .filter((group) => !term || normalize(group.exerciseName).includes(term))
+      .map((group) => ({
+        ...group,
+        name: group.exerciseName,
+        workoutCount: group.values.length,
+        createdAt: group.values[0]?.date,
+        lastTrainedAt: group.values[group.values.length - 1]?.date,
+      })), sortMode);
+  }, [allGroups, query, sortMode]);
   const [selectedKey, setSelectedKey] = useState(() =>
     groups[0]?.exerciseName.toLocaleLowerCase('de-DE') ?? '',
   );
@@ -139,21 +160,16 @@ export default function MaxStrengthPage() {
     }
   }, [groups, selectedKey]);
 
+  useEffect(() => setAddingValue(false), [selectedKey]);
+
   const selectedGroup =
     groups.find((group) => group.exerciseName.toLocaleLowerCase('de-DE') === selectedKey) ?? groups[0];
 
-  if (!groups.length && !creatingExercise) {
-    return (
-      <div className="space-y-5">
-        <section className="border-b border-line pb-5">
-          <h1 className="font-display text-3xl font-bold uppercase text-ink">Fortschritt</h1>
-        </section>
-        <EmptyState title="Noch keine Maximalkraftwerte" />
-        <button type="button" onClick={() => setCreatingExercise(true)} className="action-button w-full">
-          + Übung
-        </button>
-      </div>
-    );
+  function updateSearchParams(key, value, defaultValue = '') {
+    const next = new URLSearchParams(searchParams);
+    if (!value || value === defaultValue) next.delete(key);
+    else next.set(key, value);
+    setSearchParams(next, { replace: true });
   }
 
   const latest = selectedGroup?.values[selectedGroup.values.length - 1];
@@ -172,6 +188,7 @@ export default function MaxStrengthPage() {
     const id = addMaxStrengthRecord(payload);
 
     if (id) {
+      updateSearchParams('q', '');
       setSelectedKey(payload.exerciseName.trim().toLocaleLowerCase('de-DE'));
       setCreatingExercise(false);
       setNewExerciseName('');
@@ -182,14 +199,19 @@ export default function MaxStrengthPage() {
 
   return (
     <div className="space-y-5">
-      <section className="flex flex-col gap-4 border-b border-line pb-5 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="font-display text-3xl font-bold uppercase text-ink sm:text-4xl">Fortschritt</h1>
-          <p className="mt-1 text-sm text-muted">Maximalkraft</p>
+      <section className="space-y-2 border-b border-line pb-3">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center">
+          <span />
+          <h1 className="font-display text-lg font-bold text-ink">Fortschritt</h1>
+          <div className="flex justify-self-end">
+            <button type="button" onClick={() => setCreatingExercise((current) => !current)} className={compactIconButtonClass} aria-label="Maximalkraft-Übung hinzufügen" title="Übung hinzufügen"><span className="text-xl">+</span></button>
+            <button type="button" className={`${compactIconButtonClass} ${sortMode !== 'count-desc' ? 'bg-amber-soft text-amber' : ''}`} aria-label="Fortschritt sortieren" title="Sortierung" aria-haspopup="dialog" aria-expanded={sortOpen} onClick={() => setSortOpen(true)}><InterfaceIcon name="sort" /></button>
+          </div>
         </div>
-        <button type="button" onClick={() => setCreatingExercise((current) => !current)} className="secondary-button">
-          + Übung
-        </button>
+        <label className="block">
+          <span className="sr-only">Maximalkraft-Übungen durchsuchen</span>
+          <input type="search" className="field h-10 py-2" value={query} onChange={(event) => updateSearchParams('q', event.target.value)} placeholder="Suchen …" />
+        </label>
       </section>
 
       {creatingExercise ? (
@@ -213,11 +235,12 @@ export default function MaxStrengthPage() {
 
       {selectedGroup ? (
         <section className="panel overflow-hidden">
-          <div className="grid gap-4 border-b border-line p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-            <label className="max-w-xl">
-              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Übung</span>
+          <div className="flex items-center gap-2 border-b border-line p-3">
+            <label className="min-w-0 flex-1">
+              <span className="sr-only">Übung</span>
               <select
-                className="field text-base font-bold"
+                className="field h-10 py-2 text-sm font-bold"
+                aria-label="Übung"
                 value={selectedKey}
                 onChange={(event) => {
                   setSelectedKey(event.target.value);
@@ -231,8 +254,8 @@ export default function MaxStrengthPage() {
                 ))}
               </select>
             </label>
-            <button type="button" onClick={() => setAddingValue((current) => !current)} className="action-button">
-              + Messwert
+            <button type="button" onClick={() => setAddingValue((current) => !current)} className="action-button h-10 w-10 shrink-0 px-0 text-xl" aria-label="Messwert hinzufügen" title="Messwert hinzufügen">
+              +
             </button>
           </div>
 
@@ -322,6 +345,20 @@ export default function MaxStrengthPage() {
           </div>
         </section>
       ) : null}
+      {!selectedGroup ? <EmptyState title={allGroups.length ? 'Keine passende Übung' : 'Noch keine Maximalkraftwerte'} /> : null}
+      <ModalShell isOpen={sortOpen} onClose={() => setSortOpen(false)} labelledBy="strength-sort-title" maxWidth="max-w-sm">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 id="strength-sort-title" className="text-lg font-bold text-ink">Sortierung</h2>
+          <button type="button" className="icon-button" aria-label="Sortierung schließen" onClick={() => setSortOpen(false)}>×</button>
+        </div>
+        <label className="block">
+          <span className="sr-only">Maximalkraft-Übungen sortieren</span>
+          <select className="field" aria-label="Maximalkraft-Übungen sortieren" value={sortMode} onChange={(event) => updateSearchParams('sort', event.target.value, 'count-desc')}>
+            {exerciseSortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </label>
+        <button type="button" className="action-button mt-4 w-full" onClick={() => setSortOpen(false)}>Fertig</button>
+      </ModalShell>
     </div>
   );
 }

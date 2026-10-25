@@ -1,12 +1,14 @@
 import { defaultData } from '../data/defaultData.js';
 import { calculateBodyweightLoad } from './bodyweight.js';
 import { isDurationSet, isWeightlessSet, parseWeightInput } from './setMeasurements.js';
+import { hasConfirmedPlankSource, mergeConfirmedPlankRecords } from './plankMigration.js';
 
 export const STORAGE_KEY = 'gym-tracker-state-v2';
 export const LEGACY_STORAGE_KEY = 'gym-tracker-state-v1';
 export const LEGACY_BACKUP_KEY = 'gym-tracker-state-v1-pre-v2-backup';
 export const CORRUPT_BACKUP_KEY = 'gym-tracker-state-v2-corrupt-backup';
 export const PRE_IMPORT_BACKUP_KEY = 'gym-tracker-state-v2-pre-import-backup';
+export const PRE_PLANK_MERGE_BACKUP_KEY = 'gym-tracker-state-v2-pre-plank-wide-merge';
 export const STORAGE_VERSION = 2;
 
 const RETIRED_TEMPLATE_IDS = new Set(['template-upper', 'template-lower']);
@@ -37,6 +39,12 @@ const NAME_MIGRATIONS = new Map([
 function migrateName(value) {
   const name = typeof value === 'string' ? value.trim() : '';
   return NAME_MIGRATIONS.get(name) ?? name;
+}
+
+function migratePlanName(value) {
+  const name = migrateName(value);
+  const datedPlan = name.match(/^(?:Trainingsplan|Ganzkörper) ([AB])\s*·\s*\d{1,2}\.\d{1,2}\.\d{4}$/i);
+  return datedPlan ? `Ganzkörper ${datedPlan[1].toUpperCase()}` : name;
 }
 
 function safeString(value, fallback = '') {
@@ -212,7 +220,7 @@ function normalizeWorkouts(workouts) {
     return {
       ...workout,
       id: safeId(workout?.id, 'workout', index),
-      name: migrateName(workout?.name) || 'Workout',
+      name: migratePlanName(workout?.name) || 'Workout',
       date,
       updatedAt,
       completedAt: inferLegacyCompletedAt(workout, exercises, updatedAt),
@@ -237,7 +245,7 @@ function normalizeTemplates(templates) {
     .map((template, index) => ({
       ...template,
       id: safeId(template?.id, 'template', index),
-      name: migrateName(template?.name) || 'Vorlage',
+      name: migratePlanName(template?.name) || 'Vorlage',
       exerciseTemplates: safeArray(template?.exerciseTemplates)
         .map((exercise, exerciseIndex) => ({
           ...exercise,
@@ -276,7 +284,7 @@ function hasArray(source, key) {
 export function normalizeAppState(input = {}) {
   const parsed = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
 
-  return {
+  return mergeConfirmedPlankRecords({
     ...defaultData,
     ...parsed,
     exercises: normalizeExercises(hasArray(parsed, 'exercises') ? parsed.exercises : defaultData.exercises),
@@ -291,7 +299,7 @@ export function normalizeAppState(input = {}) {
       storageVersion: STORAGE_VERSION,
       migratedFrom: parsed?.meta?.storageVersion === STORAGE_VERSION ? parsed?.meta?.migratedFrom : 'v1',
     },
-  };
+  });
 }
 
 function parseStoredState(raw) {
@@ -326,6 +334,13 @@ export function loadAppState() {
   const currentState = currentRaw ? parseStoredState(currentRaw) : null;
 
   if (currentState) {
+    try {
+      if (hasConfirmedPlankSource(JSON.parse(currentRaw)) && !window.localStorage.getItem(PRE_PLANK_MERGE_BACKUP_KEY)) {
+        window.localStorage.setItem(PRE_PLANK_MERGE_BACKUP_KEY, currentRaw);
+      }
+    } catch {
+      // A full or blocked backup store must not prevent loading the workout.
+    }
     return currentState;
   }
 
@@ -383,7 +398,7 @@ export function createBackupPayload(state) {
 
   return {
     app: 'hardgainwaf',
-    appVersion: '2.9.0',
+    appVersion: '2.10.0',
     storageKey: STORAGE_KEY,
     storageVersion: STORAGE_VERSION,
     exportedAt: new Date().toISOString(),

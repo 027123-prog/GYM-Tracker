@@ -124,7 +124,12 @@ export default function WorkoutBuilderPage({ mode }) {
 
       const tagName = event.target?.tagName;
 
-      if (tagName === 'INPUT' || tagName === 'TEXTAREA') {
+      if (
+        event.defaultPrevented ||
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(tagName) ||
+        event.target?.isContentEditable ||
+        event.target?.closest?.('[role="dialog"]')
+      ) {
         return;
       }
 
@@ -259,24 +264,37 @@ export default function WorkoutBuilderPage({ mode }) {
                 className="flex gap-1.5 overflow-x-auto overscroll-x-contain p-2 [-webkit-overflow-scrolling:touch]"
                 aria-label="Übungen im Workout"
               >
-                {workout.exercises.map((exercise, index) => (
+                {workout.exercises.map((exercise, index) => {
+                  const nameParts = exercise.name.match(/^(.+?)(?:\s+-\s+|\s*[–—]\s*)(.+)$/);
+                  const mainName = nameParts ? nameParts[1].trim() : exercise.name;
+                  const nameDetail = nameParts ? nameParts[2].trim() : '';
+
+                  return (
                   <button
                     key={exercise.id}
                     type="button"
                     onClick={() => setActiveExerciseIndex(index)}
-                    className={`w-40 shrink-0 rounded-sm border px-3 py-2 text-left transition ${
+                    className={`flex h-[3.5625rem] w-40 shrink-0 flex-col justify-center rounded-sm border px-3 py-1 text-left transition ${
                       index === activeExerciseIndex
                         ? 'border-amber bg-amber-soft text-ink'
                         : 'border-line bg-paper text-muted hover:border-amber/45 hover:text-ink'
                     }`}
+                    aria-label={`${exercise.name}, ${exercise.sets.length} Sätze`}
+                    title={exercise.name}
                     aria-current={index === activeExerciseIndex ? 'step' : undefined}
                   >
-                    <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-amber-deep">
+                    <span className="block text-[10px] font-bold uppercase leading-3 tracking-[0.14em] text-amber-deep">
                       {String(index + 1).padStart(2, '0')} · {exercise.sets.length} Sätze
                     </span>
-                    <span className="mt-1 block truncate text-sm font-bold">{exercise.name}</span>
+                    <span className="mt-1 flex h-7 w-full flex-col justify-center">
+                      <span className="block w-full truncate text-sm font-bold leading-4">{mainName}</span>
+                      {nameDetail ? (
+                        <span className="block w-full truncate text-[10px] leading-3 text-muted">{nameDetail}</span>
+                      ) : null}
+                    </span>
                   </button>
-                ))}
+                  );
+                })}
                 <button
                   type="button"
                   onClick={() => setExerciseModalOpen(true)}

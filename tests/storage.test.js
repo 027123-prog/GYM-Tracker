@@ -31,6 +31,23 @@ function createMemoryStorage(seed = {}) {
   };
 }
 
+test('coaching plan names lose generated date suffixes while history and custom names stay intact', () => {
+  const date = '2026-10-24T18:00:00.000Z';
+  const names = ['Trainingsplan A · 12.10.2026', 'Trainingsplan B · 12.10.2026', 'Ganzkörper A · 12.10.2026', 'Ganzkörper A (alt)', 'Wettkampf · 12.10.2026'];
+  const original = {
+    templates: names.map((name, i) => ({ id: `plan-${i}`, name, exerciseTemplates: [] })),
+    workouts: names.map((name, i) => ({ id: `workout-${i}`, name, date, completedAt: date, exercises: [] })),
+    exercises: [{ id: 'custom-exercise', name: names[0] }],
+  };
+  const expected = ['Ganzkörper A', 'Ganzkörper B', 'Ganzkörper A', names[3], names[4]];
+  const normalized = normalizeAppState(original);
+  assert.deepEqual(normalized.workouts.map(workout => workout.name), expected);
+  assert.deepEqual(normalized.templates.map(template => template.name), expected);
+  assert.deepEqual(normalized.workouts.map(workout => [workout.id, workout.date, workout.completedAt]), original.workouts.map(workout => [workout.id, workout.date, workout.completedAt]));
+  assert.equal(normalized.exercises[0].name, names[0]);
+  assert.deepEqual(normalizeAppState(normalized), normalized);
+});
+
 test('normalizeAppState migriert Namen und bereinigt beschädigte v1-Daten', () => {
   const completedAt = '2026-07-01T18:00:00.000Z';
   const normalized = normalizeAppState({
@@ -348,7 +365,7 @@ test('Backup-Export und -Import ergeben einen verlustfreien normalisierten Round
   const restored = parseBackupPayload(JSON.stringify(backup));
 
   assert.equal(backup.app, 'hardgainwaf');
-  assert.equal(backup.appVersion, '2.9.0');
+  assert.equal(backup.appVersion, '2.10.0');
   assert.equal(backup.storageKey, STORAGE_KEY);
   assert.equal(backup.storageVersion, STORAGE_VERSION);
   assert.match(backup.exportedAt, /^\d{4}-\d{2}-\d{2}T/);

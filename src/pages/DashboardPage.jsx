@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppData } from '../components/AppProvider';
 import BackupControls from '../components/BackupControls';
@@ -68,8 +69,10 @@ function isMeaningfulDraft(workout, templates) {
 
 export default function DashboardPage() {
   const { state, activeWorkoutId } = useAppData();
+  const [showAllWorkouts, setShowAllWorkouts] = useState(false);
   const sortedWorkouts = sortWorkoutsByDate(state.workouts);
   const completedWorkouts = sortedWorkouts.filter((workout) => workout.completedAt);
+  const visibleWorkouts = showAllWorkouts ? completedWorkouts : completedWorkouts.slice(0, 6);
   const activeWorkout = state.workouts.find(
     (workout) => workout.id === activeWorkoutId && !workout.completedAt,
   );
@@ -100,17 +103,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      {!activeWorkout ? (
-        <section className="mx-auto grid w-full max-w-md grid-cols-2 gap-2">
-          <Link to="/workouts/template" className="secondary-button w-full px-3">
-            Aus Vorlage
-          </Link>
-          <Link to="/workouts/new" className="action-button w-full px-3">
-            Freies Training
-          </Link>
-        </section>
-      ) : null}
-
       {currentDraft ? (
         <section className="panel border-amber/35 bg-gradient-to-r from-amber-soft to-surface p-4 sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -131,36 +123,48 @@ export default function DashboardPage() {
       <section className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         <div className="metric">
           <p className="eyebrow">Gesamt</p>
-          <p className="mt-2 font-display text-3xl font-bold tabular-nums text-ink">{completedWorkouts.length}</p>
-          <p className="mt-1 text-xs text-muted">Workouts</p>
+          <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+            <span className="font-display text-3xl font-bold tabular-nums text-ink">{completedWorkouts.length}</span>
+            <span className="text-xs text-muted">Workouts</span>
+          </p>
         </div>
         <div className="metric">
           <p className="eyebrow">Dieser Monat</p>
-          <p className="mt-2 font-display text-3xl font-bold tabular-nums text-ink">{monthlyWorkouts.length}</p>
-          <p className="mt-1 text-xs text-muted">Einheiten</p>
+          <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+            <span className="font-display text-3xl font-bold tabular-nums text-ink">{monthlyWorkouts.length}</span>
+            <span className="text-xs text-muted">Einheiten</span>
+          </p>
         </div>
         <div className="metric">
           <p className="eyebrow">Volumen</p>
-          <p className="mt-2 font-display text-3xl font-bold tabular-nums text-ink">{formatVolume(totalVolume)}</p>
-          <p className="mt-1 text-xs text-muted">kg bewegt</p>
+          <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+            <span className="font-display text-3xl font-bold tabular-nums text-ink">{formatVolume(totalVolume)}</span>
+            <span className="text-xs text-muted">kg</span>
+          </p>
         </div>
         <div className="metric">
-          <p className="eyebrow">Sätze</p>
-          <p className="mt-2 font-display text-3xl font-bold tabular-nums text-ink">{totalSets}</p>
-          <p className="mt-1 text-xs text-muted">abgeschlossen</p>
+          <p className="eyebrow">Abgeschlossen</p>
+          <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+            <span className="font-display text-3xl font-bold tabular-nums text-ink">{totalSets}</span>
+            <span className="text-xs text-muted">Sätze</span>
+          </p>
         </div>
       </section>
 
       <section className="panel overflow-hidden">
         <div className="flex items-center justify-between border-b border-line px-4 py-3 sm:px-5">
           <div>
-            <h2 className="mt-1 text-lg font-bold text-ink">Letzte Workouts</h2>
+            <h2 className="mt-1 text-lg font-bold text-ink">
+              {showAllWorkouts ? 'Alle Workouts' : 'Letzte Workouts'}
+            </h2>
           </div>
-          <span className="text-xs font-semibold text-muted">{completedWorkouts.length} gesamt</span>
+          <span className="text-xs font-semibold text-muted">
+            {visibleWorkouts.length} von {completedWorkouts.length}
+          </span>
         </div>
         {completedWorkouts.length ? (
-          <div className="divide-y divide-line">
-            {completedWorkouts.slice(0, 10).map((workout) => (
+          <div id="workout-history-list" className="divide-y divide-line">
+            {visibleWorkouts.map((workout) => (
               <WorkoutCard key={workout.id} workout={workout} compact />
             ))}
           </div>
@@ -169,6 +173,31 @@ export default function DashboardPage() {
             <EmptyState title="Noch kein Training abgeschlossen" />
           </div>
         )}
+        {completedWorkouts.length > 6 ? (
+          <div className="border-t border-line">
+            <button
+              type="button"
+              className="flex min-h-11 w-full items-center justify-center text-muted transition hover:bg-surface-raised hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-amber"
+              aria-label={showAllWorkouts ? 'Auf sechs Einheiten einklappen' : `Alle ${completedWorkouts.length} Einheiten anzeigen`}
+              aria-expanded={showAllWorkouts}
+              aria-controls="workout-history-list"
+              onClick={() => setShowAllWorkouts((current) => !current)}
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`h-5 w-5 transition-transform ${showAllWorkouts ? 'rotate-180' : ''}`}
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
+          </div>
+        ) : null}
       </section>
 
       <section className="panel p-4 lg:hidden">

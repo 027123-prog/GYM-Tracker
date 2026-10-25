@@ -5,7 +5,7 @@ import { useAppData } from './AppProvider';
 import SyncIndicator from './SyncIndicator';
 import { calculateWorkoutStats } from '../utils/workout';
 
-const appVersion = '2.9.0';
+const appVersion = '2.10.0';
 const displayVersion = `v${appVersion.split('.').slice(0, 2).join('.')}`;
 
 const navItems = [
@@ -267,6 +267,16 @@ export default function AppShell() {
           ) : null}
 
           <div className="ml-auto flex items-center gap-2">
+            {!activeWorkout ? (
+              <Link
+                to="/workouts/new"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-amber text-3xl leading-none text-paper transition hover:bg-amber-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
+                aria-label="Freies Training starten"
+                title="Freies Training starten"
+              >
+                <span aria-hidden="true">+</span>
+              </Link>
+            ) : null}
             <SyncIndicator compact />
             <div className="hidden lg:block">
               <BackupControls compact />
