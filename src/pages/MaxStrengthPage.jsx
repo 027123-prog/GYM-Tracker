@@ -306,7 +306,6 @@ export default function MaxStrengthPage() {
                   type="monotone"
                   dataKey="value"
                   name="Maximalkraft"
-                  animationDuration={1250}
                   stroke="#F47A24"
                   strokeWidth={3}
                   dot={{ r: 4, fill: '#222222', stroke: '#F47A24', strokeWidth: 2 }}

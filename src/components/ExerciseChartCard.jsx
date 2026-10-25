@@ -240,6 +240,7 @@ export default function ExerciseChartCard({
               type="monotone"
               dataKey={config.field}
               name={metricLabel}
+              animationDuration={1250}
               stroke={strokeColor}
               strokeWidth={3}
               dot={(props) => (
