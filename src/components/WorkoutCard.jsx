@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import WorkoutActions from './WorkoutActions';
 import { calculateWorkoutStats } from '../utils/workout';
 import { formatDate } from '../utils/date';
 import { getWorkoutLoadMetrics } from '../utils/workoutPresentation';
@@ -9,11 +10,12 @@ export default function WorkoutCard({ workout, compact = false }) {
 
   if (compact) {
     return (
+      <article className="relative" aria-label={workout.name}>
       <Link
         to={workout.completedAt ? `/workouts/${workout.id}` : `/workouts/${workout.id}/edit`}
-        className="grid gap-3 bg-surface px-4 py-4 transition hover:bg-surface-raised sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-5"
+        className="grid gap-3 bg-surface px-4 py-4 transition hover:bg-surface-raised sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:pl-5 sm:pr-16"
       >
-        <div className="min-w-0">
+        <div className="min-w-0 pr-10 sm:pr-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="eyebrow">{workout.mode === 'template' ? 'Vorlage' : 'Frei'}</span>
             <span className="text-xs text-muted">{formatDate(workout.date)}</span>
@@ -41,6 +43,8 @@ export default function WorkoutCard({ workout, compact = false }) {
           </div>
         </div>
       </Link>
+      <WorkoutActions workout={workout} />
+      </article>
     );
   }
 

@@ -12,9 +12,7 @@ import {
 } from 'recharts';
 import { useAppData } from '../components/AppProvider';
 import EmptyState from '../components/EmptyState';
-import ModalShell from '../components/ModalShell';
-import InterfaceIcon, { compactIconButtonClass } from '../components/InterfaceIcon';
-import { exerciseSortOptions, normalizeExerciseSortMode, sortExerciseCards } from '../utils/exerciseSort';
+import { sortExerciseCards } from '../utils/exerciseSort';
 import { formatKilograms } from '../utils/strength';
 
 const dateFormatter = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -126,8 +124,6 @@ export default function MaxStrengthPage() {
   const { state, addMaxStrengthRecord, deleteMaxStrengthRecord } = useAppData();
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') ?? '';
-  const sortMode = normalizeExerciseSortMode(searchParams.get('sort'));
-  const [sortOpen, setSortOpen] = useState(false);
   const allGroups = useMemo(() => buildGroups(state.maxStrengthRecords || []), [state.maxStrengthRecords]);
   const groups = useMemo(() => {
     const normalize = (value) => value.toLocaleLowerCase('de-DE').normalize('NFD').replace(/\p{Diacritic}/gu, '');
@@ -140,8 +136,8 @@ export default function MaxStrengthPage() {
         workoutCount: group.values.length,
         createdAt: group.values[0]?.date,
         lastTrainedAt: group.values[group.values.length - 1]?.date,
-      })), sortMode);
-  }, [allGroups, query, sortMode]);
+      })), 'count-desc');
+  }, [allGroups, query]);
   const [selectedKey, setSelectedKey] = useState(() =>
     groups[0]?.exerciseName.toLocaleLowerCase('de-DE') ?? '',
   );
@@ -204,8 +200,7 @@ export default function MaxStrengthPage() {
           <span />
           <h1 className="font-display text-lg font-bold text-ink">Fortschritt</h1>
           <div className="flex justify-self-end">
-            <button type="button" onClick={() => setCreatingExercise((current) => !current)} className={compactIconButtonClass} aria-label="Maximalkraft-Übung hinzufügen" title="Übung hinzufügen"><span className="text-xl">+</span></button>
-            <button type="button" className={`${compactIconButtonClass} ${sortMode !== 'count-desc' ? 'bg-amber-soft text-amber' : ''}`} aria-label="Fortschritt sortieren" title="Sortierung" aria-haspopup="dialog" aria-expanded={sortOpen} onClick={() => setSortOpen(true)}><InterfaceIcon name="sort" /></button>
+            <button type="button" onClick={() => setCreatingExercise((current) => !current)} className="action-button h-11 w-11 shrink-0 px-0 text-2xl" aria-label="Maximalkraft-Übung hinzufügen" title="Übung hinzufügen" aria-expanded={creatingExercise}>+</button>
           </div>
         </div>
         <label className="block">
@@ -254,7 +249,7 @@ export default function MaxStrengthPage() {
                 ))}
               </select>
             </label>
-            <button type="button" onClick={() => setAddingValue((current) => !current)} className="action-button h-10 w-10 shrink-0 px-0 text-xl" aria-label="Messwert hinzufügen" title="Messwert hinzufügen">
+            <button type="button" onClick={() => setAddingValue((current) => !current)} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-amber-soft text-xl font-bold text-amber transition hover:bg-amber/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber" aria-label="Messwert hinzufügen" title="Messwert hinzufügen" aria-expanded={addingValue}>
               +
             </button>
           </div>
@@ -346,19 +341,6 @@ export default function MaxStrengthPage() {
         </section>
       ) : null}
       {!selectedGroup ? <EmptyState title={allGroups.length ? 'Keine passende Übung' : 'Noch keine Maximalkraftwerte'} /> : null}
-      <ModalShell isOpen={sortOpen} onClose={() => setSortOpen(false)} labelledBy="strength-sort-title" maxWidth="max-w-sm">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 id="strength-sort-title" className="text-lg font-bold text-ink">Sortierung</h2>
-          <button type="button" className="icon-button" aria-label="Sortierung schließen" onClick={() => setSortOpen(false)}>×</button>
-        </div>
-        <label className="block">
-          <span className="sr-only">Maximalkraft-Übungen sortieren</span>
-          <select className="field" aria-label="Maximalkraft-Übungen sortieren" value={sortMode} onChange={(event) => updateSearchParams('sort', event.target.value, 'count-desc')}>
-            {exerciseSortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-        </label>
-        <button type="button" className="action-button mt-4 w-full" onClick={() => setSortOpen(false)}>Fertig</button>
-      </ModalShell>
     </div>
   );
 }

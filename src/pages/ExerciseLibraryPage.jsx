@@ -10,23 +10,8 @@ import { exerciseSortOptions as sortOptions, normalizeExerciseSortMode, sortExer
 import { buildExerciseChartData, getExerciseWorkoutCount, getLastExerciseSnapshot } from '../utils/workout';
 import { formatSetSummary } from '../utils/setMeasurements';
 
-const filters = [
-  { value: 'all', label: 'Alle' },
-  { value: 'templates', label: 'In Vorlagen' },
-  { value: 'unused', label: 'Unbenutzt', description: 'Ohne Sätze, Vorlage oder offenes Training.' },
-  { value: 'archive', label: 'Archiv', description: 'Verlauf bleibt erhalten. Wiederherstellen ergänzt keine Vorlagen.' },
-];
-
 function normalizeSearch(value) {
   return value.toLocaleLowerCase('de-DE').normalize('NFD').replace(/\p{Diacritic}/gu, '');
-}
-
-function matchesFilter(exercise, filter) {
-  if (filter === 'archive') return Boolean(exercise.archivedAt);
-  if (exercise.archivedAt) return false;
-  if (filter === 'templates') return exercise.templateNames.length > 0;
-  if (filter === 'unused') return !exercise.hasSets && !exercise.hasOpenWorkout && !exercise.templateNames.length;
-  return true;
 }
 
 export default function ExerciseLibraryPage() {
@@ -34,11 +19,11 @@ export default function ExerciseLibraryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [action, setAction] = useState(null);
   const [notice, setNotice] = useState(null);
-  const [optionsPanel, setOptionsPanel] = useState(null);
+  const [showSort, setShowSort] = useState(false);
   const query = searchParams.get('q') ?? '';
   const sortMode = normalizeExerciseSortMode(searchParams.get('sort'));
-  const filter = filters.find((item) => item.value === searchParams.get('view')) ?? filters[0];
   const previewMode = searchParams.get('layout') === 'preview';
+  const archiveOpen = searchParams.get('archive') === '1' || searchParams.get('view') === 'archive';
 
   const exerciseCards = useMemo(() => {
     const knownIds = new Set(state.exercises.map((exercise) => exercise.id));
@@ -56,7 +41,6 @@ export default function ExerciseLibraryPage() {
       ...exercise,
       sourceIndex,
       templateNames,
-      hasSets: references.some(({ entry }) => entry.sets.length > 0),
       hasOpenWorkout: references.some(({ isOpen }) => isOpen),
       workoutCount: getExerciseWorkoutCount(state.workouts, exercise.id, exercise.name),
       lastTrainedAt: latestSnapshot?.workoutDate ?? null,
@@ -65,24 +49,29 @@ export default function ExerciseLibraryPage() {
     });
   }, [state.exercises, state.templates, state.workouts]);
 
-  const counts = Object.fromEntries(filters.map((item) => [item.value, exerciseCards.filter((exercise) => matchesFilter(exercise, item.value)).length]));
-  const exercises = useMemo(() => {
+  const matchingExercises = useMemo(() => {
     const normalizedQuery = normalizeSearch(query.trim());
-    return sortExerciseCards(exerciseCards.filter((exercise) => matchesFilter(exercise, filter.value)
-      && (!normalizedQuery || normalizeSearch([exercise.name, ...exercise.templateNames].join(' ')).includes(normalizedQuery))), sortMode);
-  }, [exerciseCards, filter.value, query, sortMode]);
+    return sortExerciseCards(exerciseCards.filter((exercise) => !normalizedQuery
+      || normalizeSearch([exercise.name, ...exercise.templateNames].join(' ')).includes(normalizedQuery)), sortMode);
+  }, [exerciseCards, query, sortMode]);
+  const exercises = useMemo(() => matchingExercises.filter((exercise) => !exercise.archivedAt), [matchingExercises]);
+  const archivedExercises = matchingExercises.filter((exercise) => exercise.archivedAt);
 
   const chartPreviews = useMemo(() => previewMode
     ? new Map(exercises.map((exercise) => [exercise.id, buildExerciseChartData(state.workouts, exercise.id, exercise.name)]))
     : null, [previewMode, exercises, state.workouts]);
 
-  const currentSearch = searchParams.toString();
+  const currentParams = new URLSearchParams(searchParams);
+  currentParams.delete('view');
+  if (archiveOpen) currentParams.set('archive', '1');
+  const currentSearch = currentParams.toString();
   const libraryReturnTo = currentSearch ? `/exercises?${currentSearch}` : '/exercises';
   const exerciseOrder = exercises.map((exercise) => exercise.id);
+  const archiveOrder = archivedExercises.map((exercise) => exercise.id);
   const selectedExercise = action ? exerciseCards.find((exercise) => exercise.id === action.exerciseId) : null;
 
   function updateSearchParams(key, value, defaultValue = '') {
-    const nextParams = new URLSearchParams(searchParams);
+    const nextParams = new URLSearchParams(currentParams);
     if (!value || value === defaultValue) nextParams.delete(key);
     else nextParams.set(key, value);
     setSearchParams(nextParams, { replace: true });
@@ -105,10 +94,7 @@ export default function ExerciseLibraryPage() {
           <span />
           <h1 className="font-display text-[22px] font-bold leading-7 text-ink">Übungen</h1>
           <div className="flex justify-self-end">
-            <button type="button" className={`${iconButtonClass} ${filter.value !== 'all' ? 'bg-amber-soft text-amber' : ''}`} aria-label="Übungen filtern" title="Filter" aria-haspopup="dialog" aria-expanded={optionsPanel === 'filter'} onClick={() => setOptionsPanel('filter')}>
-              <LibraryIcon name="filter" />
-            </button>
-            <button type="button" className={`${iconButtonClass} ${sortMode !== 'count-desc' ? 'bg-amber-soft text-amber' : ''}`} aria-label="Übungen sortieren" title="Sortierung" aria-haspopup="dialog" aria-expanded={optionsPanel === 'sort'} onClick={() => setOptionsPanel('sort')}>
+            <button type="button" className={`${iconButtonClass} ${sortMode !== 'count-desc' ? 'bg-amber-soft text-amber' : ''}`} aria-label="Übungen sortieren" title="Sortierung" aria-haspopup="dialog" aria-expanded={showSort} onClick={() => setShowSort(true)}>
               <LibraryIcon name="sort" />
             </button>
           </div>
@@ -123,7 +109,6 @@ export default function ExerciseLibraryPage() {
             <button type="button" className={`${iconButtonClass} ${previewMode ? 'bg-amber-soft text-amber' : ''}`} aria-label="Diagrammvorschau" aria-pressed={previewMode} onClick={() => updateSearchParams('layout', 'preview')}><LibraryIcon name="preview" /></button>
           </div>
         </div>
-        {filter.value !== 'all' ? <p className="text-xs text-muted">{filter.label} · {exercises.length}</p> : null}
       </section>
 
       {notice ? <p role={notice.error ? 'alert' : 'status'} className={`rounded-sm border p-3 text-sm ${notice.error ? 'border-ember/35 bg-ember/10 text-ember' : 'border-amber/35 bg-amber-soft text-ink'}`}>{notice.text}</p> : null}
@@ -158,26 +143,34 @@ export default function ExerciseLibraryPage() {
           </article>
         ))}
       </section>
-      {!exercises.length ? <div className="rounded-sm border border-dashed border-line p-6 text-center text-sm text-muted">{query ? `Keine passende Übung für „${query}“.` : filter.value === 'archive' ? 'Dein Archiv ist leer.' : filter.value === 'unused' ? 'Keine unbenutzten Übungen vorhanden.' : filter.value === 'templates' ? 'Keine Übungen in deinen Vorlagen.' : 'Deine Bibliothek ist leer.'}</div> : null}
-      <ModalShell isOpen={Boolean(optionsPanel)} onClose={() => setOptionsPanel(null)} labelledBy="library-filter-title" maxWidth="max-w-sm">
+      {!exercises.length ? <div className="rounded-sm border border-dashed border-line p-6 text-center text-sm text-muted">{query ? `Keine aktive Übung für „${query}“.` : 'Deine Bibliothek ist leer.'}</div> : null}
+      {archivedExercises.length ? <section className="border-t border-line pt-1">
+        <button type="button" className="flex min-h-11 w-full items-center justify-between text-xs text-muted" aria-expanded={archiveOpen} aria-controls="exercise-archive" onClick={() => updateSearchParams('archive', archiveOpen ? '' : '1')}>
+          <span>Archiv ({archivedExercises.length})</span>
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`h-4 w-4 ${archiveOpen ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6" /></svg>
+        </button>
+        {archiveOpen ? <div id="exercise-archive" className="divide-y divide-line">
+          {archivedExercises.map((exercise) => <article key={exercise.id} className="flex min-w-0 items-center gap-1 py-2" aria-label={exercise.name}>
+            <h2 className="min-w-0 flex-1 break-words text-sm font-bold text-muted">{exercise.name}</h2>
+            <button type="button" className={iconButtonClass} aria-label={`${exercise.name} umbenennen`} title="Umbenennen" onClick={() => openAction('rename', exercise.id)}><LibraryIcon name="pencil" /></button>
+            <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder: archiveOrder, libraryReturnTo }} className={iconButtonClass} aria-label={`Verlauf von ${exercise.name}`} title="Verlauf"><LibraryIcon name="chart" /></Link>
+            <button type="button" className={`${iconButtonClass} text-amber`} aria-label={`${exercise.name} wiederherstellen`} title="Wiederherstellen" onClick={() => restoreExercise(exercise)}><LibraryIcon name="restore" /></button>
+          </article>)}
+        </div> : null}
+      </section> : null}
+      <ModalShell isOpen={showSort} onClose={() => setShowSort(false)} labelledBy="library-sort-title" maxWidth="max-w-sm">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 id="library-filter-title" className="text-lg font-bold text-ink">{optionsPanel === 'filter' ? 'Filter' : 'Sortierung'}</h2>
-          <button type="button" className="icon-button" aria-label="Einstellung schließen" onClick={() => setOptionsPanel(null)}>×</button>
+          <h2 id="library-sort-title" className="text-lg font-bold text-ink">Sortierung</h2>
+          <button type="button" className="icon-button" aria-label="Einstellung schließen" onClick={() => setShowSort(false)}>×</button>
         </div>
         <div className="space-y-4">
-          {optionsPanel === 'filter' ? <label className="block">
-            <span className="sr-only">Anzeigen</span>
-            <select className="field" aria-label="Übungen filtern" value={filter.value} onChange={(event) => updateSearchParams('view', event.target.value, 'all')}>
-              {filters.map((item) => <option key={item.value} value={item.value}>{item.label} ({counts[item.value]})</option>)}
-            </select>
-          </label> : <label className="block">
+          <label className="block">
             <span className="sr-only">Sortierung</span>
             <select className="field" aria-label="Übungen sortieren" value={sortMode} onChange={(event) => updateSearchParams('sort', event.target.value, 'count-desc')}>
               {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
-          </label>}
-          {optionsPanel === 'filter' && filter.description ? <p className="text-xs leading-relaxed text-muted">{filter.description}</p> : null}
-          <button type="button" className="action-button w-full" onClick={() => setOptionsPanel(null)}>Fertig</button>
+          </label>
+          <button type="button" className="action-button w-full" onClick={() => setShowSort(false)}>Fertig</button>
         </div>
       </ModalShell>
       {selectedExercise ? <LibraryExerciseDialog key={`${action.type}-${selectedExercise.id}`} action={action.type} exercise={selectedExercise} impact={getExerciseRemovalImpact(state, selectedExercise.id)} onRename={renameLibraryExercise} onRemove={removeLibraryExercise} onClose={() => setAction(null)} onSuccess={(text) => setNotice({ error: false, text })} /> : null}
