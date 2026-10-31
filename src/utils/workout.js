@@ -259,6 +259,26 @@ export function resolveExerciseChartMetric(data = [], settings = {}, requestedMe
   return available[0] ?? 'volume';
 }
 
+export function normalizeExerciseLibraryMetric(requestedMetric) {
+  return ['max', 'maxWeight', 'maxReps', 'duration', 'durationWeight'].includes(requestedMetric)
+    ? 'max'
+    : 'volume';
+}
+
+export function resolveExerciseLibraryMetric(data = [], settings = {}, requestedMetric) {
+  const max = normalizeExerciseLibraryMetric(requestedMetric) === 'max';
+  const has = (field) => data.some((point) => Number.isFinite(point[field]));
+  const inferFromHistory = !settings?.measurementType;
+  const duration = settings?.measurementType === 'duration'
+    || (inferFromHistory && has('maxDurationSeconds') && !has('maxReps'));
+
+  if (duration) return max ? 'duration' : 'totalDuration';
+  if (settings?.loadType === 'none' || (inferFromHistory && has('maxReps') && !has('maxWeight'))) {
+    return max ? 'maxReps' : 'reps';
+  }
+  return max ? 'maxWeight' : 'volume';
+}
+
 export function normalizeWeightOptions(values) {
   return [...new Set(values.map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0))].sort(
     (a, b) => a - b,

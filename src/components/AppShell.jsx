@@ -5,7 +5,7 @@ import { useAppData } from './AppProvider';
 import SyncIndicator from './SyncIndicator';
 import { calculateWorkoutStats } from '../utils/workout';
 
-const appVersion = '2.13.0';
+const appVersion = '2.13.1';
 const displayVersion = `v${appVersion.split('.').slice(0, 2).join('.')}`;
 
 const navItems = [
@@ -78,6 +78,98 @@ function AppNavigation({ mobile = false, trainingTarget, hasActiveWorkout = fals
         );
       })}
     </nav>
+  );
+}
+
+function NewWorkoutControl() {
+  const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const controlRef = useRef(null);
+  const buttonRef = useRef(null);
+  const firstOptionRef = useRef(null);
+  const menuId = 'new-workout-options';
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.key]);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return undefined;
+    }
+
+    firstOptionRef.current?.focus();
+
+    function closeOutside(event) {
+      if (!controlRef.current?.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    }
+
+    function closeOnEscape(event) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setMenuOpen(false);
+        buttonRef.current?.focus();
+      }
+    }
+
+    document.addEventListener('pointerdown', closeOutside);
+    document.addEventListener('keydown', closeOnEscape);
+
+    return () => {
+      document.removeEventListener('pointerdown', closeOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [menuOpen]);
+
+  return (
+    <div
+      ref={controlRef}
+      className="relative shrink-0"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setMenuOpen(false);
+        }
+      }}
+    >
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={() => setMenuOpen((open) => !open)}
+        className="flex h-10 w-10 items-center justify-center rounded-sm bg-amber text-3xl leading-none text-paper transition hover:bg-amber-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
+        aria-label="Workout starten"
+        title="Workout starten"
+        aria-expanded={menuOpen}
+        aria-controls={menuId}
+      >
+        <span aria-hidden="true">+</span>
+      </button>
+
+      {menuOpen ? (
+        <nav
+          id={menuId}
+          aria-label="Workout starten"
+          className="panel absolute right-0 top-full z-[70] mt-2 w-48 p-1 shadow-panel"
+        >
+          <Link
+            ref={firstOptionRef}
+            to="/workouts/new"
+            onClick={() => setMenuOpen(false)}
+            className="flex min-h-11 items-center rounded-sm px-3 text-sm font-semibold text-ink transition hover:bg-surface-raised focus-visible:bg-amber-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber"
+          >
+            Neues Workout
+          </Link>
+          <Link
+            to="/workouts/template"
+            onClick={() => setMenuOpen(false)}
+            className="flex min-h-11 items-center rounded-sm px-3 text-sm font-semibold text-ink transition hover:bg-surface-raised focus-visible:bg-amber-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber"
+          >
+            Aus Vorlage
+          </Link>
+        </nav>
+      ) : null}
+    </div>
   );
 }
 
@@ -270,16 +362,7 @@ export default function AppShell() {
           ) : null}
 
           <div className="ml-auto flex items-center gap-2">
-            {!activeWorkout ? (
-              <Link
-                to="/workouts/new"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-amber text-3xl leading-none text-paper transition hover:bg-amber-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
-                aria-label="Freies Training starten"
-                title="Freies Training starten"
-              >
-                <span aria-hidden="true">+</span>
-              </Link>
-            ) : null}
+            {!activeWorkout ? <NewWorkoutControl /> : null}
             <SyncIndicator compact />
             <div className="hidden lg:block">
               <BackupControls compact />

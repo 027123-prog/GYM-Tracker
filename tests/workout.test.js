@@ -10,6 +10,9 @@ import {
   getLastExerciseWeight,
   getExerciseChartMetricOptions,
   resolveExerciseChartMetric,
+  exerciseChartMetrics,
+  normalizeExerciseLibraryMetric,
+  resolveExerciseLibraryMetric,
   sortWorkoutsByDate,
 } from '../src/utils/workout.js';
 
@@ -158,6 +161,59 @@ test('explicit seconds exercises offer only compatible time metrics despite old 
   assert.equal(resolveExerciseChartMetric([data[0]], { measurementType: 'duration' }, 'reps'), 'duration');
   assert.deepEqual(getExerciseChartMetricOptions([{ ...data[1], maxDurationWeight: 20 }], { measurementType: 'duration' }), ['duration', 'totalDuration', 'durationWeight']);
   assert.deepEqual(data, before);
+});
+
+test('library volume and max represent weighted repetitions, repetition-only sets and time independently', () => {
+  const workouts = [{
+    id: 'mixed', name: 'Training', date: '2026-10-31', completedAt: '2026-10-31',
+    exercises: [
+      { exerciseId: 'weighted', sets: [{ weight: 50, reps: 10 }, { weight: 60, reps: 5 }] },
+      { exerciseId: 'repetitions', sets: [{ weightMode: 'none', reps: 12 }, { weightMode: 'none', reps: 9 }] },
+      { exerciseId: 'timed', sets: [
+        { measurementType: 'duration', durationSeconds: 40, weight: 20 },
+        { measurementType: 'duration', durationSeconds: 50, weight: 10 },
+      ] },
+    ],
+  }];
+  const before = structuredClone(workouts);
+  const cases = [
+    ['weighted', { measurementType: 'reps', loadType: 'bodyweight' }, 800, 60],
+    ['repetitions', { measurementType: 'reps', loadType: 'none' }, 21, 12],
+    ['timed', { measurementType: 'duration', loadType: 'normal' }, 90, 50],
+  ];
+
+  for (const [exerciseId, settings, volume, max] of cases) {
+    const data = buildExerciseChartData(workouts, exerciseId);
+    for (const [intent, expected] of [['volume', volume], ['max', max]]) {
+      const metric = resolveExerciseLibraryMetric(data, settings, intent);
+      assert.equal(data[0][exerciseChartMetrics[metric].field], expected, `${exerciseId}: ${intent}`);
+    }
+  }
+  assert.deepEqual(workouts, before);
+});
+
+test('old library metric URLs preserve total or maximum intent with safe defaults', () => {
+  for (const oldMetric of ['max', 'maxWeight', 'maxReps', 'duration', 'durationWeight']) {
+    assert.equal(normalizeExerciseLibraryMetric(oldMetric), 'max');
+  }
+  for (const oldMetric of ['volume', 'reps', 'totalDuration', 'auto', 'unknown', '', null, undefined]) {
+    assert.equal(normalizeExerciseLibraryMetric(oldMetric), 'volume');
+  }
+  assert.equal(resolveExerciseLibraryMetric([], { measurementType: 'duration' }, 'maxWeight'), 'duration');
+  assert.equal(resolveExerciseLibraryMetric([], { loadType: 'none' }, 'totalDuration'), 'reps');
+});
+
+test('library metric intent respects current settings and never falls back from totals to maxima', () => {
+  const weightedHistory = [{ volume: 0, maxWeight: 0, maxReps: 10, totalReps: 20 }];
+  const durationHistory = [{ maxDurationSeconds: 50, totalDurationSeconds: 90 }];
+  assert.equal(resolveExerciseLibraryMetric(weightedHistory, { measurementType: 'duration' }, 'volume'), 'totalDuration');
+  assert.equal(resolveExerciseLibraryMetric(weightedHistory, { measurementType: 'duration' }, 'max'), 'duration');
+  assert.equal(resolveExerciseLibraryMetric(weightedHistory, { loadType: 'none' }, 'volume'), 'reps');
+  assert.equal(resolveExerciseLibraryMetric(weightedHistory, { loadType: 'none' }, 'max'), 'maxReps');
+  assert.equal(resolveExerciseLibraryMetric(durationHistory, { measurementType: 'reps', loadType: 'normal' }, 'volume'), 'volume');
+  assert.equal(resolveExerciseLibraryMetric(weightedHistory, {}, 'max'), 'maxWeight');
+  assert.equal(resolveExerciseLibraryMetric(durationHistory, {}, 'volume'), 'totalDuration');
+  assert.equal(resolveExerciseLibraryMetric([{ maxWeight: null, maxReps: 12, totalReps: 21 }], {}, 'volume'), 'reps');
 });
 
 test('Drafts werden in Verlauf, Chart und Workout-Zähler ignoriert', () => {

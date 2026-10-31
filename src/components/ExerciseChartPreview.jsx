@@ -1,9 +1,9 @@
-import { exerciseChartMetrics, resolveExerciseChartMetric } from '../utils/workout';
+import { exerciseChartMetrics } from '../utils/workout';
 
 const formatNumber = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 });
 
-export default function ExerciseChartPreview({ data, settings, requestedMetric }) {
-  const metric = exerciseChartMetrics[resolveExerciseChartMetric(data, settings, requestedMetric)];
+export default function ExerciseChartPreview({ data, metric: metricKey }) {
+  const metric = exerciseChartMetrics[metricKey] ?? exerciseChartMetrics.volume;
   const points = data.filter((point) => Number.isFinite(point[metric.field]));
 
   if (!points.length) {
