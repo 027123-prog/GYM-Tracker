@@ -1,15 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { formatSetSummary } from '../utils/setMeasurements';
-
-const chartMetrics = {
-  volume: { field: 'volume', label: 'Volumen', unit: 'kg', hint: 'Gewicht × Wdh.' },
-  maxWeight: { field: 'maxWeight', label: 'Max. Gewicht', unit: 'kg' },
-  reps: { field: 'totalReps', label: 'Wdh. gesamt', unit: 'Wdh.' },
-  maxReps: { field: 'maxReps', label: 'Max. Wdh.', unit: 'Wdh.' },
-  duration: { field: 'maxDurationSeconds', label: 'Längster Satz', unit: 's' },
-  durationWeight: { field: 'maxDurationWeight', label: 'Haltegewicht', unit: 'kg' },
-};
+import { exerciseChartMetrics as chartMetrics, getExerciseChartMetricOptions, resolveExerciseChartMetric } from '../utils/workout';
 
 function SelectedPointDetails({ point, metric, onClose }) {
   const config = chartMetrics[metric];
@@ -112,25 +104,16 @@ export default function ExerciseChartCard({
   measurementType = 'reps',
   loadType = 'normal',
   data,
+  initialMetric = null,
+  onMetricChange,
   canGoPrev,
   canGoNext,
   onPrevExercise,
   onNextExercise,
 }) {
-  const [requestedMetric, setMetric] = useState(null);
-  const hasWeightedReps = data.some((point) => point.maxWeight != null);
-  const hasWeightlessReps = data.some((point) => point.maxReps != null);
-  const hasDuration = data.some((point) => point.maxDurationSeconds != null);
-  const availableMetrics = [
-    ...(hasWeightlessReps ? ['maxReps', 'reps'] : []),
-    ...(hasWeightedReps ? ['volume', 'maxWeight'] : []),
-    ...(hasDuration ? ['duration'] : []),
-    ...(data.some((point) => point.maxDurationWeight > 0) ? ['durationWeight'] : []),
-  ];
-  const defaultMetric = hasDuration && (measurementType === 'duration' || (!hasWeightedReps && !hasWeightlessReps))
-    ? 'duration'
-    : hasWeightlessReps && (loadType === 'none' || !hasWeightedReps) ? 'maxReps' : 'volume';
-  const metric = availableMetrics.includes(requestedMetric) ? requestedMetric : defaultMetric;
+  const [requestedMetric, setMetric] = useState(initialMetric);
+  const availableMetrics = getExerciseChartMetricOptions(data, { measurementType, loadType });
+  const metric = resolveExerciseChartMetric(data, { measurementType, loadType }, requestedMetric);
   const [selectedPoint, setSelectedPoint] = useState(null);
   const dataSignature = data
     .map(
@@ -145,7 +128,7 @@ export default function ExerciseChartCard({
     setSelectedPoint(null);
   }, [dataSignature, exerciseName, metric]);
 
-  useEffect(() => setMetric(null), [exerciseName, measurementType, loadType]);
+  useEffect(() => setMetric(initialMetric), [exerciseName, measurementType, loadType, initialMetric]);
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -209,7 +192,7 @@ export default function ExerciseChartCard({
           <div className="flex flex-wrap gap-2">
             {availableMetrics.map((option) => (
               availableMetrics.length > 1 ? (
-                <button key={option} type="button" onClick={() => setMetric(option)} className={metric === option ? 'action-button' : 'secondary-button'}>
+                <button key={option} type="button" onClick={() => { setMetric(option); onMetricChange?.(option); }} className={metric === option ? 'action-button' : 'secondary-button'} aria-pressed={metric === option}>
                   {chartMetrics[option].label}
                 </button>
               ) : <span key={option} className="text-sm text-muted">{chartMetrics[option].label}</span>

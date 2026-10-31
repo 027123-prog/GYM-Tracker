@@ -4,7 +4,7 @@ import { isDurationSet, isWeightlessSet, parseWeightInput, prepareSetValues } fr
 import ModalShell from './ModalShell';
 import WeightSuggestionGrid from './WeightSuggestionGrid';
 
-const repPresets = [5, 6, 8, 10, 12, 15];
+const repPresets = [5, 6, 7, 8, 9, 10, 11, 12];
 const durationPresets = [15, 20, 30, 40, 45, 60];
 const BODY_WEIGHT_KEY = 'hardgainwaf-body-weight-kg';
 
@@ -30,6 +30,7 @@ export default function SetEntryModal({
   exerciseName,
   exerciseSettings,
   weightOptions,
+  repSuggestions = repPresets,
   onClose,
   onSave,
 }) {
@@ -207,13 +208,13 @@ export default function SetEntryModal({
         ) : null}
 
         <div>
-          <div className="grid grid-cols-3 gap-1.5 min-[350px]:grid-cols-6">
-            {(duration ? durationPresets : repPresets).map((preset) => (
+          <div className="flex flex-wrap gap-1">
+            {(duration ? durationPresets : repSuggestions).map((preset) => (
               <button
                 key={preset}
                 type="button"
                 onClick={() => setReps(preset)}
-                className={`min-h-11 rounded-sm border text-sm font-bold transition ${
+                className={`inline-flex min-h-10 min-w-10 items-center justify-center rounded-sm border px-2 text-xs font-semibold tabular-nums transition ${
                   Number(reps) === preset
                     ? 'border-amber bg-amber-soft text-amber-deep'
                     : 'border-line bg-paper text-muted hover:border-amber/55 hover:text-ink'

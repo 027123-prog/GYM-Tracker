@@ -196,8 +196,8 @@ export function buildExerciseChartData(workouts, exerciseId, exerciseName = '') 
       }
 
       const sets = matchingExercises.flatMap((exercise) => exercise.sets);
+      const allRepSets = sets.filter((setItem) => !isDurationSet(setItem));
       const repSets = sets.filter((setItem) => !isDurationSet(setItem) && !isWeightlessSet(setItem));
-      const weightlessRepSets = sets.filter((setItem) => !isDurationSet(setItem) && isWeightlessSet(setItem));
       const durationSets = sets.filter(isDurationSet);
       const loadedDurationSets = durationSets.filter((setItem) => !isWeightlessSet(setItem));
       const maxWeight = repSets.length ? Math.max(...repSets.map((setItem) => Number(setItem.weight || 0))) : null;
@@ -213,8 +213,8 @@ export function buildExerciseChartData(workouts, exerciseId, exerciseName = '') 
         volume: repSets.length ? repSets.reduce((sum, setItem) => sum + getSetRepVolume(setItem), 0) : null,
         maxWeight,
         maxWeightReps: maxSet?.reps ?? null,
-        maxReps: weightlessRepSets.length ? Math.max(...weightlessRepSets.map((setItem) => Number(setItem.reps || 0))) : null,
-        totalReps: weightlessRepSets.length ? weightlessRepSets.reduce((sum, setItem) => sum + Number(setItem.reps || 0), 0) : null,
+        maxReps: allRepSets.length ? Math.max(...allRepSets.map((setItem) => Number(setItem.reps || 0))) : null,
+        totalReps: allRepSets.length ? allRepSets.reduce((sum, setItem) => sum + Number(setItem.reps || 0), 0) : null,
         totalDurationSeconds: durationSets.length ? durationSets.reduce((sum, setItem) => sum + Number(setItem.durationSeconds), 0) : null,
         maxDurationSeconds,
         longestSetWeight: isWeightlessSet(longestSet) ? null : longestSet?.weight ?? null,
@@ -226,6 +226,37 @@ export function buildExerciseChartData(workouts, exerciseId, exerciseName = '') 
     })
     .filter(Boolean)
     .sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+export const exerciseChartMetrics = {
+  volume: { field: 'volume', label: 'Volumen', unit: 'kg', hint: 'Gewicht × Wdh.' },
+  maxWeight: { field: 'maxWeight', label: 'Max. Gewicht', unit: 'kg' },
+  maxReps: { field: 'maxReps', label: 'Max. Wdh.', unit: 'Wdh.' },
+  reps: { field: 'totalReps', label: 'Wdh. gesamt', unit: 'Wdh.' },
+  duration: { field: 'maxDurationSeconds', label: 'Längster Satz', unit: 's' },
+  totalDuration: { field: 'totalDurationSeconds', label: 'Gesamtzeit', unit: 's' },
+  durationWeight: { field: 'maxDurationWeight', label: 'Haltegewicht', unit: 'kg' },
+};
+
+export function getExerciseChartMetricOptions(data = [], settings = {}) {
+  const has = (field) => data.some((point) => Number.isFinite(point[field]));
+  const available = [
+    ...(has('maxWeight') ? ['volume', 'maxWeight'] : []),
+    ...(has('maxReps') ? ['maxReps', 'reps'] : []),
+    ...(has('maxDurationSeconds') ? ['duration', 'totalDuration'] : []),
+    ...(data.some((point) => point.maxDurationWeight > 0) ? ['durationWeight'] : []),
+  ];
+  return settings?.measurementType === 'duration'
+    ? available.filter((metric) => ['duration', 'totalDuration', 'durationWeight'].includes(metric))
+    : available;
+}
+
+export function resolveExerciseChartMetric(data = [], settings = {}, requestedMetric) {
+  const available = getExerciseChartMetricOptions(data, settings);
+  if (available.includes(requestedMetric)) return requestedMetric;
+  if (settings?.measurementType === 'duration') return available[0] ?? 'duration';
+  if (settings?.loadType === 'none' && available.includes('maxReps')) return 'maxReps';
+  return available[0] ?? 'volume';
 }
 
 export function normalizeWeightOptions(values) {

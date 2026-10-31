@@ -8,6 +8,8 @@ import {
   getExerciseWorkoutCount,
   getLastExerciseSnapshot,
   getLastExerciseWeight,
+  getExerciseChartMetricOptions,
+  resolveExerciseChartMetric,
   sortWorkoutsByDate,
 } from '../src/utils/workout.js';
 
@@ -97,10 +99,65 @@ test('doppelte Übungen innerhalb eines Workouts werden als eine Einheit aggregi
   assert.equal(chart[0].volume, 800);
   assert.equal(chart[0].maxWeight, 60);
   assert.equal(chart[0].maxWeightReps, 5);
+  assert.equal(chart[0].maxReps, 10);
+  assert.equal(chart[0].totalReps, 15);
   assert.deepEqual(chart[0].sets.map((setItem) => setItem.id), ['set-1', 'set-2']);
   assert.deepEqual(snapshot.sets.map((setItem) => setItem.id), ['set-1', 'set-2']);
   assert.equal(getLastExerciseWeight(workouts, 'bench'), 60);
   assert.equal(getExerciseWorkoutCount(workouts, 'bench'), 1);
+});
+
+test('chart metrics offer repetition counts for weighted exercises while retaining volume as the default', () => {
+  const data = [{ volume: 800, maxWeight: 60, maxReps: 10, totalReps: 15, maxDurationSeconds: null, totalDurationSeconds: null }];
+  assert.deepEqual(getExerciseChartMetricOptions(data), ['volume', 'maxWeight', 'maxReps', 'reps']);
+  assert.equal(resolveExerciseChartMetric(data, { loadType: 'normal' }), 'volume');
+  assert.equal(resolveExerciseChartMetric(data, { loadType: 'normal' }, 'reps'), 'reps');
+  assert.equal(resolveExerciseChartMetric(data, { loadType: 'normal' }, 'totalDuration'), 'volume');
+});
+
+test('time totals are independently selectable without turning seconds into repetitions or kilograms', () => {
+  const workouts = [{ id: 'time', name: 'Halteübung', date: '2026-10-31', completedAt: '2026-10-31', exercises: [{ exerciseId: 'plank', sets: [
+    { id: 'one', measurementType: 'duration', durationSeconds: 40, weightMode: 'none', weight: 0, reps: 0 },
+    { id: 'two', measurementType: 'duration', durationSeconds: 50, weightMode: 'none', weight: 0, reps: 0 },
+  ] }] }];
+  const before = structuredClone(workouts);
+  const data = buildExerciseChartData(workouts, 'plank');
+  assert.equal(data[0].totalDurationSeconds, 90);
+  assert.equal(data[0].maxDurationSeconds, 50);
+  assert.equal(data[0].maxReps, null);
+  assert.equal(data[0].totalReps, null);
+  assert.equal(data[0].volume, null);
+  assert.deepEqual(getExerciseChartMetricOptions(data), ['duration', 'totalDuration']);
+  assert.equal(resolveExerciseChartMetric(data, { measurementType: 'duration', loadType: 'none' }), 'duration');
+  assert.equal(resolveExerciseChartMetric(data, { measurementType: 'duration' }, 'totalDuration'), 'totalDuration');
+  assert.equal(resolveExerciseChartMetric(data, { measurementType: 'duration' }, 'reps'), 'duration');
+  assert.deepEqual(workouts, before);
+});
+
+test('automatic chart choice keeps weightless and mixed-duration exercise defaults meaningful', () => {
+  const weightless = [{ volume: null, maxWeight: null, maxReps: 12, totalReps: 21, maxDurationSeconds: null }];
+  const mixed = [{ volume: 300, maxWeight: 30, maxReps: 10, totalReps: 10, maxDurationSeconds: 50, totalDurationSeconds: 90 }];
+  assert.equal(resolveExerciseChartMetric(weightless, { loadType: 'none' }), 'maxReps');
+  assert.equal(resolveExerciseChartMetric(weightless, { loadType: 'none' }, 'volume'), 'maxReps');
+  assert.equal(resolveExerciseChartMetric(mixed, { measurementType: 'duration' }), 'duration');
+  assert.equal(resolveExerciseChartMetric(mixed, { measurementType: 'duration' }, 'reps'), 'duration');
+  assert.equal(resolveExerciseChartMetric([], {}, 'not-a-metric'), 'volume');
+});
+
+test('explicit seconds exercises offer only compatible time metrics despite old repetition records', () => {
+  const data = [
+    { volume: 279, maxWeight: 93, maxReps: 1, totalReps: 3, maxDurationSeconds: null, totalDurationSeconds: null },
+    { volume: null, maxWeight: null, maxReps: null, totalReps: null, maxDurationSeconds: 56, totalDurationSeconds: 109, maxDurationWeight: 0 },
+  ];
+  const before = structuredClone(data);
+  assert.deepEqual(getExerciseChartMetricOptions(data, { measurementType: 'duration' }), ['duration', 'totalDuration']);
+  assert.deepEqual(getExerciseChartMetricOptions(data), ['volume', 'maxWeight', 'maxReps', 'reps', 'duration', 'totalDuration']);
+  assert.equal(resolveExerciseChartMetric(data, { measurementType: 'duration' }, 'volume'), 'duration');
+  assert.equal(resolveExerciseChartMetric(data, { measurementType: 'duration' }, 'reps'), 'duration');
+  assert.equal(resolveExerciseChartMetric(data, { measurementType: 'duration' }, 'totalDuration'), 'totalDuration');
+  assert.equal(resolveExerciseChartMetric([data[0]], { measurementType: 'duration' }, 'reps'), 'duration');
+  assert.deepEqual(getExerciseChartMetricOptions([{ ...data[1], maxDurationWeight: 20 }], { measurementType: 'duration' }), ['duration', 'totalDuration', 'durationWeight']);
+  assert.deepEqual(data, before);
 });
 
 test('Drafts werden in Verlauf, Chart und Workout-Zähler ignoriert', () => {

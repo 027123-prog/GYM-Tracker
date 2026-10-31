@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppData } from '../components/AppProvider';
 import AddExerciseModal from '../components/AddExerciseModal';
@@ -9,6 +9,7 @@ import TemplatePicker from '../components/TemplatePicker';
 import WorkoutSummaryModal from '../components/WorkoutSummaryModal';
 import { readWorkoutExerciseIndex, saveWorkoutExercisePosition } from '../utils/workoutNavigation';
 import { getExerciseWeightSuggestions } from '../utils/weightSuggestions';
+import { getExerciseRepSuggestions } from '../utils/repSuggestions';
 import {
   calculateWorkoutStats,
   getLastExerciseCommentText,
@@ -39,6 +40,7 @@ export default function WorkoutBuilderPage({ mode }) {
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [exerciseModalOpen, setExerciseModalOpen] = useState(false);
   const [exerciseSelection, setExerciseSelection] = useState(null);
+  const exerciseSelectionRef = useRef(null);
   const exerciseTabsRef = useRef(null);
   const [templateSaved, setTemplateSaved] = useState(false);
 
@@ -81,15 +83,16 @@ export default function WorkoutBuilderPage({ mode }) {
   const isCompact = mode === 'edit';
 
   function setActiveExerciseIndex(nextIndex) {
-    setExerciseSelection((current) => {
-      const currentIndex = current && current.workoutId === workout?.id
-        ? Math.max(0, Math.min(current.index, (workout?.exercises?.length ?? 1) - 1))
-        : activeExerciseIndex;
-      return {
-        workoutId: workout?.id,
-        index: typeof nextIndex === 'function' ? nextIndex(currentIndex) : nextIndex,
-      };
-    });
+    const current = exerciseSelectionRef.current;
+    const currentIndex = current && current.workoutId === workout?.id
+      ? Math.max(0, Math.min(current.index, (workout?.exercises?.length ?? 1) - 1))
+      : activeExerciseIndex;
+    const requestedIndex = typeof nextIndex === 'function' ? nextIndex(currentIndex) : nextIndex;
+    const index = Math.max(0, Math.min(requestedIndex, (workout?.exercises?.length ?? 1) - 1));
+    const selection = { workoutId: workout?.id, index };
+    exerciseSelectionRef.current = selection;
+    saveWorkoutExercisePosition(workout?.id, workout?.exercises[index]?.id);
+    setExerciseSelection(selection);
   }
 
   useEffect(() => {
@@ -98,7 +101,7 @@ export default function WorkoutBuilderPage({ mode }) {
     }
   }, [activateWorkout, mode, workout?.completedAt, workout?.id]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     saveWorkoutExercisePosition(workout?.id, activeExercise?.id);
 
     const tabs = exerciseTabsRef.current;
@@ -331,6 +334,7 @@ export default function WorkoutBuilderPage({ mode }) {
                   state.workouts,
                   activeExercise.exerciseId,
                 )}
+                repSuggestions={getExerciseRepSuggestions(state.workouts, activeExercise.exerciseId)}
                 lastWorkoutSummary={getLastExerciseSummaryText(
                   previousWorkouts,
                   activeExercise.exerciseId,

@@ -1,11 +1,53 @@
 const EXERCISE_POSITION_PREFIX = 'gym-tracker-workout-position:';
 const LAST_WORKOUT_VIEW_KEY = 'gym-tracker-last-workout-view';
+const ACTIVE_WORKOUT_KEY = 'gym-tracker-active-workout';
+const LEGACY_FREE_DRAFT_KEY = 'gym-tracker-active-free-draft';
 
 function getNavigationStorage() {
   try {
     return typeof window === 'undefined' ? null : window.localStorage;
   } catch {
     return null;
+  }
+}
+
+function getSessionStorage() {
+  try {
+    return typeof window === 'undefined' ? null : window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function safeRead(storage, key) {
+  try { return storage?.getItem(key) ?? null; } catch { return null; }
+}
+
+export function readStoredActiveWorkoutId(workouts, session = getSessionStorage(), storage = getNavigationStorage()) {
+  const candidates = [safeRead(session, ACTIVE_WORKOUT_KEY), safeRead(session, LEGACY_FREE_DRAFT_KEY), safeRead(storage, ACTIVE_WORKOUT_KEY)];
+  return candidates.find(id => id && workouts.some(workout => workout.id === id && !workout.completedAt)) ?? null;
+}
+
+export function storeActiveWorkoutId(workoutId, session = getSessionStorage(), storage = getNavigationStorage()) {
+  if (!workoutId) return;
+  for (const target of [session, storage]) {
+    try {
+      target?.setItem(ACTIVE_WORKOUT_KEY, workoutId);
+      target?.removeItem(LEGACY_FREE_DRAFT_KEY);
+    } catch {
+      // Session and durable storage may be available independently.
+    }
+  }
+}
+
+export function clearStoredActiveWorkoutId(session = getSessionStorage(), storage = getNavigationStorage()) {
+  for (const target of [session, storage]) {
+    try {
+      target?.removeItem(ACTIVE_WORKOUT_KEY);
+      target?.removeItem(LEGACY_FREE_DRAFT_KEY);
+    } catch {
+      // Navigation remains usable if a browser store is unavailable.
+    }
   }
 }
 

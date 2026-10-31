@@ -180,7 +180,7 @@ test('no-weight settings and explicit sets survive import/export without reinter
   assert.equal(sets[4].reps, 0);
 });
 
-test('mixed no-weight history keeps repetition counts separate from loaded reps and timed load', () => {
+test('mixed history counts all repetition sets in charts while keeping timed load and workload statistics separate', () => {
   const { workouts } = normalizeAppState(sampleState());
   workouts[0].exercises[0].sets.push(
     { id: 'none-1', weightMode: 'none', weight: 999, reps: 12 },
@@ -195,7 +195,7 @@ test('mixed no-weight history keeps repetition counts separate from loaded reps 
 
   const [mixed] = buildExerciseChartData(workouts, 'carry');
   assert.equal(mixed.maxReps, 12);
-  assert.equal(mixed.totalReps, 21);
+  assert.equal(mixed.totalReps, 31);
   assert.equal(mixed.volume, 300);
   assert.equal(mixed.maxWeight, 30);
   assert.equal(mixed.maxWeightReps, 10);

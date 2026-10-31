@@ -68,6 +68,7 @@ export default function ExerciseEditorCard({
   compact = false,
   libraryEntry,
   weightSuggestions,
+  repSuggestions,
   lastWorkoutSummary,
   lastWorkoutCommentText,
   onPrevExercise,
@@ -376,6 +377,7 @@ export default function ExerciseEditorCard({
         exerciseSettings={libraryEntry?.settings}
         lastWorkoutSummary={lastWorkoutSummary}
         weightOptions={weightSuggestions ?? libraryEntry?.weightOptions ?? []}
+        repSuggestions={repSuggestions}
         onClose={() => setSetModalOpen(false)}
         onSave={saveSet}
       />

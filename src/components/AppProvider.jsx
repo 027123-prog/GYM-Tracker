@@ -1,54 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { loadAppState, normalizeAppState, saveAppState, STORAGE_KEY } from '../utils/storage';
 import { createId, normalizeWeightOptions } from '../utils/workout';
 import { editExerciseRecord, ensureExerciseRecord, findExerciseByName, removeExerciseRecord, restoreExerciseRecord } from '../utils/exerciseEditing';
 import { prepareSetValues } from '../utils/setMeasurements';
 import { updateTemplateRecord } from '../utils/templateEditing';
+import { clearStoredActiveWorkoutId, readStoredActiveWorkoutId, storeActiveWorkoutId } from '../utils/workoutNavigation';
 
 const AppContext = createContext(null);
-const ACTIVE_WORKOUT_KEY = 'gym-tracker-active-workout';
-const LEGACY_FREE_DRAFT_KEY = 'gym-tracker-active-free-draft';
-
-function readStoredActiveWorkoutId() {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    return (
-      window.sessionStorage.getItem(ACTIVE_WORKOUT_KEY) ||
-      window.sessionStorage.getItem(LEGACY_FREE_DRAFT_KEY)
-    );
-  } catch {
-    return null;
-  }
-}
-
-function storeActiveWorkoutId(workoutId) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    window.sessionStorage.setItem(ACTIVE_WORKOUT_KEY, workoutId);
-    window.sessionStorage.removeItem(LEGACY_FREE_DRAFT_KEY);
-  } catch {
-    // Der Provider-State bleibt auch ohne verfügbaren Session-Speicher funktionsfähig.
-  }
-}
-
-function clearStoredActiveWorkoutId() {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    window.sessionStorage.removeItem(ACTIVE_WORKOUT_KEY);
-    window.sessionStorage.removeItem(LEGACY_FREE_DRAFT_KEY);
-  } catch {
-    // Der Provider-State wird unabhängig vom Session-Speicher bereinigt.
-  }
-}
 
 function createWorkoutEntry(exercise, options = {}) {
   return {
@@ -97,9 +55,10 @@ function updateStartedWorkout(workout, changes) {
 
 export function AppProvider({ children }) {
   const [state, setState] = useState(() => loadAppState());
+  const stateRef = useRef(state);
   const pendingFreeWorkoutIdRef = useRef(null);
   const [activeWorkoutId, setActiveWorkoutId] = useState(() => {
-    const storedWorkoutId = readStoredActiveWorkoutId();
+    const storedWorkoutId = readStoredActiveWorkoutId(state.workouts);
     const storedWorkout = state.workouts.find((workout) => workout.id === storedWorkoutId);
 
     return storedWorkout && !storedWorkout.completedAt ? storedWorkout.id : null;
@@ -110,40 +69,36 @@ export function AppProvider({ children }) {
     savedAt: null,
   });
 
+  useLayoutEffect(() => { stateRef.current = state; }, [state]);
+
+  const flushCurrentState = useCallback(() => {
+    try {
+      saveAppState(stateRef.current);
+      setSyncState({ status: 'saved', message: 'Lokal gespeichert', savedAt: new Date().toISOString() });
+    } catch {
+      setSyncState({ status: 'error', message: 'Speichern fehlgeschlagen', savedAt: null });
+    }
+  }, []);
+
   useEffect(() => {
     setSyncState((current) => ({ ...current, status: 'saving', message: 'Wird gespeichert' }));
-    const saveTimer = window.setTimeout(() => {
-      try {
-        saveAppState(state);
-        setSyncState({
-          status: 'saved',
-          message: 'Lokal gespeichert',
-          savedAt: new Date().toISOString(),
-        });
-      } catch {
-        setSyncState({
-          status: 'error',
-          message: 'Speichern fehlgeschlagen',
-          savedAt: null,
-        });
-      }
-    }, 120);
+    const saveTimer = window.setTimeout(flushCurrentState, 120);
+    return () => window.clearTimeout(saveTimer);
+  }, [state, flushCurrentState]);
 
-    function saveBeforeUnload() {
-      try {
-        saveAppState(state);
-      } catch {
-        // Beim Schließen kann kein weiterer Dialog verlässlich angezeigt werden.
-      }
+  useEffect(() => {
+    function saveWhenHidden() {
+      if (document.visibilityState === 'hidden') flushCurrentState();
     }
-
-    window.addEventListener('beforeunload', saveBeforeUnload);
-
+    document.addEventListener('visibilitychange', saveWhenHidden);
+    window.addEventListener('pagehide', flushCurrentState);
+    window.addEventListener('beforeunload', flushCurrentState);
     return () => {
-      window.clearTimeout(saveTimer);
-      window.removeEventListener('beforeunload', saveBeforeUnload);
+      document.removeEventListener('visibilitychange', saveWhenHidden);
+      window.removeEventListener('pagehide', flushCurrentState);
+      window.removeEventListener('beforeunload', flushCurrentState);
     };
-  }, [state]);
+  }, [flushCurrentState]);
 
   useEffect(() => {
     function handleStorage(event) {

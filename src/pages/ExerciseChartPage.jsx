@@ -35,6 +35,7 @@ export default function ExerciseChartPage() {
       ? requestedLibraryReturnTo
       : null;
   const requestedExerciseOrder = location.state?.exerciseOrder;
+  const requestedChartMetric = location.state?.chartMetric;
   const requestedExercises = resolveExerciseNavigationOrder(state.exercises, requestedExerciseOrder);
   const sortedExercises = requestedExercises.some((item) => item.id === exerciseId)
     ? requestedExercises
@@ -58,7 +59,7 @@ export default function ExerciseChartPage() {
   const showDuration = latest?.maxDurationSeconds != null && (exercise.settings?.measurementType === 'duration' || (latest.maxWeight == null && latest.maxReps == null));
   const showWeightlessReps = latest?.maxReps != null && (exercise.settings?.loadType === 'none' || latest.maxWeight == null);
   const latestMetrics = latest ? (showDuration ? [
-    { label: 'Gesamt', value: `${latest.totalDurationSeconds} s` },
+    { label: 'Gesamtzeit', value: `${latest.totalDurationSeconds} s` },
     { label: 'Längster Satz', value: `${latest.maxDurationSeconds} s` },
     ...(latest.longestSetWeight > 0 ? [{ label: 'Gewicht dabei', value: `${latest.longestSetWeight} kg` }] : []),
   ] : showWeightlessReps ? [
@@ -81,6 +82,7 @@ export default function ExerciseChartPage() {
       state: {
         ...(returnTo ? { returnTo } : {}),
         ...(libraryReturnTo ? { libraryReturnTo } : {}),
+        ...(requestedChartMetric ? { chartMetric: requestedChartMetric } : {}),
         exerciseOrder: sortedExercises.map((item) => item.id),
       },
     });
@@ -101,6 +103,8 @@ export default function ExerciseChartPage() {
             measurementType={exercise.settings?.measurementType}
             loadType={exercise.settings?.loadType}
             data={data}
+            initialMetric={requestedChartMetric}
+            onMetricChange={(chartMetric) => navigate(location.pathname, { replace: true, state: { ...location.state, chartMetric } })}
             canGoPrev={exerciseIndex > 0}
             canGoNext={exerciseIndex < sortedExercises.length - 1}
             onPrevExercise={() => goToRelativeExercise(-1)}

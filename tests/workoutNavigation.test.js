@@ -5,6 +5,9 @@ import {
   saveWorkoutExercisePosition,
   readWorkoutResumePath,
   rememberWorkoutView,
+  readStoredActiveWorkoutId,
+  storeActiveWorkoutId,
+  clearStoredActiveWorkoutId,
 } from '../src/utils/workoutNavigation.js';
 
 function memoryStorage() {
@@ -61,4 +64,42 @@ test('Intentional navigation out of the workout and completion clear root-launch
   rememberWorkoutView('/workouts/workout-a/edit', [workout], storage);
   rememberWorkoutView('/workouts/workout-a/edit', [{ ...workout, completedAt: '2026-10-24T12:00:00Z' }], storage);
   assert.equal(readWorkoutResumePath([workout], storage), null);
+});
+
+test('Active workout survives a lost browser session without forcing root recovery after deliberate navigation away', () => {
+  const session = memoryStorage();
+  const durable = memoryStorage();
+  storeActiveWorkoutId(workout.id, session, durable);
+  rememberWorkoutView('/workouts/workout-a/edit', [workout], durable);
+  assert.equal(readStoredActiveWorkoutId([workout], memoryStorage(), durable), workout.id);
+  assert.equal(readWorkoutResumePath([workout], durable), '/workouts/workout-a/edit');
+  rememberWorkoutView('/exercises', [workout], durable);
+  assert.equal(readStoredActiveWorkoutId([workout], memoryStorage(), durable), workout.id);
+  assert.equal(readWorkoutResumePath([workout], durable), null);
+});
+
+test('Completed or deleted active workouts never revive and clearing removes session and durable markers', () => {
+  const session = memoryStorage();
+  const durable = memoryStorage();
+  storeActiveWorkoutId(workout.id, session, durable);
+  assert.equal(readStoredActiveWorkoutId([], session, durable), null);
+  assert.equal(readStoredActiveWorkoutId([{ ...workout, completedAt: '2026-10-31' }], session, durable), null);
+  clearStoredActiveWorkoutId(session, durable);
+  assert.equal(session.getItem('gym-tracker-active-workout'), null);
+  assert.equal(durable.getItem('gym-tracker-active-workout'), null);
+  assert.equal(readStoredActiveWorkoutId([workout], session, durable), null);
+});
+
+test('Active workout persistence uses the available store when the other is blocked or stale', () => {
+  const blocked = { getItem() { throw new Error('Denied'); }, setItem() { throw new Error('Denied'); }, removeItem() { throw new Error('Denied'); } };
+  const durable = memoryStorage();
+  const session = memoryStorage();
+  storeActiveWorkoutId(workout.id, blocked, durable);
+  assert.equal(readStoredActiveWorkoutId([workout], blocked, durable), workout.id);
+  session.setItem('gym-tracker-active-workout', 'deleted');
+  assert.equal(readStoredActiveWorkoutId([workout], session, durable), workout.id);
+  clearStoredActiveWorkoutId(blocked, durable);
+  assert.equal(readStoredActiveWorkoutId([workout], blocked, durable), null);
+  storeActiveWorkoutId(workout.id, session, blocked);
+  assert.equal(readStoredActiveWorkoutId([workout], session, blocked), workout.id);
 });

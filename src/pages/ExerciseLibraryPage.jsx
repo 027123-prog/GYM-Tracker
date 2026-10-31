@@ -7,7 +7,7 @@ import ExerciseChartPreview from '../components/ExerciseChartPreview';
 import LibraryIcon, { compactIconButtonClass as iconButtonClass } from '../components/InterfaceIcon';
 import { getExerciseRemovalImpact, referencesExercise } from '../utils/exerciseEditing';
 import { exerciseSortOptions as sortOptions, normalizeExerciseSortMode, sortExerciseCards } from '../utils/exerciseSort';
-import { buildExerciseChartData, getExerciseWorkoutCount, getLastExerciseSnapshot } from '../utils/workout';
+import { buildExerciseChartData, exerciseChartMetrics, getExerciseWorkoutCount, getLastExerciseSnapshot } from '../utils/workout';
 import { formatSetSummary } from '../utils/setMeasurements';
 
 function normalizeSearch(value) {
@@ -23,6 +23,8 @@ export default function ExerciseLibraryPage() {
   const query = searchParams.get('q') ?? '';
   const sortMode = normalizeExerciseSortMode(searchParams.get('sort'));
   const previewMode = searchParams.get('layout') === 'preview';
+  const requestedMetric = searchParams.get('metric');
+  const previewMetric = Object.hasOwn(exerciseChartMetrics, requestedMetric) ? requestedMetric : 'auto';
   const archiveOpen = searchParams.get('archive') === '1' || searchParams.get('view') === 'archive';
 
   const exerciseCards = useMemo(() => {
@@ -109,6 +111,15 @@ export default function ExerciseLibraryPage() {
             <button type="button" className={`${iconButtonClass} ${previewMode ? 'bg-amber-soft text-amber' : ''}`} aria-label="Diagrammvorschau" aria-pressed={previewMode} onClick={() => updateSearchParams('layout', 'preview')}><LibraryIcon name="preview" /></button>
           </div>
         </div>
+        {previewMode ? <div className="flex justify-end">
+          <label>
+            <span className="sr-only">Diagrammwert</span>
+            <select className="field h-9 w-auto max-w-full py-1.5 text-xs" aria-label="Diagrammwert" value={previewMetric} onChange={(event) => updateSearchParams('metric', event.target.value, 'auto')}>
+              <option value="auto">Automatisch</option>
+              {Object.entries(exerciseChartMetrics).map(([key, metric]) => <option key={key} value={key}>{metric.label}</option>)}
+            </select>
+          </label>
+        </div> : null}
       </section>
 
       {notice ? <p role={notice.error ? 'alert' : 'status'} className={`rounded-sm border p-3 text-sm ${notice.error ? 'border-ember/35 bg-ember/10 text-ember' : 'border-amber/35 bg-amber-soft text-ink'}`}>{notice.text}</p> : null}
@@ -126,18 +137,18 @@ export default function ExerciseLibraryPage() {
                 {!previewMode ? <button type="button" className={iconButtonClass} aria-label={`${exercise.name} umbenennen`} title="Umbenennen" onClick={() => openAction('rename', exercise.id)}><LibraryIcon name="pencil" /></button> : null}
               </div>
               {!previewMode ? <div className="flex shrink-0">
-                <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder, libraryReturnTo }} className={iconButtonClass} aria-label={`Verlauf von ${exercise.name}`} title="Verlauf"><LibraryIcon name="chart" /></Link>
+                <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder, libraryReturnTo, chartMetric: previewMetric }} className={iconButtonClass} aria-label={`Verlauf von ${exercise.name}`} title="Verlauf"><LibraryIcon name="chart" /></Link>
                 <button type="button" className={`${iconButtonClass} ${exercise.archivedAt ? 'text-amber' : 'hover:text-ember'}`} aria-label={`${exercise.name} ${exercise.archivedAt ? 'wiederherstellen' : 'entfernen'}`} title={exercise.archivedAt ? 'Wiederherstellen' : 'Entfernen'} onClick={() => exercise.archivedAt ? restoreExercise(exercise) : openAction('remove', exercise.id)}><LibraryIcon name={exercise.archivedAt ? 'restore' : 'trash'} /></button>
               </div> : null}
             </div>
-            {previewMode ? <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder, libraryReturnTo }} className="mt-auto block py-2" aria-label={`Diagrammvorschau von ${exercise.name}`}>
-              <ExerciseChartPreview data={chartPreviews.get(exercise.id)} settings={exercise.settings} />
+            {previewMode ? <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder, libraryReturnTo, chartMetric: previewMetric }} className="mt-auto block py-2" aria-label={`Diagrammvorschau von ${exercise.name}`}>
+              <ExerciseChartPreview data={chartPreviews.get(exercise.id)} settings={exercise.settings} requestedMetric={previewMetric} />
             </Link> : exercise.latestSummary ? <p className="truncate text-xs leading-5 text-muted" title={exercise.latestSummary}>{exercise.latestSummary}</p> : null}
             <div className={`flex items-center justify-between gap-1 ${previewMode ? 'flex-wrap border-t border-line pt-1' : 'mt-0.5'}`}>
               <span className="min-w-0 text-[10px] text-muted">{exercise.workoutCount} {exercise.workoutCount === 1 ? 'Training' : 'Trainings'}{exercise.hasOpenWorkout ? ' · offen' : ''}</span>
               {previewMode ? <div className="ml-auto flex shrink-0">
                 <button type="button" className={iconButtonClass} aria-label={`${exercise.name} umbenennen`} title="Umbenennen" onClick={() => openAction('rename', exercise.id)}><LibraryIcon name="pencil" /></button>
-                <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder, libraryReturnTo }} className={iconButtonClass} aria-label={`Verlauf von ${exercise.name}`} title="Verlauf"><LibraryIcon name="chart" /></Link>
+                <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder, libraryReturnTo, chartMetric: previewMetric }} className={iconButtonClass} aria-label={`Verlauf von ${exercise.name}`} title="Verlauf"><LibraryIcon name="chart" /></Link>
                 <button type="button" className={`${iconButtonClass} ${exercise.archivedAt ? 'text-amber' : 'hover:text-ember'}`} aria-label={`${exercise.name} ${exercise.archivedAt ? 'wiederherstellen' : 'entfernen'}`} title={exercise.archivedAt ? 'Wiederherstellen' : 'Entfernen'} onClick={() => exercise.archivedAt ? restoreExercise(exercise) : openAction('remove', exercise.id)}><LibraryIcon name={exercise.archivedAt ? 'restore' : 'trash'} /></button>
               </div> : null}
             </div>
@@ -154,7 +165,7 @@ export default function ExerciseLibraryPage() {
           {archivedExercises.map((exercise) => <article key={exercise.id} className="flex min-w-0 items-center gap-1 py-2" aria-label={exercise.name}>
             <h2 className="min-w-0 flex-1 break-words text-sm font-bold text-muted">{exercise.name}</h2>
             <button type="button" className={iconButtonClass} aria-label={`${exercise.name} umbenennen`} title="Umbenennen" onClick={() => openAction('rename', exercise.id)}><LibraryIcon name="pencil" /></button>
-            <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder: archiveOrder, libraryReturnTo }} className={iconButtonClass} aria-label={`Verlauf von ${exercise.name}`} title="Verlauf"><LibraryIcon name="chart" /></Link>
+            <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder: archiveOrder, libraryReturnTo, chartMetric: previewMetric }} className={iconButtonClass} aria-label={`Verlauf von ${exercise.name}`} title="Verlauf"><LibraryIcon name="chart" /></Link>
             <button type="button" className={`${iconButtonClass} text-amber`} aria-label={`${exercise.name} wiederherstellen`} title="Wiederherstellen" onClick={() => restoreExercise(exercise)}><LibraryIcon name="restore" /></button>
           </article>)}
         </div> : null}

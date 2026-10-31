@@ -1,14 +1,9 @@
+import { exerciseChartMetrics, resolveExerciseChartMetric } from '../utils/workout';
+
 const formatNumber = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 });
 
-export default function ExerciseChartPreview({ data, settings }) {
-  const hasDuration = data.some((point) => point.maxDurationSeconds != null);
-  const hasReps = data.some((point) => point.maxReps != null);
-  const hasWeight = data.some((point) => point.maxWeight != null);
-  const metric = hasDuration && (settings?.measurementType === 'duration' || (!hasReps && !hasWeight))
-    ? { field: 'maxDurationSeconds', label: 'Längster Satz', unit: 's' }
-    : hasReps && (settings?.loadType === 'none' || !hasWeight)
-      ? { field: 'maxReps', label: 'Max. Wdh.', unit: 'Wdh.' }
-      : { field: 'volume', label: 'Volumen', unit: 'kg' };
+export default function ExerciseChartPreview({ data, settings, requestedMetric }) {
+  const metric = exerciseChartMetrics[resolveExerciseChartMetric(data, settings, requestedMetric)];
   const points = data.filter((point) => Number.isFinite(point[metric.field]));
 
   if (!points.length) {
