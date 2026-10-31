@@ -117,13 +117,13 @@ export default function ExerciseLibraryPage() {
         <span>{exercises.length} Treffer</span>
         <button type="button" className="min-h-9 px-2 font-semibold text-amber" onClick={() => updateSearchParams('q', '')}>Suche löschen</button>
       </div> : null}
-      <section className={previewMode ? 'grid gap-2 min-[380px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'divide-y divide-line'} aria-label="Übungsliste">
+      <section className={previewMode ? 'grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-4' : 'divide-y divide-line'} aria-label="Übungsliste">
         {exercises.map((exercise) => (
           <article key={exercise.id} className={`min-w-0 ${previewMode ? 'panel flex flex-col overflow-hidden p-2.5' : 'py-2'}`} aria-label={exercise.name}>
             <div className={`flex min-w-0 items-start gap-1 ${previewMode ? 'flex-wrap' : ''}`}>
               <div className="flex min-w-0 flex-1 items-start">
                 <h2 className={`min-w-0 flex-1 break-words pt-2 font-bold leading-5 text-ink ${previewMode ? 'line-clamp-2 text-sm' : 'text-base'}`} title={exercise.name}>{exercise.name}</h2>
-                <button type="button" className={iconButtonClass} aria-label={`${exercise.name} umbenennen`} title="Umbenennen" onClick={() => openAction('rename', exercise.id)}><LibraryIcon name="pencil" /></button>
+                {!previewMode ? <button type="button" className={iconButtonClass} aria-label={`${exercise.name} umbenennen`} title="Umbenennen" onClick={() => openAction('rename', exercise.id)}><LibraryIcon name="pencil" /></button> : null}
               </div>
               {!previewMode ? <div className="flex shrink-0">
                 <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder, libraryReturnTo }} className={iconButtonClass} aria-label={`Verlauf von ${exercise.name}`} title="Verlauf"><LibraryIcon name="chart" /></Link>
@@ -133,9 +133,10 @@ export default function ExerciseLibraryPage() {
             {previewMode ? <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder, libraryReturnTo }} className="mt-auto block py-2" aria-label={`Diagrammvorschau von ${exercise.name}`}>
               <ExerciseChartPreview data={chartPreviews.get(exercise.id)} settings={exercise.settings} />
             </Link> : exercise.latestSummary ? <p className="truncate text-xs leading-5 text-muted" title={exercise.latestSummary}>{exercise.latestSummary}</p> : null}
-            <div className={`flex items-center justify-between gap-1 ${previewMode ? 'border-t border-line pt-1' : 'mt-0.5'}`}>
+            <div className={`flex items-center justify-between gap-1 ${previewMode ? 'flex-wrap border-t border-line pt-1' : 'mt-0.5'}`}>
               <span className="min-w-0 text-[10px] text-muted">{exercise.workoutCount} {exercise.workoutCount === 1 ? 'Training' : 'Trainings'}{exercise.hasOpenWorkout ? ' · offen' : ''}</span>
-              {previewMode ? <div className="flex shrink-0">
+              {previewMode ? <div className="ml-auto flex shrink-0">
+                <button type="button" className={iconButtonClass} aria-label={`${exercise.name} umbenennen`} title="Umbenennen" onClick={() => openAction('rename', exercise.id)}><LibraryIcon name="pencil" /></button>
                 <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder, libraryReturnTo }} className={iconButtonClass} aria-label={`Verlauf von ${exercise.name}`} title="Verlauf"><LibraryIcon name="chart" /></Link>
                 <button type="button" className={`${iconButtonClass} ${exercise.archivedAt ? 'text-amber' : 'hover:text-ember'}`} aria-label={`${exercise.name} ${exercise.archivedAt ? 'wiederherstellen' : 'entfernen'}`} title={exercise.archivedAt ? 'Wiederherstellen' : 'Entfernen'} onClick={() => exercise.archivedAt ? restoreExercise(exercise) : openAction('remove', exercise.id)}><LibraryIcon name={exercise.archivedAt ? 'restore' : 'trash'} /></button>
               </div> : null}
