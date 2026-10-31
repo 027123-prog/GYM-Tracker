@@ -15,6 +15,7 @@ const ExerciseChartPage = lazy(() => import('./pages/ExerciseChartPage'));
 const ExerciseLibraryPage = lazy(() => import('./pages/ExerciseLibraryPage'));
 const MaxStrengthPage = lazy(() => import('./pages/MaxStrengthPage'));
 const TemplatesPage = lazy(() => import('./pages/TemplatesPage'));
+const TemplateEditorPage = lazy(() => import('./pages/TemplateEditorPage'));
 const WorkoutBuilderPage = lazy(() => import('./pages/WorkoutBuilderPage'));
 const WorkoutDetailPage = lazy(() => import('./pages/WorkoutDetailPage'));
 const WorkoutStartPage = lazy(() => import('./pages/WorkoutStartPage'));
@@ -74,6 +75,7 @@ export default function App() {
                   <Route path="/" element={<DashboardPage />} />
                   <Route path="/exercises" element={<ExerciseLibraryPage />} />
                   <Route path="/templates" element={<TemplatesPage />} />
+                  <Route path="/templates/:templateId/edit" element={<TemplateEditorPage />} />
                   <Route path="/max-strength" element={<MaxStrengthPage />} />
                   <Route path="/workouts/start" element={<WorkoutStartPage />} />
                   <Route path="/workouts/new" element={<WorkoutBuilderPage mode="free" />} />

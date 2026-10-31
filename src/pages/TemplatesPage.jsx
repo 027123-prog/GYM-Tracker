@@ -1,10 +1,11 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppData } from '../components/AppProvider';
 import EmptyState from '../components/EmptyState';
 import TemplatePicker from '../components/TemplatePicker';
 
 export default function TemplatesPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { state, createWorkoutFromTemplate, deleteTemplate, duplicateTemplate } = useAppData();
 
   function startTemplate(templateId) {
@@ -17,9 +18,13 @@ export default function TemplatesPage() {
 
   return (
     <div className="space-y-5">
-      <section className="border-b border-line pb-5">
-        <h1 className="font-display text-3xl font-bold uppercase text-ink sm:text-4xl">Vorlagen</h1>
+      <section className="grid grid-cols-[1fr_auto_1fr] items-center border-b border-line pb-3">
+        <Link to="/workouts/start" className="icon-button justify-self-start" aria-label="Zurück zum Trainingsstart">←</Link>
+        <h1 className="font-display text-[22px] font-bold text-ink">Vorlagen</h1>
+        <span />
       </section>
+
+      {location.state?.notice ? <p role="status" className="text-xs text-amber">{location.state.notice}</p> : null}
 
       {state.templates.length ? (
         <TemplatePicker

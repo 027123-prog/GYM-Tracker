@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import InterfaceIcon, { compactIconButtonClass } from './InterfaceIcon';
 
 export default function TemplatePicker({ templates, onSelect, onDelete, onDuplicate }) {
   const [expandedTemplateIds, setExpandedTemplateIds] = useState(() => new Set());
@@ -28,10 +30,11 @@ export default function TemplatePicker({ templates, onSelect, onDelete, onDuplic
         return (
           <article key={template.id} className="panel p-4 sm:p-5">
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="break-words font-display text-xl font-bold text-ink sm:text-2xl">
+              <div className="flex min-w-0 flex-1 items-start gap-1">
+                <h3 className="min-w-0 flex-1 break-words font-display text-xl font-bold text-ink sm:text-2xl">
                   {template.name}
                 </h3>
+                <Link to={`/templates/${template.id}/edit`} className={compactIconButtonClass} aria-label={`${template.name} bearbeiten`} title="Vorlage bearbeiten"><InterfaceIcon name="pencil" /></Link>
               </div>
               <span className="shrink-0 rounded-sm border border-line bg-paper px-2 py-1 text-xs font-bold text-muted">
                 {template.exerciseTemplates.length} Übungen

@@ -5,7 +5,7 @@ import { useAppData } from './AppProvider';
 import SyncIndicator from './SyncIndicator';
 import { calculateWorkoutStats } from '../utils/workout';
 
-const appVersion = '2.11.3';
+const appVersion = '2.12.0';
 const displayVersion = `v${appVersion.split('.').slice(0, 2).join('.')}`;
 
 const navItems = [
@@ -21,7 +21,7 @@ function isNavActive(pathname, to) {
   }
 
   if (to === '/workouts/start') {
-    return pathname.startsWith('/workouts');
+    return pathname.startsWith('/workouts') || pathname.startsWith('/templates');
   }
 
   return pathname === to || pathname.startsWith(`${to}/`);
@@ -199,6 +199,9 @@ function ActiveWorkoutControl({ workout, trainingTarget }) {
             >
               {templateSaved ? 'Gespeichert' : 'Als Vorlage speichern'}
             </button>
+            <Link to="/templates" onClick={() => setMenuOpen(false)} className="secondary-button w-full">
+              Vorlagen
+            </Link>
             <button
               type="button"
               onClick={() => {

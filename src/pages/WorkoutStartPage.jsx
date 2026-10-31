@@ -23,6 +23,14 @@ export default function WorkoutStartPage() {
           <span aria-hidden="true" className="font-display text-xl font-bold text-amber">01</span>
           <span className="mt-2 text-lg font-bold text-ink">Aus Vorlage</span>
         </Link>
+
+        <Link
+          to="/templates"
+          className="panel flex min-h-36 flex-col items-center justify-center p-5 text-center transition hover:border-amber hover:bg-amber-soft sm:col-span-2"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" className="h-6 w-6 text-amber"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" /></svg>
+          <span className="mt-2 text-lg font-bold text-ink">Vorlagenübersicht</span>
+        </Link>
       </div>
     </section>
   );

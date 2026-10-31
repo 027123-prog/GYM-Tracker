@@ -3,6 +3,7 @@ import { loadAppState, normalizeAppState, saveAppState, STORAGE_KEY } from '../u
 import { createId, normalizeWeightOptions } from '../utils/workout';
 import { editExerciseRecord, ensureExerciseRecord, findExerciseByName, removeExerciseRecord, restoreExerciseRecord } from '../utils/exerciseEditing';
 import { prepareSetValues } from '../utils/setMeasurements';
+import { updateTemplateRecord } from '../utils/templateEditing';
 
 const AppContext = createContext(null);
 const ACTIVE_WORKOUT_KEY = 'gym-tracker-active-workout';
@@ -356,6 +357,13 @@ export function AppProvider({ children }) {
     return existingTemplate?.id ?? templateName;
   }
 
+  function updateTemplate(templateId, changes) {
+    const result = updateTemplateRecord(state, templateId, changes);
+    if (result.error) return result.error;
+    setState((current) => updateTemplateRecord(current, templateId, changes).state);
+    return null;
+  }
+
   function deleteTemplate(templateId) {
     setState((current) => ({
       ...current,
@@ -645,6 +653,7 @@ export function AppProvider({ children }) {
         createFreeWorkout,
         createWorkoutFromTemplate,
         saveWorkoutAsTemplate,
+        updateTemplate,
         deleteTemplate,
         duplicateTemplate,
         updateWorkoutName,
