@@ -56,18 +56,19 @@ export default function ExerciseChartPage() {
   }
 
   const latest = data[data.length - 1];
+  const paired = exercise.settings?.loadType === 'paired' || data.some((point) => point.sets.some((setItem) => setItem.weightMode === 'paired'));
   const showDuration = latest?.maxDurationSeconds != null && (exercise.settings?.measurementType === 'duration' || (latest.maxWeight == null && latest.maxReps == null));
   const showWeightlessReps = latest?.maxReps != null && (exercise.settings?.loadType === 'none' || latest.maxWeight == null);
   const latestMetrics = latest ? (showDuration ? [
     { label: 'Gesamtzeit', value: `${latest.totalDurationSeconds} s` },
     { label: 'Längster Satz', value: `${latest.maxDurationSeconds} s` },
-    ...(latest.longestSetWeight > 0 ? [{ label: 'Gewicht dabei', value: `${latest.longestSetWeight} kg` }] : []),
+    ...(latest.longestSetWeight > 0 ? [{ label: paired ? 'Gesamtgewicht dabei' : 'Gewicht dabei', value: `${latest.longestSetWeight} kg` }] : []),
   ] : showWeightlessReps ? [
     { label: 'Wdh. gesamt', value: latest.totalReps },
     { label: 'Max. Wdh.', value: latest.maxReps },
   ] : [
     { label: 'Volumen', value: `${latest.volume?.toFixed(0) ?? '–'} kg` },
-    { label: 'Max. Gewicht', value: `${latest.maxWeight} kg` },
+    { label: paired ? 'Max. Gesamtgewicht' : 'Max. Gewicht', value: `${latest.maxWeight} kg` },
     { label: 'Wdh. dabei', value: latest.maxWeightReps },
   ]) : [];
 

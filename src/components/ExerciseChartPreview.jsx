@@ -5,7 +5,8 @@ const formatNumber = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 }
 export default function ExerciseChartPreview({ data, metric: metricKey, loadType }) {
   const metric = exerciseChartMetrics[metricKey] ?? exerciseChartMetrics.volume;
   const paired = loadType === 'paired' || data.some((point) => point.sets?.some((setItem) => setItem.weightMode === 'paired'));
-  const label = paired && metricKey === 'maxWeight' ? 'Max. Gesamtgewicht' : metric.label;
+  const label = paired && metricKey === 'maxWeight' ? 'Max. Gesamtgewicht'
+    : paired && metricKey === 'durationWeight' ? 'Gesamtes Haltegewicht' : metric.label;
   const points = data.filter((point) => Number.isFinite(point[metric.field]));
 
   if (!points.length) {
