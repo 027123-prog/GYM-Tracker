@@ -182,7 +182,6 @@ export function getExerciseWorkoutCount(workouts, exerciseId, exerciseName = '')
 
 export function buildExerciseChartData(workouts, exerciseId, exerciseName = '') {
   return workouts
-    .filter((workout) => workout.completedAt)
     .map((workout) => {
       const matchingExercises = workout.exercises.filter(
         (exercise) =>
@@ -208,6 +207,8 @@ export function buildExerciseChartData(workouts, exerciseId, exerciseName = '') 
       const heaviestDurationSet = loadedDurationSets.find((setItem) => Number(setItem.weight || 0) === maxDurationWeight);
 
       return {
+        workoutId: workout.id,
+        isInProgress: !workout.completedAt,
         date: workout.date,
         shortDate: new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit' }).format(new Date(workout.date)),
         volume: repSets.length ? repSets.reduce((sum, setItem) => sum + getSetRepVolume(setItem), 0) : null,

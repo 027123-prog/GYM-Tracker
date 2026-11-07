@@ -23,16 +23,17 @@ export default function ExerciseChartPreview({ data, metric: metricKey, loadType
     y: range ? 49 - ((point[metric.field] - min) / range) * 42 : 28,
   }));
   const last = coordinates[coordinates.length - 1];
+  const latest = points[points.length - 1];
   const latestValue = `${formatNumber.format(values[values.length - 1])} ${metric.unit}`;
 
   return (
     <div className="space-y-1">
-      <svg viewBox="0 0 200 56" role="img" aria-label={`${label}: zuletzt ${latestValue}, ${points.length} Trainings`} className="h-16 w-full text-amber" preserveAspectRatio="none">
+      <svg viewBox="0 0 200 56" role="img" aria-label={`${label}: zuletzt ${latestValue}${latest.isInProgress ? ', läuft' : ''}, ${points.length} Trainings`} className="h-16 w-full text-amber" preserveAspectRatio="none">
         {coordinates.length > 1 ? <polyline points={coordinates.map(({ x, y }) => `${x},${y}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" /> : null}
         <circle cx={last.x} cy={last.y} r="3" fill="currentColor" />
       </svg>
       <p className="flex flex-wrap justify-between gap-x-2 text-[10px] text-muted">
-        <span>{label}</span><span className="tabular-nums">{latestValue}</span>
+        <span>{label}</span><span className="tabular-nums">{latestValue}{latest.isInProgress ? <span className="ml-1 text-amber">· Läuft</span> : null}</span>
       </p>
     </div>
   );

@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import ExerciseSettingsModal from './ExerciseSettingsModal';
 import SetEntryModal from './SetEntryModal';
+import StopwatchModal from './StopwatchModal';
 import { formatSetSummary } from '../utils/setMeasurements';
 import { getRepeatedSetPayload } from '../utils/setEntry';
 import { getExerciseWeightSuggestions } from '../utils/weightSuggestions';
+import { getTimerLoad } from '../utils/timerLoad';
 
 const compactIconButtonClass =
   'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-line bg-surface-raised text-ink transition hover:border-amber/70 hover:text-amber-deep disabled:cursor-not-allowed disabled:opacity-35 min-[380px]:h-11 min-[380px]:w-11';
@@ -86,12 +88,16 @@ export default function ExerciseEditorCard({
 }) {
   const location = useLocation();
   const [setModalOpen, setSetModalOpen] = useState(false);
+  const [timerOpen, setTimerOpen] = useState(false);
+  const [timerSetup, setTimerSetup] = useState(false);
+  const [timerLoad, setTimerLoad] = useState(null);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [editingSet, setEditingSet] = useState(null);
   const [recentlySaved, setRecentlySaved] = useState('');
   const [draftName, setDraftName] = useState(exercise.name);
   const [renameError, setRenameError] = useState('');
   const bottomAnchorRef = useRef(null);
+  const durationExercise = libraryEntry?.settings?.measurementType === 'duration';
 
   const legacyMachineSettingsText = useMemo(
     () => (exercise.machineSettings ?? [])
@@ -117,22 +123,52 @@ export default function ExerciseEditorCard({
 
   function openNewSet() {
     setEditingSet(null);
+    setTimerSetup(false);
+    if (durationExercise) {
+      const load = getTimerLoad(libraryEntry?.settings, exercise.sets.at(-1));
+      setTimerLoad(load);
+      if (load) {
+        setTimerOpen(true);
+      } else {
+        setTimerSetup(true);
+        setSetModalOpen(true);
+      }
+      return;
+    }
     setSetModalOpen(true);
   }
 
   function editSet(setItem) {
+    setTimerSetup(false);
     setEditingSet(setItem);
     setSetModalOpen(true);
   }
 
   function saveSet(payload) {
     const savedSetId = onSaveSet(payload);
+    if (!savedSetId) return null;
     setRecentlySaved(savedSetId ?? payload.id ?? 'new');
     window.setTimeout(() => setRecentlySaved(''), 900);
 
     if (!payload.id) {
       window.requestAnimationFrame(() => bottomAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }));
     }
+    return savedSetId;
+  }
+
+  function configureTimerLoad() {
+    setTimerOpen(false);
+    setEditingSet(timerLoad);
+    setTimerSetup(true);
+    setSetModalOpen(true);
+  }
+
+  function saveModalValues(payload) {
+    if (!timerSetup) return saveSet(payload);
+    const { id, comment, ...load } = payload;
+    setTimerLoad(load);
+    setTimerOpen(true);
+    return true;
   }
 
   function repeatLastSet() {
@@ -284,7 +320,7 @@ export default function ExerciseEditorCard({
                 onClick={openNewSet}
                 className={`action-button w-full min-[380px]:w-auto ${exercise.sets.length ? '' : 'col-span-2'}`}
               >
-                + Satz
+                {durationExercise ? 'Stoppuhr' : '+ Satz'}
               </button>
             </div>
           </div>
@@ -340,13 +376,22 @@ export default function ExerciseEditorCard({
       <SetEntryModal
         isOpen={setModalOpen}
         initialSet={editingSet}
+        timerSetup={timerSetup}
         exerciseName={exercise.name}
         exerciseSettings={libraryEntry?.settings}
         lastWorkoutSummary={lastWorkoutSummary}
         weightOptions={weightSuggestions ?? getExerciseWeightSuggestions(libraryEntry?.weightOptions, [], exercise.exerciseId, libraryEntry?.settings)}
         repSuggestions={repSuggestions}
         onClose={() => setSetModalOpen(false)}
+        onSave={saveModalValues}
+      />
+      <StopwatchModal
+        isOpen={timerOpen}
+        exerciseName={exercise.name}
+        loadValues={timerLoad}
+        onClose={() => setTimerOpen(false)}
         onSave={saveSet}
+        onEditLoad={libraryEntry?.settings?.loadType === 'none' ? undefined : configureTimerLoad}
       />
       <ExerciseSettingsModal
         isOpen={settingsModalOpen}

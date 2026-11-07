@@ -28,6 +28,7 @@ function rememberBodyWeight(value) {
 export default function SetEntryModal({
   isOpen,
   initialSet,
+  timerSetup = false,
   exerciseName,
   exerciseSettings,
   weightOptions,
@@ -80,7 +81,7 @@ export default function SetEntryModal({
       measurementType,
       weight,
       reps,
-      durationSeconds: reps,
+      durationSeconds: timerSetup ? 1 : reps,
       ...(paired ? { weightMode: 'paired', individualWeight: weight } : {}),
       ...(withoutWeight ? { weightMode: 'none' } : {}),
       ...(usesBodyweight ? {
@@ -115,14 +116,14 @@ export default function SetEntryModal({
         <div>
           <p className="eyebrow">{exerciseName || 'Übung'}</p>
           <h2 id="set-entry-title" className="mt-2 font-display text-2xl font-bold text-ink">
-            {initialSet ? 'Satz ändern' : 'Neuer Satz'}
+            {timerSetup ? 'Gewicht für Stoppuhr' : initialSet ? 'Satz ändern' : 'Neuer Satz'}
           </h2>
         </div>
         <button type="button" onClick={onClose} className="icon-button" aria-label="Dialog schließen">×</button>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-        <div className={`grid gap-3 ${withoutWeight ? '' : 'grid-cols-2'}`}>
+        <div className={`grid gap-3 ${withoutWeight || timerSetup ? '' : 'grid-cols-2'}`}>
           {usesBodyweight ? (
             <label>
               <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Dein Gewicht</span>
@@ -158,7 +159,7 @@ export default function SetEntryModal({
               ) : parsedWeight?.weightInput ? <span className="mt-1.5 block text-xs text-muted">Gesamtlast: {parsedWeight.weight} kg</span> : null}
             </label>
           ) : null}
-          <label>
+          {!timerSetup ? <label>
             <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">{duration ? 'Sekunden' : 'Wiederholungen'}</span>
             <input
               className="field text-lg font-bold tabular-nums"
@@ -172,7 +173,7 @@ export default function SetEntryModal({
               autoFocus={withoutWeight}
               data-autofocus={withoutWeight || undefined}
             />
-          </label>
+          </label> : null}
         </div>
 
         {usesBodyweight ? (
@@ -208,7 +209,7 @@ export default function SetEntryModal({
           <WeightSuggestionGrid options={displayedWeightOptions} selectedValue={weight} onSelect={setWeight} perWeight={paired} />
         ) : null}
 
-        <div>
+        {!timerSetup ? <div>
           <div className="flex flex-wrap gap-1">
             {(duration ? durationPresets : repSuggestions).map((preset) => (
               <button
@@ -226,9 +227,9 @@ export default function SetEntryModal({
               </button>
             ))}
           </div>
-        </div>
+        </div> : null}
 
-        <label className="block">
+        {!timerSetup ? <label className="block">
           <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Kommentar</span>
           <textarea
             className="field min-h-[88px] resize-y"
@@ -236,7 +237,7 @@ export default function SetEntryModal({
             onChange={(event) => setComment(event.target.value)}
             placeholder="Form, Tempo, Gefühl …"
           />
-        </label>
+        </label> : null}
 
         {error ? (
           <p className="rounded-sm border border-ember/35 bg-ember/10 px-3 py-2 text-sm font-semibold text-ember" role="alert">
@@ -246,7 +247,7 @@ export default function SetEntryModal({
 
         <div className="sticky bottom-0 -mx-5 flex gap-2 border-t border-line bg-surface px-5 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-4 sm:-mx-6 sm:px-6">
           <button type="button" onClick={onClose} className="secondary-button flex-1">Abbrechen</button>
-          <button type="submit" className="action-button flex-1">Speichern</button>
+          <button type="submit" className="action-button flex-1">{timerSetup ? 'Übernehmen' : 'Speichern'}</button>
         </div>
       </form>
     </ModalShell>

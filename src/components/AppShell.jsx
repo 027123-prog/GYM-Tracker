@@ -5,7 +5,7 @@ import { useAppData } from './AppProvider';
 import SyncIndicator from './SyncIndicator';
 import { calculateWorkoutStats } from '../utils/workout';
 
-const appVersion = '2.14.2';
+const appVersion = '2.15.0';
 const displayVersion = `v${appVersion.split('.').slice(0, 2).join('.')}`;
 
 const navItems = [
@@ -178,7 +178,9 @@ function ActiveWorkoutControl({ workout, trainingTarget }) {
   const { updateWorkoutName, saveWorkoutAsTemplate, completeWorkout, deleteWorkout } = useAppData();
   const [menuOpen, setMenuOpen] = useState(false);
   const [templateSaved, setTemplateSaved] = useState(false);
+  const [menuMaxHeight, setMenuMaxHeight] = useState(null);
   const controlRef = useRef(null);
+  const menuRef = useRef(null);
   const stats = calculateWorkoutStats(workout);
   const canComplete = stats.setCount > 0;
   const usesDefaultName = workout.mode === 'free' && workout.name.trim() === 'Freies Workout';
@@ -187,6 +189,21 @@ function ActiveWorkoutControl({ workout, trainingTarget }) {
   useEffect(() => {
     if (!menuOpen) {
       return undefined;
+    }
+
+    function fitMenuToViewport() {
+      const menu = menuRef.current;
+      if (!menu) return;
+      const viewport = window.visualViewport;
+      const visibleBottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight;
+      const navigation = document.querySelector('[data-mobile-navigation]')?.getBoundingClientRect();
+      const menuTop = menu.getBoundingClientRect().top;
+      // The keyboard can shrink only the visual viewport. Keep the menu above
+      // either that edge or the mobile navigation, whichever is actually visible.
+      const bottom = navigation?.width && navigation.top > menuTop && navigation.top < visibleBottom
+        ? navigation.top
+        : visibleBottom;
+      setMenuMaxHeight(Math.max(0, Math.floor(bottom - menuTop - 12)));
     }
 
     function closeOutside(event) {
@@ -201,10 +218,17 @@ function ActiveWorkoutControl({ workout, trainingTarget }) {
       }
     }
 
+    fitMenuToViewport();
+    window.addEventListener('resize', fitMenuToViewport);
+    window.visualViewport?.addEventListener('resize', fitMenuToViewport);
+    window.visualViewport?.addEventListener('scroll', fitMenuToViewport);
     document.addEventListener('pointerdown', closeOutside);
     document.addEventListener('keydown', closeOnEscape);
 
     return () => {
+      window.removeEventListener('resize', fitMenuToViewport);
+      window.visualViewport?.removeEventListener('resize', fitMenuToViewport);
+      window.visualViewport?.removeEventListener('scroll', fitMenuToViewport);
       document.removeEventListener('pointerdown', closeOutside);
       document.removeEventListener('keydown', closeOnEscape);
     };
@@ -220,7 +244,7 @@ function ActiveWorkoutControl({ workout, trainingTarget }) {
   }, [templateSaved]);
 
   return (
-    <div ref={controlRef} className="relative min-w-0 flex-1 md:max-w-[280px] md:flex-none">
+    <div ref={controlRef} className="min-w-0 flex-1 md:relative md:max-w-[280px] md:flex-none">
       <div className="flex min-w-0 items-stretch rounded-sm border border-amber/55 bg-amber-soft">
         <Link
           to={trainingTarget}
@@ -249,8 +273,10 @@ function ActiveWorkoutControl({ workout, trainingTarget }) {
 
       {menuOpen ? (
         <section
+          ref={menuRef}
           id={menuId}
-          className="panel absolute right-0 top-full z-[70] mt-2 w-[min(calc(100vw-1.5rem),22rem)] p-3 shadow-panel sm:p-4"
+          className="panel absolute inset-x-3 top-full z-[70] mt-2 max-h-[calc(100dvh-9rem)] overflow-y-auto overscroll-contain p-3 shadow-panel sm:inset-x-5 sm:p-4 md:left-auto md:right-0 md:w-[22rem] md:max-h-[calc(100dvh-6rem)]"
+          style={menuMaxHeight === null ? undefined : { maxHeight: menuMaxHeight }}
         >
           <label htmlFor="active-workout-name" className="eyebrow mb-2 block">
             Name

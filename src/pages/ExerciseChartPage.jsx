@@ -111,7 +111,10 @@ export default function ExerciseChartPage() {
             onPrevExercise={() => goToRelativeExercise(-1)}
             onNextExercise={() => goToRelativeExercise(1)}
           />
-          <section className={`grid gap-2 ${latestMetrics.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`} aria-label="Letztes Training">
+          <section className={`grid gap-2 ${latestMetrics.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`} aria-label={latest.isInProgress ? 'Laufendes Training' : 'Letztes Training'}>
+            <p className="col-span-full text-xs text-muted">
+              {latest.isInProgress ? <span className="font-semibold text-amber">Aktuelles Training · Läuft</span> : 'Letztes Training'}
+            </p>
             {latestMetrics.map((item) => (
               <div key={item.label} className="metric">
                 <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">{item.label}</p>
@@ -128,7 +131,7 @@ export default function ExerciseChartPage() {
             <button type="button" className="icon-button" aria-label="Nächste Übung" disabled={exerciseIndex >= sortedExercises.length - 1} onClick={() => goToRelativeExercise(1)}>→</button>
           </div>
           <EmptyState
-            title="Noch kein abgeschlossenes Training"
+            title="Noch keine gespeicherten Sätze"
           />
         </>
       )}

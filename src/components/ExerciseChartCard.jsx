@@ -29,7 +29,10 @@ function SelectedPointDetails({ point, metric, paired, onClose }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-bold text-ink">{point.workoutName}</p>
-          <p className="mt-0.5 text-xs text-muted">{new Date(point.date).toLocaleDateString('de-DE')}</p>
+          <p className="mt-0.5 text-xs text-muted">
+            {new Date(point.date).toLocaleDateString('de-DE')}
+            {point.isInProgress ? <span className="ml-2 font-semibold text-amber">Läuft</span> : null}
+          </p>
         </div>
         <button type="button" onClick={onClose} className="icon-button h-8 w-8" aria-label="Punktdetails schließen">
           ×
@@ -80,7 +83,7 @@ function SelectableChartDot({ cx, cy, payload, color, isSelected, onSelect }) {
     <g
       role="button"
       tabIndex="0"
-      aria-label={`${new Date(payload.date).toLocaleDateString('de-DE')}, ${payload.workoutName}`}
+      aria-label={`${new Date(payload.date).toLocaleDateString('de-DE')}, ${payload.workoutName}${payload.isInProgress ? ', läuft' : ''}`}
       aria-pressed={isSelected}
       aria-controls="chart-point-details"
       onClick={selectPoint}
@@ -120,19 +123,16 @@ export default function ExerciseChartCard({
   const [requestedMetric, setMetric] = useState(initialMetric);
   const availableMetrics = getExerciseChartMetricOptions(data, { measurementType, loadType });
   const metric = resolveExerciseChartMetric(data, { measurementType, loadType }, requestedMetric);
-  const [selectedPoint, setSelectedPoint] = useState(null);
-  const dataSignature = data
-    .map(
-      (point) =>
-        `${point.date}:${point.volume}:${point.maxWeight}:${point.sets
-          .map((setItem) => `${setItem.id}:${formatSetSummary(setItem)}:${setItem.comment ?? ''}`)
-          .join(',')}`,
-    )
-    .join('|');
+  const [selectedWorkoutId, setSelectedWorkoutId] = useState(null);
+  const selectedPoint = data.find((point) => point.workoutId === selectedWorkoutId) ?? null;
+
+  function selectPoint(point) {
+    setSelectedWorkoutId(point.workoutId);
+  }
 
   useEffect(() => {
-    setSelectedPoint(null);
-  }, [dataSignature, exerciseName, metric]);
+    setSelectedWorkoutId(null);
+  }, [exerciseName, metric]);
 
   useEffect(() => setMetric(initialMetric), [exerciseName, measurementType, loadType, initialMetric]);
 
@@ -219,7 +219,7 @@ export default function ExerciseChartCard({
               const point = chartState?.activePayload?.[0]?.payload;
 
               if (point) {
-                setSelectedPoint(point);
+                selectPoint(point);
               }
             }}
           >
@@ -237,8 +237,8 @@ export default function ExerciseChartCard({
                 <SelectableChartDot
                   {...props}
                   color={dotColor}
-                  isSelected={selectedPoint?.date === props.payload?.date}
-                  onSelect={setSelectedPoint}
+                  isSelected={selectedPoint?.workoutId === props.payload?.workoutId}
+                  onSelect={selectPoint}
                 />
               )}
               activeDot={{ r: 6, fill: dotColor, strokeWidth: 0 }}
@@ -247,7 +247,7 @@ export default function ExerciseChartCard({
         </ResponsiveContainer>
       </div>
       {selectedPoint ? (
-        <SelectedPointDetails point={selectedPoint} metric={metric} paired={paired} onClose={() => setSelectedPoint(null)} />
+        <SelectedPointDetails point={selectedPoint} metric={metric} paired={paired} onClose={() => setSelectedWorkoutId(null)} />
       ) : null}
     </div>
   );

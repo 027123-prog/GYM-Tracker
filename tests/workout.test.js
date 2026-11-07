@@ -216,7 +216,7 @@ test('library metric intent respects current settings and never falls back from 
   assert.equal(resolveExerciseLibraryMetric([{ maxWeight: null, maxReps: 12, totalReps: 21 }], {}, 'volume'), 'reps');
 });
 
-test('Drafts werden in Verlauf, Chart und Workout-Zähler ignoriert', () => {
+test('gespeicherte Sätze laufender Trainings erscheinen im Chart, ohne den abgeschlossenen Verlauf oder Zähler zu ändern', () => {
   const workouts = [
     {
       id: 'workout-completed',
@@ -265,8 +265,90 @@ test('Drafts werden in Verlauf, Chart und Workout-Zähler ignoriert', () => {
   assert.equal(snapshot.workoutId, 'workout-completed');
   assert.deepEqual(snapshot.sets.map((setItem) => setItem.id), ['completed-set']);
   assert.equal(getLastExerciseWeight(workouts, 'bench'), 70);
-  assert.deepEqual(chart.map((point) => point.workoutName), ['Abgeschlossen']);
+  assert.deepEqual(chart.map((point) => point.workoutName), ['Abgeschlossen', 'Entwurf']);
+  assert.deepEqual(chart.map((point) => point.isInProgress), [false, true]);
+  assert.equal(chart[1].workoutId, 'workout-draft');
+  assert.equal(chart[1].volume, 300);
+  assert.equal(chart[1].maxWeight, 100);
   assert.equal(getExerciseWorkoutCount(workouts, 'bench'), 1);
+});
+
+test('ein laufender Chartpunkt aktualisiert sich nach Speichern und Bearbeiten und bleibt beim Abschluss derselbe Punkt', () => {
+  const completed = {
+    id: 'previous', name: 'Vorher', date: '2026-11-06T10:00:00Z', completedAt: '2026-11-06T11:00:00Z',
+    exercises: [{ exerciseId: 'press', sets: [{ id: 'old', weight: 30, reps: 10 }] }],
+  };
+  const running = {
+    id: 'running', name: 'Heute', date: '2026-11-07T10:00:00Z', completedAt: null,
+    exercises: [
+      { id: 'entry-one', exerciseId: 'press', sets: [] },
+      { id: 'entry-two', exerciseId: 'press', sets: [] },
+      { exerciseId: 'press', skipped: true, sets: [{ id: 'skipped', weight: 100, reps: 100 }] },
+    ],
+  };
+  const workouts = [running, completed];
+  assert.deepEqual(buildExerciseChartData(workouts, 'press').map((point) => point.workoutId), ['previous']);
+
+  running.exercises[0].sets.push({ id: 'first', weightMode: 'paired', weight: 40, weightInput: '2x20', reps: 10 });
+  running.exercises[1].sets.push({ id: 'second', weight: 20, reps: 5 });
+  const snapshot = structuredClone(workouts);
+  const saved = buildExerciseChartData(workouts, 'press');
+  assert.deepEqual(saved.map((point) => point.workoutId), ['previous', 'running']);
+  assert.equal(saved[1].volume, 500);
+  assert.equal(saved[1].maxWeight, 40);
+  assert.equal(saved[1].maxWeightReps, 10);
+  assert.deepEqual(saved[1].sets.map((setItem) => setItem.id), ['first', 'second']);
+  assert.deepEqual(workouts, snapshot, 'Chart creation must not change training data');
+  assert.equal(getExerciseWorkoutCount(workouts, 'press'), 1);
+  assert.equal(getLastExerciseSnapshot(workouts, 'press').workoutId, 'previous');
+
+  running.exercises[0].sets[0] = { id: 'first', weightMode: 'paired', weight: 50, weightInput: '2x25', reps: 9 };
+  const edited = buildExerciseChartData(workouts, 'press');
+  assert.equal(edited.length, 2);
+  assert.equal(edited[1].volume, 550);
+  assert.equal(edited[1].maxWeight, 50);
+  assert.equal(edited[1].maxWeightReps, 9);
+  assert.equal(edited[1].totalReps, 14);
+
+  running.completedAt = '2026-11-07T11:00:00Z';
+  const finished = buildExerciseChartData(workouts, 'press');
+  assert.equal(finished.length, 2);
+  assert.deepEqual(finished[1], { ...edited[1], isInProgress: false });
+  assert.equal(getExerciseWorkoutCount(workouts, 'press'), 2);
+});
+
+test('laufende Zeitübungen aktualisieren Haltegewicht und Dauer ohne Wiederholungsvolumen', () => {
+  const workout = {
+    id: 'carry-now', name: 'Carry', date: '2026-11-07T10:00:00Z', completedAt: null,
+    exercises: [{ exerciseId: 'carry', sets: [
+      { id: 'first', measurementType: 'duration', durationSeconds: 40, weight: 20, reps: 0 },
+    ] }],
+  };
+  const [first] = buildExerciseChartData([workout], 'carry');
+  assert.equal(first.isInProgress, true);
+  assert.equal(first.maxDurationSeconds, 40);
+  assert.equal(first.totalDurationSeconds, 40);
+  assert.equal(first.maxDurationWeight, 20);
+
+  workout.exercises[0].sets.push({ id: 'second', measurementType: 'duration', durationSeconds: 60, weight: 30, reps: 0 });
+  const [updated] = buildExerciseChartData([workout], 'carry');
+  assert.equal(updated.totalDurationSeconds, 100);
+  assert.equal(updated.maxDurationSeconds, 60);
+  assert.equal(updated.maxDurationWeight, 30);
+  assert.equal(updated.volume, null);
+  assert.equal(updated.maxWeight, null);
+  assert.equal(updated.totalReps, null);
+  assert.equal(getExerciseWorkoutCount([workout], 'carry'), 0);
+});
+
+test('leere, übersprungene und nicht passende laufende Übungseinträge erzeugen keine Chartpunkte', () => {
+  const workouts = [
+    { id: 'empty', date: '2026-11-07', completedAt: null, exercises: [{ exerciseId: 'press', sets: [] }] },
+    { id: 'skipped', date: '2026-11-07', completedAt: null, exercises: [{ exerciseId: 'press', skipped: true, sets: [{ weight: 50, reps: 10 }] }] },
+    { id: 'other', date: '2026-11-07', completedAt: null, exercises: [{ exerciseId: 'row', sets: [{ weight: 50, reps: 10 }] }] },
+  ];
+  assert.deepEqual(buildExerciseChartData(workouts, 'press'), []);
+  assert.equal(getExerciseWorkoutCount(workouts, 'press'), 0);
 });
 
 test('sortWorkoutsByDate priorisiert das Workout-Datum trotz konfliktierender Abschlussdaten', () => {
