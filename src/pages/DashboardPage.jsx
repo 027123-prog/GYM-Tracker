@@ -79,6 +79,7 @@ export default function DashboardPage() {
   const currentDraft = activeWorkout
     ? null
     : sortedWorkouts.find((workout) => isMeaningfulDraft(workout, state.templates)) ?? null;
+  const currentDraftStats = currentDraft ? calculateWorkoutStats(currentDraft) : null;
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
@@ -110,7 +111,7 @@ export default function DashboardPage() {
               <p className="eyebrow">Offenes Training</p>
               <h2 className="mt-1 text-xl font-bold text-ink">{currentDraft.name}</h2>
               <p className="mt-1 text-sm text-muted">
-                {currentDraft.exercises.length} Übungen · {calculateWorkoutStats(currentDraft).setCount} Sätze
+                {currentDraftStats.exerciseCount} Übungen · {currentDraftStats.setCount} Sätze
               </p>
             </div>
             <Link to={`/workouts/${currentDraft.id}/edit`} className="action-button">

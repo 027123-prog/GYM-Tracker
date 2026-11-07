@@ -9,14 +9,14 @@ export function createId(prefix) {
 }
 
 export function calculateWorkoutStats(workout) {
-  const activeExercises = (workout.exercises || []).filter((exercise) => !exercise.skipped);
-  const sets = activeExercises.flatMap((exercise) => exercise.sets || []);
+  const recordedExercises = (workout.exercises || []).filter((exercise) => !exercise.skipped && exercise.sets?.length);
+  const sets = recordedExercises.flatMap((exercise) => exercise.sets);
   const totalVolume = sets.reduce((sum, setItem) => sum + getSetRepVolume(setItem), 0);
   const totalDurationSeconds = sets.reduce((sum, setItem) => sum + (isDurationSet(setItem) ? Number(setItem.durationSeconds || 0) : 0), 0);
   const totalReps = sets.reduce((sum, setItem) => sum + (isWeightlessSet(setItem) && !isDurationSet(setItem) ? Number(setItem.reps || 0) : 0), 0);
 
   return {
-    exerciseCount: activeExercises.length,
+    exerciseCount: recordedExercises.length,
     setCount: sets.length,
     totalVolume,
     ...(totalDurationSeconds ? { totalDurationSeconds } : {}),

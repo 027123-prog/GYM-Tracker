@@ -53,10 +53,44 @@ test('calculateWorkoutStats ignoriert übersprungene Übungen vollständig', () 
   });
 
   assert.deepEqual(stats, {
-    exerciseCount: 2,
+    exerciseCount: 1,
     setCount: 2,
     totalVolume: 800,
   });
+});
+
+test('Übungszahlen zählen gespeicherte Sätze aller Messarten und erhalten leere Vorlagenübungen', () => {
+  const workout = { mode: 'template', completedAt: null, exercises: [
+    { exerciseId: 'empty', sets: [] },
+    { exerciseId: 'missing' },
+    { exerciseId: 'skipped', skipped: true, sets: [{ weight: 100, reps: 10 }] },
+    { exerciseId: 'zero-load', sets: [{ weight: 0, reps: 10 }] },
+    { exerciseId: 'reps-only', sets: [{ weightMode: 'none', weight: 0, reps: 12 }] },
+    { exerciseId: 'duration', sets: [{ weightMode: 'none', weight: 0, measurementType: 'duration', durationSeconds: 20, reps: 0 }] },
+    { exerciseId: 'paired', sets: [{ weightMode: 'paired', weight: 40, reps: 10 }] },
+    { exerciseId: 'bodyweight', sets: [{ weightMode: 'bodyweight', weight: 80, reps: 5 }] },
+  ] };
+  const snapshot = structuredClone(workout);
+  const expected = { exerciseCount: 5, setCount: 5, totalVolume: 800, totalDurationSeconds: 20, totalReps: 12 };
+  assert.deepEqual(calculateWorkoutStats(workout), expected);
+  assert.deepEqual(calculateWorkoutStats({ ...workout, completedAt: '2026-11-07T21:00:00Z' }), expected);
+  assert.deepEqual(workout, snapshot);
+  assert.equal(workout.exercises.length, 8);
+});
+
+test('Übungszahl steigt mit dem ersten Satz und sinkt nach Löschen des letzten Satzes', () => {
+  const workout = { exercises: [{ exerciseId: 'planned', sets: [] }] };
+  assert.equal(calculateWorkoutStats(workout).exerciseCount, 0);
+  workout.exercises[0].sets.push({ weight: 20, reps: 10 });
+  assert.equal(calculateWorkoutStats(workout).exerciseCount, 1);
+  workout.exercises[0].sets.push({ weight: 30, reps: 8 });
+  assert.equal(calculateWorkoutStats(workout).exerciseCount, 1);
+  workout.exercises[0].sets.pop();
+  assert.equal(calculateWorkoutStats(workout).exerciseCount, 1);
+  workout.exercises[0].sets.pop();
+  assert.deepEqual(calculateWorkoutStats(workout), { exerciseCount: 0, setCount: 0, totalVolume: 0 });
+  assert.equal(workout.exercises.length, 1);
+  assert.deepEqual(calculateWorkoutStats({}), { exerciseCount: 0, setCount: 0, totalVolume: 0 });
 });
 
 test('doppelte Übungen innerhalb eines Workouts werden als eine Einheit aggregiert', () => {
