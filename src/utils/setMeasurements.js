@@ -91,7 +91,7 @@ export function prepareSetValues(payload) {
     load = parseWeightInput(payload.weightInput ?? payload.weight);
 
     if (!load) {
-      return { error: 'Gewicht: 0 bis 2.000 kg, z. B. 30 oder 2x30.' };
+      return { error: 'Gewicht muss zwischen 0 und 2.000 kg liegen.' };
     }
   }
 

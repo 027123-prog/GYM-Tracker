@@ -152,7 +152,6 @@ export default function SetEntryModal({
                   setWeight(event.target.value);
                   setError('');
                 }}
-                placeholder={paired ? 'z. B. 20' : '30 oder 2x30'}
                 autoFocus
                 data-autofocus
               />
