@@ -108,7 +108,7 @@ export function prepareSetValues(payload) {
 
 export function formatSetWeight(setItem) {
   if (isWeightlessSet(setItem)) return '';
-  if (isPairedSet(setItem)) return `2 × ${numberFormat.format((Number(setItem.weight) || 0) / 2)} kg`;
+  if (isPairedSet(setItem)) return `2x${numberFormat.format((Number(setItem.weight) || 0) / 2)} kg`;
   const expression = parseWeightInput(setItem?.weightInput);
   return expression?.weightInput && expression.weight === Number(setItem.weight)
     ? `${expression.weightInput} kg`

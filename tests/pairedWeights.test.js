@@ -27,8 +27,8 @@ test('paired entry stores the total once and survives save, repetition and edits
   assert.equal(original.error, null);
   assert.deepEqual(original.values, { weight: 40, weightMode: 'paired', weightInput: '2x20', reps: 10 });
   assert.equal(isPairedSet(original.values), true);
-  assert.equal(formatSetWeight(original.values), '2 × 20 kg');
-  assert.equal(formatSetSummary(original.values), '2 × 20 kg × 10');
+  assert.equal(formatSetWeight(original.values), '2x20 kg');
+  assert.equal(formatSetSummary(original.values), '2x20 kg × 10');
   assert.equal(getSetRepVolume(original.values), 400);
   assert.equal('individualWeight' in original.values, false);
   const secondValidation = prepareSetValues(original.values);
@@ -59,7 +59,7 @@ test('paired inputs support zero and decimals but reject expressions and invalid
 test('canonical paired loads ignore stale expressions and keep numeric totals authoritative', () => {
   const result = prepareSetValues({ weightMode: 'paired', weight: 40, weightInput: '2x40', reps: 10 });
   assert.deepEqual(result.values, paired(20).values);
-  assert.equal(formatSetWeight({ weightMode: 'paired', weight: 40, weightInput: '2x40' }), '2 × 20 kg');
+  assert.equal(formatSetWeight({ weightMode: 'paired', weight: 40, weightInput: '2x40' }), '2x20 kg');
 });
 
 test('paired timed sets use total load while duration stays out of repetition volume', () => {
@@ -67,7 +67,7 @@ test('paired timed sets use total load while duration stays out of repetition vo
   assert.equal(result.error, null);
   assert.deepEqual(result.values, { weight: 25, weightMode: 'paired', weightInput: '2x12,5', measurementType: 'duration', durationSeconds: 45, reps: 0 });
   assert.deepEqual(prepareSetValues(result.values), result);
-  assert.equal(formatSetSummary(result.values), '45 s · 2 × 12,5 kg');
+  assert.equal(formatSetSummary(result.values), '45 s · 2x12,5 kg');
   assert.equal(getSetRepVolume(result.values), 0);
   assert.ok(paired(20, { measurementType: 'duration', durationSeconds: 0 }).error);
   assert.ok(paired(20, { reps: 0 }).error);
@@ -124,7 +124,7 @@ test('switching paired settings changes future entry only and leaves old sets an
   const disabled = editExerciseRecord(enabled.state, 'press', { settings: { loadType: 'normal' } });
   assert.equal(disabled.state.exercises[0].settings.loadType, 'normal');
   assert.strictEqual(disabled.state.workouts, before.workouts);
-  assert.equal(formatSetWeight(disabled.state.workouts[0].exercises[0].sets[2]), '2 × 20 kg');
+  assert.equal(formatSetWeight(disabled.state.workouts[0].exercises[0].sets[2]), '2x20 kg');
 });
 
 test('mixed old and paired history computes total volume and chart maxima once', () => {

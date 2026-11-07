@@ -58,8 +58,6 @@ export default function SetEntryModal({
   const [error, setError] = useState('');
   const parsedAddedWeight = parseWeightInput(addedWeight, { allowNegative: true });
   const parsedWeight = parseWeightInput(weight);
-  const pairedTotal = paired && parsedWeight && !parsedWeight.weightInput && parsedWeight.weight <= 1000
-    ? Number((parsedWeight.weight * 2).toFixed(10)) : null;
   const displayedWeightOptions = getSetEntryWeightSuggestions(weightOptions, configuredLoadType, loadType);
   const effectiveBodyweight = parsedAddedWeight ? calculateBodyweightLoad(
     bodyWeight,
@@ -143,7 +141,7 @@ export default function SetEntryModal({
             </label>
           ) : !withoutWeight ? (
             <label>
-              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">{paired ? 'Je Einzelgewicht kg' : 'Gewicht kg'}</span>
+              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Gewicht</span>
               <input
                 className="field text-lg font-bold tabular-nums"
                 inputMode={paired ? 'decimal' : 'text'}
@@ -156,9 +154,7 @@ export default function SetEntryModal({
                 data-autofocus
               />
               {paired ? (
-                <span className="mt-1.5 block text-xs text-muted" aria-live="polite">
-                  {pairedTotal === null ? 'Zwei gleiche Einzelgewichte · wird automatisch verdoppelt.' : `2 × ${parsedWeight.weight.toLocaleString('de-DE')} kg = ${pairedTotal.toLocaleString('de-DE')} kg Gesamtlast`}
-                </span>
+                <span className="mt-1.5 block text-xs text-muted">2x</span>
               ) : parsedWeight?.weightInput ? <span className="mt-1.5 block text-xs text-muted">Gesamtlast: {parsedWeight.weight} kg</span> : null}
             </label>
           ) : null}
