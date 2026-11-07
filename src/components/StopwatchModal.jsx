@@ -8,6 +8,7 @@ export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClo
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [tapFeedback, setTapFeedback] = useState(false);
   const dialogRef = useRef(null);
   const timerButtonRef = useRef(null);
   const startedAtRef = useRef(null);
@@ -16,11 +17,17 @@ export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClo
   const runLoadRef = useRef(null);
   const saveInProgressRef = useRef(false);
   const sessionRef = useRef(0);
+  const feedbackTimeoutRef = useRef(null);
   const onCloseRef = useRef(onClose);
+  const onSaveRef = useRef(onSave);
 
   useLayoutEffect(() => {
     onCloseRef.current = onClose;
-  }, [onClose]);
+    onSaveRef.current = onSave;
+    // Wait for the saved render (and the parent's fresh callback) before the
+    // next tap can start another run. Each run then appends to current state.
+    if (phase === 'saved') saveInProgressRef.current = false;
+  }, [onClose, onSave, phase]);
 
   useLayoutEffect(() => {
     if (!isOpen) return undefined;
@@ -34,13 +41,19 @@ export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClo
     setElapsedSeconds(0);
     setError('');
     setSaving(false);
-    return () => { sessionRef.current += 1; };
+    setTapFeedback(false);
+    return () => {
+      sessionRef.current += 1;
+      window.clearTimeout(feedbackTimeoutRef.current);
+    };
   }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || phase !== 'running') return undefined;
-    const updateTime = () => setElapsedSeconds(getStopwatchElapsedSeconds(startedAtRef.current));
-    const intervalId = window.setInterval(updateTime, 200);
+    const updateTime = () => {
+      if (phaseRef.current === 'running') setElapsedSeconds(getStopwatchElapsedSeconds(startedAtRef.current));
+    };
+    const intervalId = window.setInterval(updateTime, 100);
     document.addEventListener('visibilitychange', updateTime);
     window.addEventListener('focus', updateTime);
     return () => {
@@ -111,16 +124,24 @@ export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClo
 
   async function handleTap() {
     if (saveInProgressRef.current) return;
-    if (phaseRef.current === 'ready') {
+    window.clearTimeout(feedbackTimeoutRef.current);
+    setTapFeedback(true);
+    feedbackTimeoutRef.current = window.setTimeout(() => setTapFeedback(false), 220);
+
+    if (phaseRef.current === 'ready' || phaseRef.current === 'saved') {
       runLoadRef.current = { ...loadValues };
       startedAtRef.current = Date.now();
+      stoppedSecondsRef.current = 0;
       phaseRef.current = 'running';
+      setElapsedSeconds(0);
+      setError('');
       setPhase('running');
+      timerButtonRef.current?.focus({ preventScroll: true });
       return;
     }
 
     if (phaseRef.current === 'running') {
-      stoppedSecondsRef.current = Math.max(1, getStopwatchElapsedSeconds(startedAtRef.current));
+      stoppedSecondsRef.current = getStopwatchElapsedSeconds(startedAtRef.current);
       phaseRef.current = 'stopped';
       setPhase('stopped');
       setElapsedSeconds(stoppedSecondsRef.current);
@@ -137,10 +158,12 @@ export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClo
     setError('');
     const session = sessionRef.current;
     try {
-      const savedId = await onSave(payload);
+      const savedId = await onSaveRef.current(payload);
       if (session !== sessionRef.current) return;
       if (savedId) {
-        onCloseRef.current();
+        phaseRef.current = 'saved';
+        setPhase('saved');
+        setSaving(false);
         return;
       }
     } catch {
@@ -154,7 +177,8 @@ export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClo
 
   if (!isOpen) return null;
   const time = formatStopwatchTime(elapsedSeconds);
-  const instruction = saving ? 'Speichert …' : phase === 'ready' ? 'Tippen zum Starten' : 'Tippen zum Speichern';
+  const [wholeTime, tenths] = time.split(',');
+  const instruction = saving ? 'Speichert …' : phase === 'saved' ? 'Gespeichert' : phase === 'ready' ? 'Tippen zum Starten' : 'Tippen zum Speichern';
   const hasLoad = loadValues && !isWeightlessSet(loadValues);
 
   return createPortal(
@@ -164,15 +188,15 @@ export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClo
       aria-modal="true"
       aria-labelledby="stopwatch-title"
       onClick={handleTap}
-      className="fixed inset-0 z-[80] flex h-[100dvh] flex-col overflow-hidden bg-paper text-ink"
+      className={`fixed inset-0 z-[80] flex h-[100dvh] flex-col overflow-hidden border-t-4 border-amber text-ink transition-colors duration-150 motion-reduce:transition-none ${tapFeedback ? 'bg-amber-soft' : 'bg-paper'}`}
       style={{ touchAction: 'manipulation' }}
     >
       <div className="flex shrink-0 items-start justify-between gap-3 px-5 pb-2 pt-[max(1rem,env(safe-area-inset-top))] sm:px-8">
         <h2 id="stopwatch-title" className="pt-2 text-sm font-bold text-muted">{exerciseName || 'Stoppuhr'}</h2>
-        <button type="button" onClick={(event) => { event.stopPropagation(); onClose(); }} className="icon-button" aria-label="Stoppuhr abbrechen">×</button>
+        <button type="button" onClick={(event) => { event.stopPropagation(); onClose(); }} className="icon-button" aria-label={phase === 'saved' ? 'Stoppuhr schließen' : 'Stoppuhr abbrechen'}>×</button>
       </div>
 
-      {phase === 'ready' && hasLoad ? (
+      {(phase === 'ready' || phase === 'saved') && hasLoad ? (
         <div className="flex shrink-0 items-center justify-center gap-2 px-5 text-sm text-muted">
           <span>{formatSetWeight(loadValues)}</span>
           {onEditLoad ? <button type="button" onClick={(event) => { event.stopPropagation(); onEditLoad(); }} className="min-h-11 px-3 font-semibold text-amber">Ändern</button> : null}
@@ -191,21 +215,29 @@ export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClo
         onKeyUp={(event) => {
           if (event.key === 'Enter' || event.key === ' ') event.preventDefault();
         }}
-        aria-label={phase === 'ready' ? 'Stoppuhr starten' : 'Stoppuhr stoppen und Satz speichern'}
+        aria-label={phase === 'saved' ? 'Nächsten Satz starten' : phase === 'ready' ? 'Stoppuhr starten' : 'Stoppuhr stoppen und Satz speichern'}
         aria-busy={saving}
-        className="flex min-h-0 w-full flex-1 select-none flex-col items-center justify-center gap-5 px-3 pb-[max(2rem,env(safe-area-inset-bottom))] outline-none focus-visible:outline-offset-[-4px]"
+        className="flex min-h-0 w-full flex-1 select-none flex-col items-center justify-center gap-5 px-3 py-5 outline-none focus-visible:outline-offset-[-4px]"
       >
         <span
           role="timer"
           aria-live="off"
-          className="font-display font-bold leading-none tabular-nums tracking-tight"
-          style={{ fontSize: time.length > 5 ? 'min(17vw, 42dvh, 12rem)' : 'min(27vw, 42dvh, 18rem)' }}
+          aria-label={time}
+          className="inline-flex items-baseline font-display font-bold leading-none tabular-nums tracking-tight"
+          style={{ fontSize: wholeTime.length > 5 ? 'min(17vw, 35dvh, 12rem)' : 'min(26vw, 35dvh, 18rem)' }}
         >
-          {time}
+          <span>{wholeTime}</span><span className="text-amber" style={{ fontSize: '0.48em' }}>,{tenths}</span>
         </span>
-        <span className="text-sm text-muted">{instruction}</span>
+        <span role="status" className={`text-sm ${phase === 'saved' ? 'font-semibold text-amber' : 'text-muted'}`}>{instruction}</span>
         {error ? <span role="alert" className="max-w-sm text-center text-sm font-semibold text-ember">{error}</span> : null}
       </button>
+
+      {phase === 'saved' ? (
+        <div className="flex shrink-0 justify-center gap-3 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          <button type="button" onClick={(event) => { event.stopPropagation(); handleTap(); }} className="action-button min-h-12 flex-1 max-w-60">Neuer Satz</button>
+          <button type="button" onClick={(event) => { event.stopPropagation(); onClose(); }} className="secondary-button min-h-12 flex-1 max-w-60">Fertig</button>
+        </div>
+      ) : <div className="h-[max(1.25rem,env(safe-area-inset-bottom))] shrink-0" />}
     </section>,
     document.body,
   );
