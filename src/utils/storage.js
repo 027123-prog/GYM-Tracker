@@ -1,6 +1,6 @@
 import { defaultData } from '../data/defaultData.js';
 import { calculateBodyweightLoad } from './bodyweight.js';
-import { isDurationSet, isWeightlessSet, parseWeightInput } from './setMeasurements.js';
+import { createPairedLoad, isDurationSet, isPairedSet, isWeightlessSet, parseWeightInput } from './setMeasurements.js';
 import { hasConfirmedPlankSource, mergeConfirmedPlankRecords } from './plankMigration.js';
 
 export const STORAGE_KEY = 'gym-tracker-state-v2';
@@ -75,7 +75,7 @@ function normalizeMachineSettings(settings) {
 }
 
 function normalizeExerciseSettings(settings) {
-  const loadType = ['bodyweight', 'bodyweight-added', 'none'].includes(settings?.loadType)
+  const loadType = ['bodyweight', 'bodyweight-added', 'none', 'paired'].includes(settings?.loadType)
     ? settings.loadType
     : 'normal';
 
@@ -83,7 +83,7 @@ function normalizeExerciseSettings(settings) {
     loadType,
     ...(settings?.measurementType ? { measurementType: settings.measurementType === 'duration' ? 'duration' : 'reps' } : {}),
     bodyweightPercent:
-      loadType === 'normal' || loadType === 'none'
+      loadType === 'normal' || loadType === 'none' || loadType === 'paired'
         ? 100
         : Math.min(300, Math.max(1, safeNumber(settings?.bodyweightPercent, 100))),
     setupNotes: safeString(settings?.setupNotes).trim(),
@@ -109,6 +109,7 @@ function normalizeSets(sets) {
       const duration = isDurationSet(item);
       const durationSeconds = safeNumber(item?.durationSeconds, Number.NaN);
       const weightless = isWeightlessSet(item);
+      const paired = isPairedSet(item);
       const weight = weightless ? 0 : effectiveBodyweight ?? Math.max(0, safeNumber(item?.weight));
       const weightExpression = parseWeightInput(item?.weightInput);
       const addedExpression = parseWeightInput(item?.addedWeightInput, { allowNegative: true });
@@ -116,10 +117,11 @@ function normalizeSets(sets) {
       return {
         id: safeId(item?.id, 'set', index),
         weight,
+        ...(paired ? createPairedLoad(weight) : {}),
         ...(weightless ? { weightMode: 'none' } : {}),
         reps: duration ? 0 : Math.max(0, Math.round(safeNumber(item?.reps))),
         ...(duration ? { measurementType: 'duration', durationSeconds } : {}),
-        ...(!weightless && effectiveBodyweight === null && weightExpression?.weightInput && weightExpression.weight === weight
+        ...(!weightless && !paired && effectiveBodyweight === null && weightExpression?.weightInput && weightExpression.weight === weight
           ? { weightInput: weightExpression.weightInput } : {}),
         comment: safeString(item?.comment).trim(),
         seatHeight: safeString(item?.seatHeight).trim(),

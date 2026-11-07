@@ -87,3 +87,32 @@ test('invalid splits, unloaded warm-ups and bodyweight entries cannot override t
   ];
   assert.deepEqual(getExerciseWeightSuggestions([32], workouts, 'db'), ['2x0', '2x12', '2x14', '2x16']);
 });
+
+test('explicit paired input proposes individual weights from every stored total regardless of recent notation', () => {
+  const workouts = [
+    { date: '2026-11-07', exercises: [{ exerciseId: 'db', sets: [
+      { weight: 40, reps: 8 },
+      { weight: 25, weightInput: '2x12,5', reps: 10 },
+      { weight: 25, weightInput: '2x12.50', weightMode: 'paired', reps: 10 },
+      { weight: 35, weightInput: '2x99', reps: 10 },
+      { weight: 75, weightMode: 'bodyweight', reps: 8 },
+      { weight: 90, weightMode: 'none', reps: 8 },
+    ] }, { exerciseId: 'other', sets: [{ weight: 120, reps: 8 }] }] },
+  ];
+  const options = [0, 20, 25, 40, 2000, 'bad', -1];
+  const originalWorkouts = structuredClone(workouts);
+  const originalOptions = [...options];
+  assert.deepEqual(getExerciseWeightSuggestions(options, workouts, 'db', { loadType: 'paired' }), [0, 10, 12.5, 17.5, 20, 1000]);
+  assert.deepEqual(workouts, originalWorkouts);
+  assert.deepEqual(options, originalOptions);
+  assert.deepEqual(getExerciseWeightSuggestions([0, 1, 25.5], [], 'db', { loadType: 'paired' }), [0, 0.5, 12.75]);
+});
+
+test('disabling paired input restores total suggestions without reactivating the explicit paired snapshot', () => {
+  const workouts = [
+    { date: '2026-11-07', exercises: [{ exerciseId: 'db', sets: [{ weight: 40, weightInput: '2x20', weightMode: 'paired', reps: 8 }] }] },
+    { date: '2026-11-06', exercises: [{ exerciseId: 'db', sets: [{ weight: 25, weightInput: '2x12,5', reps: 8 }] }] },
+  ];
+  assert.deepEqual(getExerciseWeightSuggestions([20, 40], workouts, 'db', { loadType: 'normal' }), [20, 25, 40]);
+  assert.deepEqual(getExerciseWeightSuggestions([20, 40], workouts, 'db', { loadType: 'paired' }), [10, 12.5, 20]);
+});

@@ -1,13 +1,13 @@
 import { getWeightSuggestionKey } from '../utils/weightSuggestions';
 
-export default function WeightSuggestionGrid({ options, selectedValue, onSelect }) {
+export default function WeightSuggestionGrid({ options, selectedValue, onSelect, perWeight = false }) {
   if (!options.length) {
     return null;
   }
 
   return (
     <div>
-      <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted">Bekannte Gewichte</p>
+      <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted">{perWeight ? 'Bekannte Einzelgewichte' : 'Bekannte Gewichte'}</p>
       <div className="flex max-h-24 flex-wrap gap-1.5 overflow-y-auto">
         {options.map((weight) => {
           const selected = getWeightSuggestionKey(selectedValue) === getWeightSuggestionKey(weight);
@@ -24,7 +24,7 @@ export default function WeightSuggestionGrid({ options, selectedValue, onSelect 
               }`}
               aria-pressed={selected}
             >
-              {weight} kg
+              {typeof weight === 'number' ? weight.toLocaleString('de-DE') : weight} kg{perWeight ? ' je' : ''}
             </button>
           );
         })}

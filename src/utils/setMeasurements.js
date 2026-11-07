@@ -30,6 +30,20 @@ export function isWeightlessSet(setItem) {
   return setItem?.weightMode === 'none';
 }
 
+export function isPairedSet(setItem) {
+  return setItem?.weightMode === 'paired';
+}
+
+// `weight` remains the total load everywhere, including saved paired sets.
+export function createPairedLoad(weight) {
+  const weightInput = `2x${String(weight / 2).replace('.', ',')}`;
+  return {
+    weight,
+    weightMode: 'paired',
+    ...(parseWeightInput(weightInput)?.weight === weight ? { weightInput } : {}),
+  };
+}
+
 export function prepareSetValues(payload) {
   const duration = isDurationSet(payload);
   const quantity = parseLocalizedNumber(duration ? payload.durationSeconds : payload.reps);
@@ -64,6 +78,15 @@ export function prepareSetValues(payload) {
       addedWeight: added.weight,
       ...(added.weightInput ? { addedWeightInput: added.weightInput } : {}),
     };
+  } else if (isPairedSet(payload)) {
+    // Only the entry form supplies individualWeight. Re-validation of saved
+    // values (save, edit, repeat) must never multiply the total a second time.
+    const hasIndividualWeight = Object.prototype.hasOwnProperty.call(payload, 'individualWeight');
+    const parsed = parseWeightInput(hasIndividualWeight ? payload.individualWeight : payload.weight);
+    if (!parsed || parsed.weightInput || (hasIndividualWeight && parsed.weight > 1000)) {
+      return { error: 'Bitte das Gewicht einer Hantel eingeben: 0 bis 1.000 kg, z. B. 20. Die App rechnet automatisch mal 2.' };
+    }
+    load = createPairedLoad(hasIndividualWeight ? Number((parsed.weight * 2).toFixed(10)) : parsed.weight);
   } else {
     load = parseWeightInput(payload.weightInput ?? payload.weight);
 
@@ -85,6 +108,7 @@ export function prepareSetValues(payload) {
 
 export function formatSetWeight(setItem) {
   if (isWeightlessSet(setItem)) return '';
+  if (isPairedSet(setItem)) return `2 × ${numberFormat.format((Number(setItem.weight) || 0) / 2)} kg`;
   const expression = parseWeightInput(setItem?.weightInput);
   return expression?.weightInput && expression.weight === Number(setItem.weight)
     ? `${expression.weightInput} kg`

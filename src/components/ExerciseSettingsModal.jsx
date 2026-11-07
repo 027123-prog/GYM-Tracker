@@ -9,6 +9,11 @@ const loadTypes = [
     label: 'Gewicht',
   },
   {
+    value: 'paired',
+    label: 'Zwei Einzelgewichte',
+    description: 'Gewicht pro Hantel eingeben. Beispiel: 20 kg je Hantel = 40 kg Gesamtlast.',
+  },
+  {
     value: 'bodyweight',
     label: 'Körpergewicht',
   },
@@ -133,6 +138,7 @@ export default function ExerciseSettingsModal({ isOpen, exerciseName, settings, 
                   <span className="block font-bold text-ink">{option.value === 'none'
                     ? (measurementType === 'duration' ? 'Sekunden ohne Gewicht' : 'Nur Wiederholungen')
                     : option.label}</span>
+                  {option.description ? <span className="mt-1 block text-xs text-muted">{option.description}</span> : null}
                 </span>
               </label>
             ))}

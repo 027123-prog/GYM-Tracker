@@ -333,6 +333,7 @@ export default function WorkoutBuilderPage({ mode }) {
                   state.exercises.find((item) => item.id === activeExercise.exerciseId)?.weightOptions,
                   state.workouts,
                   activeExercise.exerciseId,
+                  state.exercises.find((item) => item.id === activeExercise.exerciseId)?.settings,
                 )}
                 repSuggestions={getExerciseRepSuggestions(state.workouts, activeExercise.exerciseId)}
                 lastWorkoutSummary={getLastExerciseSummaryText(

@@ -2,8 +2,10 @@ import { exerciseChartMetrics } from '../utils/workout';
 
 const formatNumber = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 });
 
-export default function ExerciseChartPreview({ data, metric: metricKey }) {
+export default function ExerciseChartPreview({ data, metric: metricKey, loadType }) {
   const metric = exerciseChartMetrics[metricKey] ?? exerciseChartMetrics.volume;
+  const paired = loadType === 'paired' || data.some((point) => point.sets?.some((setItem) => setItem.weightMode === 'paired'));
+  const label = paired && metricKey === 'maxWeight' ? 'Max. Gesamtgewicht' : metric.label;
   const points = data.filter((point) => Number.isFinite(point[metric.field]));
 
   if (!points.length) {
@@ -24,12 +26,12 @@ export default function ExerciseChartPreview({ data, metric: metricKey }) {
 
   return (
     <div className="space-y-1">
-      <svg viewBox="0 0 200 56" role="img" aria-label={`${metric.label}: zuletzt ${latestValue}, ${points.length} Trainings`} className="h-16 w-full text-amber" preserveAspectRatio="none">
+      <svg viewBox="0 0 200 56" role="img" aria-label={`${label}: zuletzt ${latestValue}, ${points.length} Trainings`} className="h-16 w-full text-amber" preserveAspectRatio="none">
         {coordinates.length > 1 ? <polyline points={coordinates.map(({ x, y }) => `${x},${y}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" /> : null}
         <circle cx={last.x} cy={last.y} r="3" fill="currentColor" />
       </svg>
       <p className="flex flex-wrap justify-between gap-x-2 text-[10px] text-muted">
-        <span>{metric.label}</span><span className="tabular-nums">{latestValue}</span>
+        <span>{label}</span><span className="tabular-nums">{latestValue}</span>
       </p>
     </div>
   );

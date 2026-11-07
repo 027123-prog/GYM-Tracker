@@ -11,6 +11,9 @@ function readNotation(setItem) {
   const total = parseWeightInput(setItem.weight);
   // An unloaded warm-up must not switch a dumbbell exercise back to total-load notation.
   if (!total || total.weight <= 0) return null;
+  // Explicit paired sets describe their own mode. Once the exercise is changed
+  // back to total-load input they must not silently reactivate paired notation.
+  if (setItem.weightMode === 'paired') return 1;
   const expression = setItem.weightInput == null || setItem.weightInput === ''
     ? total
     : parseWeightInput(setItem.weightInput);
@@ -54,7 +57,7 @@ export function getWeightSuggestionKey(value) {
   return `${Number(count)}x${Number(single.replace(',', '.')).toString().replace('.', ',')}`;
 }
 
-export function getExerciseWeightSuggestions(weightOptions = [], workouts = [], exerciseId) {
+export function getExerciseWeightSuggestions(weightOptions = [], workouts = [], exerciseId, settings = {}) {
   const options = new Map();
 
   function add(value, expectedWeight) {
@@ -74,6 +77,12 @@ export function getExerciseWeightSuggestions(weightOptions = [], workouts = [], 
         add(setItem.weightInput, setItem.weight);
       }
     }
+  }
+
+  // Stored options and historical sets always contain total loads. An explicit
+  // paired setting takes precedence over any notation learned from old sets.
+  if (settings?.loadType === 'paired') {
+    return [...options.keys()].sort((left, right) => left - right).map(weight => weight / 2);
   }
 
   const recentCount = getRecentNotation(workouts, exerciseId);

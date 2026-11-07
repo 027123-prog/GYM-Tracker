@@ -22,6 +22,12 @@ npm run build
 
 ## Daten
 
+Für Übungen mit zwei gleichen Hanteln unter **Übung bearbeiten → Belastungsart →
+Zwei Einzelgewichte** umstellen. Danach nur das Gewicht einer Hantel eingeben:
+20 kg werden als 2 × 20 kg gespeichert und mit 40 kg Gesamtlast ausgewertet.
+Gewichtsvorschläge zeigen Einzelgewichte; Diagramme und Trainingsvolumen verwenden
+die Gesamtlast. Bestehende Trainingswerte bleiben beim Umstellen erhalten.
+
 Trainingsdaten bleiben im lokalen Browserspeicher. Über die Datenverwaltung in
 der App lassen sie sich als JSON exportieren und wieder importieren. Vor einem
 Import erstellt HardGainWAF zusätzlich eine lokale Wiederherstellungskopie.

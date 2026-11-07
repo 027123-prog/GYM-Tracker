@@ -147,7 +147,7 @@ export default function ExerciseLibraryPage() {
               </div> : null}
             </div>
             {previewMode ? <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder, libraryReturnTo, chartMetric: getChartMetric(exercise) }} className="mt-auto block py-2" aria-label={`Diagrammvorschau von ${exercise.name}`}>
-              <ExerciseChartPreview data={chartPreviews.get(exercise.id)} metric={getChartMetric(exercise)} />
+              <ExerciseChartPreview data={chartPreviews.get(exercise.id)} metric={getChartMetric(exercise)} loadType={exercise.settings?.loadType} />
             </Link> : exercise.latestSummary ? <p className="truncate text-xs leading-5 text-muted" title={exercise.latestSummary}>{exercise.latestSummary}</p> : null}
             <div className={`flex items-center justify-between gap-1 ${previewMode ? 'flex-wrap border-t border-line pt-1' : 'mt-0.5'}`}>
               <span className="min-w-0 text-[10px] text-muted">{exercise.workoutCount} {exercise.workoutCount === 1 ? 'Training' : 'Trainings'}{exercise.hasOpenWorkout ? ' · offen' : ''}</span>

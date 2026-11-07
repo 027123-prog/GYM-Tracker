@@ -116,7 +116,7 @@ export function editExerciseRecord(state, exerciseId, changes = {}) {
 
   if (changes.settings) {
     const merged = { ...exercise.settings, ...changes.settings };
-    const loadType = ['bodyweight', 'bodyweight-added', 'none'].includes(merged.loadType) ? merged.loadType : 'normal';
+    const loadType = ['bodyweight', 'bodyweight-added', 'none', 'paired'].includes(merged.loadType) ? merged.loadType : 'normal';
     const usesBodyweight = loadType === 'bodyweight' || loadType === 'bodyweight-added';
     const percent = parseLocalizedNumber(merged.bodyweightPercent ?? 100);
 

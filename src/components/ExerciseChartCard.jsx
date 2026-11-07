@@ -3,7 +3,13 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } fro
 import { formatSetSummary } from '../utils/setMeasurements';
 import { exerciseChartMetrics as chartMetrics, getExerciseChartMetricOptions, resolveExerciseChartMetric } from '../utils/workout';
 
-function SelectedPointDetails({ point, metric, onClose }) {
+function metricLabel(metric, paired) {
+  if (paired && metric === 'maxWeight') return 'Max. Gesamtgewicht';
+  if (paired && metric === 'durationWeight') return 'Gesamtes Haltegewicht';
+  return chartMetrics[metric].label;
+}
+
+function SelectedPointDetails({ point, metric, paired, onClose }) {
   const config = chartMetrics[metric];
   const comments = point.sets
     .map((setItem, index) => ({
@@ -32,7 +38,7 @@ function SelectedPointDetails({ point, metric, onClose }) {
 
       <div className="mt-3 text-sm">
         <p className="flex items-center justify-between gap-3 rounded-sm bg-paper/70 px-3 py-2 text-muted">
-          {config.label}
+          {metricLabel(metric, paired)}
           <strong className="font-display text-lg tabular-nums text-ink">
             {point[config.field] == null ? '–' : `${point[config.field]} ${config.unit}`}
           </strong>
@@ -154,7 +160,7 @@ export default function ExerciseChartCard({
   }, [canGoNext, canGoPrev, onNextExercise, onPrevExercise]);
 
   const config = chartMetrics[metric];
-  const metricLabel = config.label;
+  const paired = loadType === 'paired' || data.some((point) => point.sets.some((setItem) => setItem.weightMode === 'paired'));
   const strokeColor = metric === 'volume' ? '#F47A24' : '#73B991';
   const dotColor = metric === 'volume' ? '#F47A24' : '#73B991';
   const titleSizeClass = exerciseName.length > 22 ? 'text-2xl' : 'text-3xl';
@@ -193,12 +199,13 @@ export default function ExerciseChartCard({
             {availableMetrics.map((option) => (
               availableMetrics.length > 1 ? (
                 <button key={option} type="button" onClick={() => { setMetric(option); onMetricChange?.(option); }} className={metric === option ? 'action-button' : 'secondary-button'} aria-pressed={metric === option}>
-                  {chartMetrics[option].label}
+                  {metricLabel(option, paired)}
                 </button>
-              ) : <span key={option} className="text-sm text-muted">{chartMetrics[option].label}</span>
+              ) : <span key={option} className="text-sm text-muted">{metricLabel(option, paired)}</span>
             ))}
           </div>
           {config.hint ? <p className="text-xs text-muted">{config.hint}</p> : null}
+          {paired && config.unit === 'kg' ? <p className="text-xs text-muted">Bei zwei Einzelgewichten zählt die Gesamtlast.</p> : null}
         </div>
       </div>
       </div>
@@ -222,7 +229,7 @@ export default function ExerciseChartCard({
             <Line
               type="monotone"
               dataKey={config.field}
-              name={metricLabel}
+              name={metricLabel(metric, paired)}
               animationDuration={1250}
               stroke={strokeColor}
               strokeWidth={3}
@@ -240,7 +247,7 @@ export default function ExerciseChartCard({
         </ResponsiveContainer>
       </div>
       {selectedPoint ? (
-        <SelectedPointDetails point={selectedPoint} metric={metric} onClose={() => setSelectedPoint(null)} />
+        <SelectedPointDetails point={selectedPoint} metric={metric} paired={paired} onClose={() => setSelectedPoint(null)} />
       ) : null}
     </div>
   );

@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import ExerciseSettingsModal from './ExerciseSettingsModal';
 import SetEntryModal from './SetEntryModal';
-import { formatSetSummary, isDurationSet, isWeightlessSet } from '../utils/setMeasurements';
+import { formatSetSummary } from '../utils/setMeasurements';
+import { getRepeatedSetPayload } from '../utils/setEntry';
+import { getExerciseWeightSuggestions } from '../utils/weightSuggestions';
 
 const compactIconButtonClass =
   'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-line bg-surface-raised text-ink transition hover:border-amber/70 hover:text-amber-deep disabled:cursor-not-allowed disabled:opacity-35 min-[380px]:h-11 min-[380px]:w-11';
@@ -135,48 +137,13 @@ export default function ExerciseEditorCard({
 
   function repeatLastSet() {
     const latest = exercise.sets[exercise.sets.length - 1];
-
-    if (!latest) {
-      return;
-    }
-
-    const settings = libraryEntry?.settings;
-    const measurementType = settings?.measurementType ?? 'reps';
-    const loadType = settings?.loadType ?? 'normal';
-    const latestLoadType = isWeightlessSet(latest) ? 'none' : latest.weightMode === 'bodyweight' ? 'bodyweight' : 'normal';
-    const currentLoadType = loadType.startsWith('bodyweight') ? 'bodyweight' : loadType;
-
-    if ((isDurationSet(latest) ? 'duration' : 'reps') !== measurementType ||
-        (currentLoadType !== 'none' && latestLoadType !== currentLoadType)) {
+    if (!latest) return;
+    const payload = getRepeatedSetPayload(latest, libraryEntry?.settings);
+    if (!payload) {
       openNewSet();
       return;
     }
-
-    if (currentLoadType === 'none') {
-      saveSet({
-        weightMode: 'none',
-        weight: 0,
-        measurementType,
-        reps: measurementType === 'duration' ? 0 : latest.reps,
-        ...(measurementType === 'duration' ? { durationSeconds: latest.durationSeconds } : {}),
-        comment: '',
-      });
-      return;
-    }
-
-    saveSet({
-      weight: latest.weight,
-      weightInput: latest.weightInput,
-      reps: latest.reps,
-      measurementType: latest.measurementType,
-      durationSeconds: latest.durationSeconds,
-      comment: '',
-      weightMode: latest.weightMode,
-      bodyWeight: latest.bodyWeight,
-      bodyweightFactor: latest.bodyweightFactor,
-      addedWeight: latest.addedWeight,
-      addedWeightInput: latest.addedWeightInput,
-    });
+    saveSet(payload);
   }
 
   function deleteExercise() {
@@ -376,7 +343,7 @@ export default function ExerciseEditorCard({
         exerciseName={exercise.name}
         exerciseSettings={libraryEntry?.settings}
         lastWorkoutSummary={lastWorkoutSummary}
-        weightOptions={weightSuggestions ?? libraryEntry?.weightOptions ?? []}
+        weightOptions={weightSuggestions ?? getExerciseWeightSuggestions(libraryEntry?.weightOptions, [], exercise.exerciseId, libraryEntry?.settings)}
         repSuggestions={repSuggestions}
         onClose={() => setSetModalOpen(false)}
         onSave={saveSet}

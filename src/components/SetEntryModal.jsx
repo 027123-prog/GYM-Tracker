@@ -1,6 +1,7 @@
 import { useLayoutEffect, useState } from 'react';
 import { calculateBodyweightLoad, parseLocalizedNumber } from '../utils/bodyweight';
-import { isDurationSet, isWeightlessSet, parseWeightInput, prepareSetValues } from '../utils/setMeasurements';
+import { isDurationSet, parseWeightInput, prepareSetValues } from '../utils/setMeasurements';
+import { getSetEntryLoadType, getSetEntryWeight, getSetEntryWeightSuggestions } from '../utils/setEntry';
 import ModalShell from './ModalShell';
 import WeightSuggestionGrid from './WeightSuggestionGrid';
 
@@ -35,11 +36,8 @@ export default function SetEntryModal({
   onSave,
 }) {
   const configuredLoadType = exerciseSettings?.loadType ?? 'normal';
-  const loadType = initialSet
-    ? isWeightlessSet(initialSet) ? 'none' : initialSet.weightMode === 'bodyweight'
-      ? (Number(initialSet.addedWeight) || configuredLoadType === 'bodyweight-added' ? 'bodyweight-added' : 'bodyweight')
-      : 'normal'
-    : configuredLoadType;
+  const loadType = getSetEntryLoadType(initialSet, exerciseSettings);
+  const paired = loadType === 'paired';
   const bodyweightPercent = initialSet?.weightMode === 'bodyweight'
     ? Number(initialSet?.bodyweightFactor || 1) * 100
     : Number(exerciseSettings?.bodyweightPercent || 100);
@@ -52,7 +50,7 @@ export default function SetEntryModal({
     : (exerciseSettings?.measurementType ?? 'reps');
   const duration = measurementType === 'duration';
 
-  const [weight, setWeight] = useState(initialSet?.weightInput ?? initialSet?.weight ?? (duration ? 0 : ''));
+  const [weight, setWeight] = useState(getSetEntryWeight(initialSet, loadType, duration));
   const [reps, setReps] = useState((duration ? initialSet?.durationSeconds : initialSet?.reps) ?? '');
   const [comment, setComment] = useState(initialSet?.comment ?? '');
   const [bodyWeight, setBodyWeight] = useState(initialSet?.bodyWeight ?? '');
@@ -60,6 +58,9 @@ export default function SetEntryModal({
   const [error, setError] = useState('');
   const parsedAddedWeight = parseWeightInput(addedWeight, { allowNegative: true });
   const parsedWeight = parseWeightInput(weight);
+  const pairedTotal = paired && parsedWeight && !parsedWeight.weightInput && parsedWeight.weight <= 1000
+    ? Number((parsedWeight.weight * 2).toFixed(10)) : null;
+  const displayedWeightOptions = getSetEntryWeightSuggestions(weightOptions, configuredLoadType, loadType);
   const effectiveBodyweight = parsedAddedWeight ? calculateBodyweightLoad(
     bodyWeight,
     bodyweightFactor,
@@ -67,13 +68,13 @@ export default function SetEntryModal({
   ) : null;
 
   useLayoutEffect(() => {
-    setWeight(initialSet?.weightInput ?? initialSet?.weight ?? (duration ? 0 : ''));
+    setWeight(getSetEntryWeight(initialSet, loadType, duration));
     setReps((duration ? initialSet?.durationSeconds : initialSet?.reps) ?? '');
     setComment(initialSet?.comment ?? '');
     setBodyWeight(initialSet?.bodyWeight ?? readBodyWeight());
     setAddedWeight(initialSet?.addedWeightInput ?? initialSet?.addedWeight ?? 0);
     setError('');
-  }, [exerciseName, initialSet, isOpen, duration]);
+  }, [exerciseName, initialSet, isOpen, duration, loadType]);
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -82,6 +83,7 @@ export default function SetEntryModal({
       weight,
       reps,
       durationSeconds: reps,
+      ...(paired ? { weightMode: 'paired', individualWeight: weight } : {}),
       ...(withoutWeight ? { weightMode: 'none' } : {}),
       ...(usesBodyweight ? {
         weightMode: 'bodyweight',
@@ -141,20 +143,24 @@ export default function SetEntryModal({
             </label>
           ) : !withoutWeight ? (
             <label>
-              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Gewicht kg</span>
+              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">{paired ? 'Je Einzelgewicht kg' : 'Gewicht kg'}</span>
               <input
                 className="field text-lg font-bold tabular-nums"
-                inputMode="text"
+                inputMode={paired ? 'decimal' : 'text'}
                 value={weight}
                 onChange={(event) => {
                   setWeight(event.target.value);
                   setError('');
                 }}
-                placeholder="30 oder 2x30"
+                placeholder={paired ? 'z. B. 20' : '30 oder 2x30'}
                 autoFocus
                 data-autofocus
               />
-              {parsedWeight?.weightInput ? <span className="mt-1.5 block text-xs text-muted">Gesamtlast: {parsedWeight.weight} kg</span> : null}
+              {paired ? (
+                <span className="mt-1.5 block text-xs text-muted" aria-live="polite">
+                  {pairedTotal === null ? 'Zwei gleiche Einzelgewichte · wird automatisch verdoppelt.' : `2 × ${parsedWeight.weight.toLocaleString('de-DE')} kg = ${pairedTotal.toLocaleString('de-DE')} kg Gesamtlast`}
+                </span>
+              ) : parsedWeight?.weightInput ? <span className="mt-1.5 block text-xs text-muted">Gesamtlast: {parsedWeight.weight} kg</span> : null}
             </label>
           ) : null}
           <label>
@@ -204,7 +210,7 @@ export default function SetEntryModal({
             </div>
           </div>
         ) : !withoutWeight ? (
-          <WeightSuggestionGrid options={weightOptions} selectedValue={weight} onSelect={setWeight} />
+          <WeightSuggestionGrid options={displayedWeightOptions} selectedValue={weight} onSelect={setWeight} perWeight={paired} />
         ) : null}
 
         <div>
