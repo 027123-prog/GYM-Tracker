@@ -78,6 +78,7 @@ export default function ExerciseEditorCard({
   onPrevExercise,
   onNextExercise,
   onInsertExercise,
+  onMoveExercise,
   canMovePrevExercise,
   canMoveNextExercise,
   onRenameExercise,
@@ -302,6 +303,11 @@ export default function ExerciseEditorCard({
               →
             </button>
           </div>
+          {onMoveExercise ? (
+            <button type="button" onClick={onMoveExercise} className="secondary-button mt-3 w-full">
+              Übung verschieben
+            </button>
+          ) : null}
         </div>
 
         <div className="p-3 sm:p-4">

@@ -20,6 +20,16 @@ npm test
 npm run build
 ```
 
+## Workouts bearbeiten
+
+**Korrigieren** öffnet ein abgeschlossenes Workout wieder als laufendes Training.
+Sätze und die zuletzt gewählte Übung bleiben erhalten. Danach das Workout wie
+gewohnt erneut abschließen.
+
+Um eine ganze Übung samt Sätzen umzusortieren: Übung öffnen → **Übung verschieben**
+→ **Neue Position** wählen → **Verschieben**. Das ändert die Reihenfolge in diesem
+Workout; die Vorlage bleibt erhalten.
+
 ## Daten
 
 Für Übungen mit zwei gleichen Hanteln unter **Übung bearbeiten → Belastungsart →

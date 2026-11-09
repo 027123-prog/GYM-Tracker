@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAppData } from '../components/AppProvider';
 import EmptyState from '../components/EmptyState';
 import { calculateWorkoutStats } from '../utils/workout';
@@ -23,7 +23,8 @@ function ChartIcon() {
 
 export default function WorkoutDetailPage() {
   const { workoutId } = useParams();
-  const { state } = useAppData();
+  const navigate = useNavigate();
+  const { state, resumeWorkout } = useAppData();
   const workout = state.workouts.find((item) => item.id === workoutId);
 
   if (!workout) {
@@ -47,9 +48,15 @@ export default function WorkoutDetailPage() {
               {workout.completedAt ? `Abgeschlossen ${formatDateTime(workout.completedAt)}` : 'Noch nicht abgeschlossen'}
             </p>
           </div>
-          <Link to={`/workouts/${workout.id}/edit`} className="action-button">
+          <button
+            type="button"
+            onClick={() => {
+              if (resumeWorkout(workout.id)) navigate(`/workouts/${workout.id}/edit`);
+            }}
+            className="action-button"
+          >
             {workout.completedAt ? 'Korrigieren' : 'Fortsetzen'}
-          </Link>
+          </button>
         </div>
 
         <div className="mt-5 grid grid-cols-3 gap-2 border-t border-line pt-4">

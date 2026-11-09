@@ -4,7 +4,9 @@ import { createId, normalizeWeightOptions } from '../utils/workout';
 import { editExerciseRecord, ensureExerciseRecord, findExerciseByName, removeExerciseRecord, restoreExerciseRecord } from '../utils/exerciseEditing';
 import { prepareSetValues } from '../utils/setMeasurements';
 import { updateTemplateRecord } from '../utils/templateEditing';
+import { moveWorkoutExerciseRecord } from '../utils/workoutEditing';
 import { clearStoredActiveWorkoutId, readStoredActiveWorkoutId, storeActiveWorkoutId } from '../utils/workoutNavigation';
+import { resumeWorkoutRecord } from '../utils/workoutLifecycle';
 
 const AppContext = createContext(null);
 
@@ -395,6 +397,14 @@ export function AppProvider({ children }) {
     return exercise.id;
   }
 
+  function moveExerciseInWorkout(workoutId, entryId, targetIndex) {
+    const updatedAt = new Date().toISOString();
+    const result = moveWorkoutExerciseRecord(state, workoutId, entryId, targetIndex, updatedAt);
+    if (result.error) return result.error;
+    setState((current) => moveWorkoutExerciseRecord(current, workoutId, entryId, targetIndex, updatedAt).state);
+    return null;
+  }
+
   function renameExercise(workoutId, entryId, nextName) {
     const entry = state.workouts.find((workout) => workout.id === workoutId)
       ?.exercises.find((exercise) => exercise.id === entryId);
@@ -525,6 +535,22 @@ export function AppProvider({ children }) {
     setWorkouts(nextWorkouts);
   }
 
+  function resumeWorkout(workoutId) {
+    if (!state.workouts.some((workout) => workout.id === workoutId)) {
+      return false;
+    }
+
+    const resumedAt = new Date().toISOString();
+    setState((current) => ({
+      ...current,
+      workouts: current.workouts.map((workout) =>
+        workout.id === workoutId ? resumeWorkoutRecord(workout, resumedAt) : workout,
+      ),
+    }));
+    activateWorkout(workoutId);
+    return true;
+  }
+
   function completeWorkout(workoutId) {
     const completedAt = new Date().toISOString();
 
@@ -614,6 +640,7 @@ export function AppProvider({ children }) {
         updateWorkoutName,
         addExerciseToWorkout,
         insertExerciseToWorkout,
+        moveExerciseInWorkout,
         renameExercise,
         renameLibraryExercise,
         removeLibraryExercise,
@@ -622,6 +649,7 @@ export function AppProvider({ children }) {
         deleteExercise,
         saveSet,
         deleteSet,
+        resumeWorkout,
         completeWorkout,
         deleteWorkout,
         importBackup,

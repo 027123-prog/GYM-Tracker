@@ -1,7 +1,7 @@
 import ModalShell from './ModalShell';
 import { getWorkoutLoadMetrics } from '../utils/workoutPresentation';
 
-export default function WorkoutSummaryModal({ isOpen, summary, onClose, onGoDashboard }) {
+export default function WorkoutSummaryModal({ isOpen, summary, onClose, onResume, onGoDashboard }) {
   if (!summary) {
     return null;
   }
@@ -30,8 +30,8 @@ export default function WorkoutSummaryModal({ isOpen, summary, onClose, onGoDash
       </div>
       {additional ? <p className="mt-3 text-sm text-muted">{additional}</p> : null}
       <div className="mt-5 grid grid-cols-2 gap-2">
-        <button type="button" onClick={onClose} className="secondary-button">
-          Bearbeiten
+        <button type="button" onClick={onResume} className="secondary-button">
+          Weitertrainieren
         </button>
         <button type="button" onClick={onGoDashboard} className="action-button">
           Übersicht

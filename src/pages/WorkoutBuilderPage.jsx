@@ -5,6 +5,7 @@ import AddExerciseModal from '../components/AddExerciseModal';
 import EmptyState from '../components/EmptyState';
 import ExerciseAutocomplete from '../components/ExerciseAutocomplete';
 import ExerciseEditorCard from '../components/ExerciseEditorCard';
+import MoveExerciseModal from '../components/MoveExerciseModal';
 import TemplatePicker from '../components/TemplatePicker';
 import WorkoutSummaryModal from '../components/WorkoutSummaryModal';
 import { readWorkoutExerciseIndex, saveWorkoutExercisePosition } from '../utils/workoutNavigation';
@@ -28,17 +29,20 @@ export default function WorkoutBuilderPage({ mode }) {
     updateWorkoutName,
     addExerciseToWorkout,
     insertExerciseToWorkout,
+    moveExerciseInWorkout,
     renameExercise,
     updateExerciseSettings,
     deleteExercise,
     saveSet,
     deleteSet,
+    resumeWorkout,
     completeWorkout,
     deleteWorkout,
   } = useAppData();
   const [workoutId, setWorkoutId] = useState(params.workoutId ?? null);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [exerciseModalOpen, setExerciseModalOpen] = useState(false);
+  const [moveExerciseModalOpen, setMoveExerciseModalOpen] = useState(false);
   const [exerciseSelection, setExerciseSelection] = useState(null);
   const exerciseSelectionRef = useRef(null);
   const exerciseTabsRef = useRef(null);
@@ -117,7 +121,7 @@ export default function WorkoutBuilderPage({ mode }) {
     } else if (tabBounds.right > viewportBounds.right) {
       tabs.scrollLeft += tabBounds.right - viewportBounds.right + 8;
     }
-  }, [workout?.id, activeExercise?.id, isCompact]);
+  }, [workout?.id, activeExercise?.id, activeExerciseIndex, isCompact]);
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -203,6 +207,17 @@ export default function WorkoutBuilderPage({ mode }) {
     }
 
     setActiveExerciseIndex(workout.exercises.length);
+  }
+
+  function handleMoveExercise(targetIndex) {
+    const error = moveExerciseInWorkout(workout.id, activeExercise?.id, targetIndex);
+    if (error) return error;
+
+    const selection = { workoutId: workout.id, index: targetIndex };
+    exerciseSelectionRef.current = selection;
+    saveWorkoutExercisePosition(workout.id, activeExercise.id);
+    setExerciseSelection(selection);
+    return null;
   }
 
   function handleDeleteWorkout() {
@@ -328,6 +343,7 @@ export default function WorkoutBuilderPage({ mode }) {
                   setActiveExerciseIndex((current) => Math.min(current + 1, workout.exercises.length - 1))
                 }
                 onInsertExercise={() => setExerciseModalOpen(true)}
+                onMoveExercise={workout.exercises.length > 1 ? () => setMoveExerciseModalOpen(true) : undefined}
                 libraryEntry={state.exercises.find((item) => item.id === activeExercise.exerciseId)}
                 weightSuggestions={getExerciseWeightSuggestions(
                   state.exercises.find((item) => item.id === activeExercise.exerciseId)?.weightOptions,
@@ -386,7 +402,19 @@ export default function WorkoutBuilderPage({ mode }) {
         isOpen={summaryOpen}
         summary={summary}
         onClose={() => setSummaryOpen(false)}
+        onResume={() => {
+          resumeWorkout(workout.id);
+          setSummaryOpen(false);
+        }}
         onGoDashboard={() => navigate('/')}
+      />
+
+      <MoveExerciseModal
+        isOpen={moveExerciseModalOpen}
+        exercise={activeExercise}
+        exercises={workout.exercises}
+        onClose={() => setMoveExerciseModalOpen(false)}
+        onMove={handleMoveExercise}
       />
 
       <AddExerciseModal
