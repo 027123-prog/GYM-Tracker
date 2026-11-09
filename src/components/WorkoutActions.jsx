@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAppData } from './AppProvider';
+import AnchoredPopover from './AnchoredPopover';
 import ModalShell from './ModalShell';
 
 export default function WorkoutActions({ workout }) {
@@ -7,8 +8,10 @@ export default function WorkoutActions({ workout }) {
   const [panel, setPanel] = useState(null);
   const [templateSaved, setTemplateSaved] = useState(false);
   const [error, setError] = useState(null);
+  const buttonRef = useRef(null);
   const cancelRef = useRef(null);
   const titleId = `workout-actions-title-${workout.id}`;
+  const deleteTitleId = `workout-delete-title-${workout.id}`;
 
   useEffect(() => {
     if (panel === 'delete') cancelRef.current?.focus();
@@ -27,13 +30,14 @@ export default function WorkoutActions({ workout }) {
   return (
     <>
       <button
+        ref={buttonRef}
         type="button"
         className="absolute right-2 top-2 z-10 inline-flex h-11 w-11 items-center justify-center rounded-sm text-muted transition hover:bg-surface-raised hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber"
         aria-label={`Aktionen für ${workout.name}`}
         title="Workout verwalten"
         aria-haspopup="dialog"
-        aria-expanded={Boolean(panel)}
-        onClick={() => setPanel('actions')}
+        aria-expanded={panel === 'actions'}
+        onClick={() => setPanel((current) => current === 'actions' ? null : 'actions')}
       >
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
           <circle cx="5" cy="12" r="1.6" />
@@ -41,30 +45,33 @@ export default function WorkoutActions({ workout }) {
           <circle cx="19" cy="12" r="1.6" />
         </svg>
       </button>
-      <ModalShell isOpen={Boolean(panel)} onClose={() => setPanel(null)} labelledBy={titleId} maxWidth="max-w-sm">
+      <AnchoredPopover isOpen={panel === 'actions'} anchorRef={buttonRef} onClose={() => setPanel(null)} labelledBy={titleId}>
+        <h2 id={titleId} className="sr-only">{workout.name}</h2>
+        <div className="grid gap-2">
+          <button type="button" className="secondary-button w-full" onClick={saveTemplate} disabled={templateSaved}>
+            {templateSaved ? 'Gespeichert' : 'Als Vorlage speichern'}
+          </button>
+          {error ? <p role="alert" className="text-sm text-ember">{error}</p> : null}
+          <button type="button" className="danger-button w-full" onClick={() => {
+            // The confirmation must restore focus to the original trigger, not
+            // the action button that disappears with this popover.
+            buttonRef.current?.focus({ preventScroll: true });
+            setPanel('delete');
+          }}>Workout löschen</button>
+        </div>
+      </AnchoredPopover>
+      <ModalShell isOpen={panel === 'delete'} onClose={() => setPanel(null)} labelledBy={deleteTitleId} maxWidth="max-w-sm">
         <div className="mb-4 flex items-start justify-between gap-3">
-          <h2 id={titleId} className="min-w-0 break-words text-lg font-bold text-ink">
-            {panel === 'delete' ? 'Workout löschen?' : workout.name}
+          <h2 id={deleteTitleId} className="min-w-0 break-words text-lg font-bold text-ink">
+            Workout löschen?
           </h2>
           <button type="button" className="icon-button shrink-0" aria-label="Schließen" onClick={() => setPanel(null)}>×</button>
         </div>
-        {panel === 'delete' ? (
-          <>
-            <p className="break-words text-sm text-muted">„{workout.name}“ und alle Sätze dieser Einheit werden gelöscht.</p>
-            <div className="mt-5 grid grid-cols-2 gap-2">
-              <button ref={cancelRef} type="button" className="secondary-button" data-autofocus onClick={() => setPanel(null)}>Abbrechen</button>
-              <button type="button" className="danger-button" onClick={() => deleteWorkout(workout.id)}>Löschen</button>
-            </div>
-          </>
-        ) : (
-          <div className="grid gap-2">
-            <button type="button" className="secondary-button w-full" onClick={saveTemplate} disabled={templateSaved}>
-              {templateSaved ? 'Gespeichert' : 'Als Vorlage speichern'}
-            </button>
-            {error ? <p role="alert" className="text-sm text-ember">{error}</p> : null}
-            <button type="button" className="danger-button w-full" onClick={() => setPanel('delete')}>Workout löschen</button>
-          </div>
-        )}
+        <p className="break-words text-sm text-muted">„{workout.name}“ und alle Sätze dieser Einheit werden gelöscht.</p>
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <button ref={cancelRef} type="button" className="secondary-button" data-autofocus onClick={() => setPanel(null)}>Abbrechen</button>
+          <button type="button" className="danger-button" onClick={() => deleteWorkout(workout.id)}>Löschen</button>
+        </div>
       </ModalShell>
     </>
   );

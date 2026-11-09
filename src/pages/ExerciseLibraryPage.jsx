@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAppData } from '../components/AppProvider';
 import LibraryExerciseDialog from '../components/LibraryExerciseDialog';
-import ModalShell from '../components/ModalShell';
+import AnchoredPopover from '../components/AnchoredPopover';
 import ExerciseChartPreview from '../components/ExerciseChartPreview';
 import LibraryIcon, { compactIconButtonClass as iconButtonClass } from '../components/InterfaceIcon';
 import { getExerciseRemovalImpact, referencesExercise } from '../utils/exerciseEditing';
@@ -20,6 +20,7 @@ export default function ExerciseLibraryPage() {
   const [action, setAction] = useState(null);
   const [notice, setNotice] = useState(null);
   const [showSort, setShowSort] = useState(false);
+  const sortButtonRef = useRef(null);
   const query = searchParams.get('q') ?? '';
   const sortMode = normalizeExerciseSortMode(searchParams.get('sort'));
   const previewMode = searchParams.get('layout') !== 'list';
@@ -103,7 +104,7 @@ export default function ExerciseLibraryPage() {
             <span className="sr-only">Übungen durchsuchen</span>
             <input type="search" className="field h-10 py-2" value={query} onChange={(event) => updateSearchParams('q', event.target.value)} placeholder="Suchen …" />
           </label>
-          <button type="button" className={`${iconButtonClass} ${sortMode !== 'count-desc' ? 'bg-amber-soft text-amber' : ''}`} aria-label="Übungen sortieren" title="Sortierung" aria-haspopup="dialog" aria-expanded={showSort} onClick={() => setShowSort(true)}>
+          <button ref={sortButtonRef} type="button" className={`${iconButtonClass} ${sortMode !== 'count-desc' ? 'bg-amber-soft text-amber' : ''}`} aria-label="Übungen sortieren" title="Sortierung" aria-haspopup="dialog" aria-controls={showSort ? 'library-sort-popover' : undefined} aria-expanded={showSort} onClick={() => setShowSort((open) => !open)}>
             <LibraryIcon name="sort" />
           </button>
           <button
@@ -175,7 +176,7 @@ export default function ExerciseLibraryPage() {
           </article>)}
         </div> : null}
       </section> : null}
-      <ModalShell isOpen={showSort} onClose={() => setShowSort(false)} labelledBy="library-sort-title" maxWidth="max-w-xs" compact dismissOnBackdrop>
+      <AnchoredPopover isOpen={showSort} anchorRef={sortButtonRef} onClose={() => setShowSort(false)} labelledBy="library-sort-title" id="library-sort-popover">
         <h2 id="library-sort-title" className="sr-only">Sortierung</h2>
         <div className="grid gap-1" role="group" aria-labelledby="library-sort-title">
           {sortOptions.map((option) => (
@@ -195,7 +196,7 @@ export default function ExerciseLibraryPage() {
             </button>
           ))}
         </div>
-      </ModalShell>
+      </AnchoredPopover>
       {selectedExercise ? <LibraryExerciseDialog key={`${action.type}-${selectedExercise.id}`} action={action.type} exercise={selectedExercise} impact={getExerciseRemovalImpact(state, selectedExercise.id)} onRename={renameLibraryExercise} onRemove={removeLibraryExercise} onClose={() => setAction(null)} onSuccess={(text) => setNotice({ error: false, text })} /> : null}
     </div>
   );
