@@ -6,6 +6,8 @@ export default function InterfaceIcon({ name }) {
     sort: <path d="M8 4v16m-4-4 4 4 4-4M14 4h7M14 8h5M14 12h3" />,
     list: <path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />,
     preview: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="m6 16 4-5 4 2 4-6" /></>,
+    volume: <><rect x="4" y="4" width="16" height="4" rx="1" /><rect x="4" y="10" width="16" height="4" rx="1" /><rect x="4" y="16" width="16" height="4" rx="1" /></>,
+    max: <><path d="M4 20h16M5 17l5-6 4 3 4-7" /><circle cx="19" cy="5" r="2" /></>,
     chart: <path d="M4 4v16h16M8 15l4-5 3 2 5-6" />,
     pencil: <path d="m15 4 5 5M4 20l5-1L20 8a2.1 2.1 0 0 0-5-5L4 14Z" />,
     trash: <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />,

@@ -97,34 +97,36 @@ export default function ExerciseLibraryPage() {
   return (
     <div className="space-y-4">
       <section className="space-y-2 border-b border-line pb-3">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center">
-          <span />
-          <h1 className="font-display text-[22px] font-bold leading-7 text-ink">Übungen</h1>
-          <div className="flex justify-self-end">
-            <button type="button" className={`${iconButtonClass} ${sortMode !== 'count-desc' ? 'bg-amber-soft text-amber' : ''}`} aria-label="Übungen sortieren" title="Sortierung" aria-haspopup="dialog" aria-expanded={showSort} onClick={() => setShowSort(true)}>
-              <LibraryIcon name="sort" />
-            </button>
-          </div>
-        </div>
+        <h1 className="text-center font-display text-[22px] font-bold leading-7 text-ink">Übungen</h1>
         <div className="flex items-center gap-1.5">
           <label className="min-w-0 flex-1">
             <span className="sr-only">Übungen durchsuchen</span>
             <input type="search" className="field h-10 py-2" value={query} onChange={(event) => updateSearchParams('q', event.target.value)} placeholder="Suchen …" />
           </label>
-          <div className="flex shrink-0" role="group" aria-label="Darstellung">
-            <button type="button" className={`${iconButtonClass} ${!previewMode ? 'bg-amber-soft text-amber' : ''}`} aria-label="Listenansicht" aria-pressed={!previewMode} onClick={() => updateSearchParams('layout', 'list')}><LibraryIcon name="list" /></button>
-            <button type="button" className={`${iconButtonClass} ${previewMode ? 'bg-amber-soft text-amber' : ''}`} aria-label="Diagrammvorschau" aria-pressed={previewMode} onClick={() => updateSearchParams('layout', '')}><LibraryIcon name="preview" /></button>
-          </div>
+          <button type="button" className={`${iconButtonClass} ${sortMode !== 'count-desc' ? 'bg-amber-soft text-amber' : ''}`} aria-label="Übungen sortieren" title="Sortierung" aria-haspopup="dialog" aria-expanded={showSort} onClick={() => setShowSort(true)}>
+            <LibraryIcon name="sort" />
+          </button>
+          <button
+            type="button"
+            className={`${iconButtonClass} bg-amber-soft text-amber`}
+            aria-label={previewMode ? 'Zur Listenansicht wechseln' : 'Zur Diagrammvorschau wechseln'}
+            title={previewMode ? 'Diagrammvorschau · Zur Listenansicht wechseln' : 'Listenansicht · Zur Diagrammvorschau wechseln'}
+            onClick={() => updateSearchParams('layout', previewMode ? 'list' : '')}
+          >
+            <LibraryIcon name={previewMode ? 'preview' : 'list'} />
+          </button>
+          {previewMode ? (
+            <button
+              type="button"
+              className={`${iconButtonClass} bg-amber-soft text-amber`}
+              aria-label={previewMetric === 'max' ? 'Zu Volumen wechseln' : 'Zu Max wechseln'}
+              title={previewMetric === 'max' ? 'Max · Zu Volumen wechseln' : 'Volumen · Zu Max wechseln'}
+              onClick={() => updateSearchParams('metric', previewMetric === 'max' ? 'volume' : 'max', 'volume')}
+            >
+              <LibraryIcon name={previewMetric === 'max' ? 'max' : 'volume'} />
+            </button>
+          ) : null}
         </div>
-        {previewMode ? <div className="flex justify-end">
-          <label>
-            <span className="sr-only">Diagrammwert</span>
-            <select className="field h-9 w-auto max-w-full py-1.5 text-xs" aria-label="Diagrammwert" value={previewMetric} onChange={(event) => updateSearchParams('metric', event.target.value, 'volume')}>
-              <option value="volume">Volumen</option>
-              <option value="max">Max</option>
-            </select>
-          </label>
-        </div> : null}
       </section>
 
       {notice ? <p role={notice.error ? 'alert' : 'status'} className={`rounded-sm border p-3 text-sm ${notice.error ? 'border-ember/35 bg-ember/10 text-ember' : 'border-amber/35 bg-amber-soft text-ink'}`}>{notice.text}</p> : null}
@@ -180,14 +182,23 @@ export default function ExerciseLibraryPage() {
           <h2 id="library-sort-title" className="text-lg font-bold text-ink">Sortierung</h2>
           <button type="button" className="icon-button" aria-label="Einstellung schließen" onClick={() => setShowSort(false)}>×</button>
         </div>
-        <div className="space-y-4">
-          <label className="block">
-            <span className="sr-only">Sortierung</span>
-            <select className="field" aria-label="Übungen sortieren" value={sortMode} onChange={(event) => updateSearchParams('sort', event.target.value, 'count-desc')}>
-              {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </label>
-          <button type="button" className="action-button w-full" onClick={() => setShowSort(false)}>Fertig</button>
+        <div className="grid gap-2" role="group" aria-labelledby="library-sort-title">
+          {sortOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-sm border px-3 py-2.5 text-left text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber ${sortMode === option.value ? 'border-amber bg-amber-soft text-ink' : 'border-line text-muted hover:border-amber/45 hover:text-ink'}`}
+              aria-pressed={sortMode === option.value}
+              data-autofocus={sortMode === option.value ? true : undefined}
+              onClick={() => {
+                updateSearchParams('sort', option.value, 'count-desc');
+                setShowSort(false);
+              }}
+            >
+              <span>{option.label}</span>
+              {sortMode === option.value ? <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0 text-amber"><path d="m5 12 4 4L19 6" /></svg> : null}
+            </button>
+          ))}
         </div>
       </ModalShell>
       {selectedExercise ? <LibraryExerciseDialog key={`${action.type}-${selectedExercise.id}`} action={action.type} exercise={selectedExercise} impact={getExerciseRemovalImpact(state, selectedExercise.id)} onRename={renameLibraryExercise} onRemove={removeLibraryExercise} onClose={() => setAction(null)} onSuccess={(text) => setNotice({ error: false, text })} /> : null}
