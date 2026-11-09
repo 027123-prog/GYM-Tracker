@@ -115,17 +115,15 @@ export default function ExerciseLibraryPage() {
           >
             <LibraryIcon name={previewMode ? 'preview' : 'list'} />
           </button>
-          {previewMode ? (
-            <button
-              type="button"
-              className={`${iconButtonClass} bg-amber-soft text-amber`}
-              aria-label={previewMetric === 'max' ? 'Zu Volumen wechseln' : 'Zu Max wechseln'}
-              title={previewMetric === 'max' ? 'Max · Zu Volumen wechseln' : 'Volumen · Zu Max wechseln'}
-              onClick={() => updateSearchParams('metric', previewMetric === 'max' ? 'volume' : 'max', 'volume')}
-            >
-              <LibraryIcon name={previewMetric === 'max' ? 'max' : 'volume'} />
-            </button>
-          ) : null}
+          <button
+            type="button"
+            className={`${iconButtonClass} bg-amber-soft text-amber`}
+            aria-label={previewMetric === 'max' ? 'Zu Volumen wechseln' : 'Zu Max wechseln'}
+            title={previewMetric === 'max' ? 'Max · Zu Volumen wechseln' : 'Volumen · Zu Max wechseln'}
+            onClick={() => updateSearchParams('metric', previewMetric === 'max' ? 'volume' : 'max', 'volume')}
+          >
+            <LibraryIcon name={previewMetric === 'max' ? 'max' : 'volume'} />
+          </button>
         </div>
       </section>
 
@@ -177,12 +175,9 @@ export default function ExerciseLibraryPage() {
           </article>)}
         </div> : null}
       </section> : null}
-      <ModalShell isOpen={showSort} onClose={() => setShowSort(false)} labelledBy="library-sort-title" maxWidth="max-w-sm">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 id="library-sort-title" className="text-lg font-bold text-ink">Sortierung</h2>
-          <button type="button" className="icon-button" aria-label="Einstellung schließen" onClick={() => setShowSort(false)}>×</button>
-        </div>
-        <div className="grid gap-2" role="group" aria-labelledby="library-sort-title">
+      <ModalShell isOpen={showSort} onClose={() => setShowSort(false)} labelledBy="library-sort-title" maxWidth="max-w-xs" compact dismissOnBackdrop>
+        <h2 id="library-sort-title" className="sr-only">Sortierung</h2>
+        <div className="grid gap-1" role="group" aria-labelledby="library-sort-title">
           {sortOptions.map((option) => (
             <button
               key={option.value}

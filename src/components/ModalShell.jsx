@@ -7,6 +7,8 @@ export default function ModalShell({
   labelledBy,
   maxWidth = 'max-w-lg',
   mobilePosition = 'bottom',
+  compact = false,
+  dismissOnBackdrop = false,
   children,
 }) {
   const dialogRef = useRef(null);
@@ -140,6 +142,9 @@ export default function ModalShell({
   return createPortal(
     <div
       ref={overlayRef}
+      onClick={dismissOnBackdrop ? (event) => {
+        if (event.target === event.currentTarget) onClose();
+      } : undefined}
       className={`fixed inset-0 z-[60] flex justify-center overscroll-contain bg-black/75 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6 ${
         topAligned
           ? 'items-start px-2 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))]'
@@ -151,7 +156,7 @@ export default function ModalShell({
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
-        className={`panel max-h-[calc(100%_-_1rem)] w-full overscroll-contain overflow-y-auto p-5 sm:max-h-full sm:rounded-md sm:border-b sm:p-6 ${
+        className={`panel max-h-[calc(100%_-_1rem)] w-full overscroll-contain overflow-y-auto sm:max-h-full sm:rounded-md sm:border-b ${compact ? 'p-2 sm:p-3' : 'p-5 sm:p-6'} ${
           topAligned ? 'rounded-sm' : 'rounded-b-none border-b-0'
         } ${maxWidth}`}
       >
