@@ -4,8 +4,8 @@ const germanNameCollator = new Intl.Collator('de-DE', {
 
 export const exerciseSortOptions = [
   { value: 'count-desc', label: 'Am häufigsten' },
-  { value: 'name-asc', label: 'A–Z' },
   { value: 'last-trained', label: 'Zuletzt trainiert' },
+  { value: 'name-asc', label: 'A–Z' },
 ];
 
 function compareNames(left, right) {
