@@ -3,6 +3,24 @@ import { createPortal } from 'react-dom';
 import { formatSetWeight, isWeightlessSet } from '../utils/setMeasurements';
 import { createStopwatchSetPayload, formatStopwatchTime, getStopwatchElapsedSeconds } from '../utils/stopwatch';
 
+function controlPressHandlers(action) {
+  return {
+    onPointerDown(event) {
+      event.stopPropagation();
+    },
+    onTouchEnd(event) {
+      // Avoid a synthetic click hitting the app after this control closes the view.
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.touches.length === 0) action();
+    },
+    onClick(event) {
+      event.stopPropagation();
+      action();
+    },
+  };
+}
+
 export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClose, onSave, onEditLoad }) {
   const [phase, setPhase] = useState('ready');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -25,7 +43,7 @@ export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClo
     onCloseRef.current = onClose;
     onSaveRef.current = onSave;
     // Wait for the saved render (and the parent's fresh callback) before the
-    // next tap can start another run. Each run then appends to current state.
+    // next tap can reset for another run. Each run then appends to current state.
     if (phase === 'saved') saveInProgressRef.current = false;
   }, [onClose, onSave, phase]);
 
@@ -128,7 +146,19 @@ export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClo
     setTapFeedback(true);
     feedbackTimeoutRef.current = window.setTimeout(() => setTapFeedback(false), 220);
 
-    if (phaseRef.current === 'ready' || phaseRef.current === 'saved') {
+    if (phaseRef.current === 'saved') {
+      startedAtRef.current = null;
+      stoppedSecondsRef.current = 0;
+      runLoadRef.current = null;
+      phaseRef.current = 'ready';
+      setElapsedSeconds(0);
+      setError('');
+      setPhase('ready');
+      timerButtonRef.current?.focus({ preventScroll: true });
+      return;
+    }
+
+    if (phaseRef.current === 'ready') {
       runLoadRef.current = { ...loadValues };
       startedAtRef.current = Date.now();
       stoppedSecondsRef.current = 0;
@@ -178,7 +208,7 @@ export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClo
   if (!isOpen) return null;
   const time = formatStopwatchTime(elapsedSeconds);
   const [wholeTime, tenths] = time.split(',');
-  const instruction = saving ? 'Speichert …' : phase === 'saved' ? 'Gespeichert' : phase === 'ready' ? 'Tippen zum Starten' : 'Tippen zum Speichern';
+  const instruction = saving ? 'Speichert …' : phase === 'saved' ? 'Gespeichert · Tippen zum Zurücksetzen' : phase === 'ready' ? 'Tippen zum Starten' : 'Tippen zum Speichern';
   const hasLoad = loadValues && !isWeightlessSet(loadValues);
 
   return createPortal(
@@ -187,19 +217,26 @@ export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClo
       role="dialog"
       aria-modal="true"
       aria-labelledby="stopwatch-title"
-      onClick={handleTap}
+      onPointerDown={(event) => {
+        // Measure on contact: a slightly moving finger can cancel the later click.
+        if (event.isPrimary && event.button === 0) handleTap();
+      }}
+      onClick={(event) => {
+        // Pointer input was handled above. Keep keyboard/assistive clicks working.
+        if (event.detail === 0) handleTap();
+      }}
       className={`fixed inset-0 z-[80] flex h-[100dvh] flex-col overflow-hidden border-t-4 border-amber text-ink transition-colors duration-150 motion-reduce:transition-none ${tapFeedback ? 'bg-amber-soft' : 'bg-paper'}`}
-      style={{ touchAction: 'manipulation' }}
+      style={{ touchAction: 'none' }}
     >
       <div className="flex shrink-0 items-start justify-between gap-3 px-5 pb-2 pt-[max(1rem,env(safe-area-inset-top))] sm:px-8">
         <h2 id="stopwatch-title" className="pt-2 text-sm font-bold text-muted">{exerciseName || 'Stoppuhr'}</h2>
-        <button type="button" onClick={(event) => { event.stopPropagation(); onClose(); }} className="icon-button" aria-label={phase === 'saved' ? 'Stoppuhr schließen' : 'Stoppuhr abbrechen'}>×</button>
+        <button type="button" {...controlPressHandlers(onClose)} className="icon-button" aria-label={phase === 'saved' ? 'Stoppuhr schließen' : 'Stoppuhr abbrechen'}>×</button>
       </div>
 
       {(phase === 'ready' || phase === 'saved') && hasLoad ? (
         <div className="flex shrink-0 items-center justify-center gap-2 px-5 text-sm text-muted">
           <span>{formatSetWeight(loadValues)}</span>
-          {onEditLoad ? <button type="button" onClick={(event) => { event.stopPropagation(); onEditLoad(); }} className="min-h-11 px-3 font-semibold text-amber">Ändern</button> : null}
+          {onEditLoad ? <button type="button" {...controlPressHandlers(onEditLoad)} className="min-h-11 px-3 font-semibold text-amber">Ändern</button> : null}
         </div>
       ) : null}
 
@@ -215,7 +252,7 @@ export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClo
         onKeyUp={(event) => {
           if (event.key === 'Enter' || event.key === ' ') event.preventDefault();
         }}
-        aria-label={phase === 'saved' ? 'Nächsten Satz starten' : phase === 'ready' ? 'Stoppuhr starten' : 'Stoppuhr stoppen und Satz speichern'}
+        aria-label={phase === 'saved' ? 'Stoppuhr zurücksetzen' : phase === 'ready' ? 'Stoppuhr starten' : 'Stoppuhr stoppen und Satz speichern'}
         aria-busy={saving}
         className="flex min-h-0 w-full flex-1 select-none flex-col items-center justify-center gap-5 px-3 py-5 outline-none focus-visible:outline-offset-[-4px]"
       >
@@ -234,8 +271,8 @@ export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClo
 
       {phase === 'saved' ? (
         <div className="flex shrink-0 justify-center gap-3 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-          <button type="button" onClick={(event) => { event.stopPropagation(); handleTap(); }} className="action-button min-h-12 flex-1 max-w-60">Neuer Satz</button>
-          <button type="button" onClick={(event) => { event.stopPropagation(); onClose(); }} className="secondary-button min-h-12 flex-1 max-w-60">Fertig</button>
+          <button type="button" {...controlPressHandlers(handleTap)} className="action-button min-h-12 flex-1 max-w-60">Zurücksetzen</button>
+          <button type="button" {...controlPressHandlers(onClose)} className="secondary-button min-h-12 flex-1 max-w-60">Fertig</button>
         </div>
       ) : <div className="h-[max(1.25rem,env(safe-area-inset-bottom))] shrink-0" />}
     </section>,
