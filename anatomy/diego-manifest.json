@@ -1,0 +1,189 @@
+{
+  "source": {
+    "author": "Diego Luján García (https://sketchfab.com/diegoluga)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/models/ab11ebff89224f03bd75efede1164cf6",
+    "title": "Male Full Body Ecorche"
+  },
+  "sourceGitBlob": "71b2f537687dcf821e8d82e030237b68f9042364",
+  "sha256": "b621bbc552ccb17915b45869581dcc1fe4e898be7c648c9560ece7532c8d5cd1",
+  "bytes": 9676328,
+  "regionIds": [
+    "context",
+    "chest",
+    "chest_upper",
+    "chest_middle",
+    "chest_lower",
+    "front_delts",
+    "lateral_delts",
+    "rear_delts",
+    "elbow_flexors",
+    "triceps",
+    "forearm_flexors",
+    "forearm_extensors",
+    "brachioradialis",
+    "lats",
+    "upper_back",
+    "upper_traps",
+    "spinal_erectors",
+    "abs",
+    "obliques",
+    "glutes",
+    "hip_abductors",
+    "quads",
+    "hamstrings",
+    "adductors",
+    "calves",
+    "tibialis",
+    "hip_flexors",
+    "external_rotators"
+  ],
+  "meshes": [
+    {
+      "material": "defaultMat_12",
+      "vertices": 8391,
+      "triangles": 15616,
+      "regions": [
+        "hip_abductors",
+        "glutes"
+      ]
+    },
+    {
+      "material": "defaultMat_11",
+      "vertices": 19091,
+      "triangles": 36544,
+      "regions": [
+        "lateral_delts",
+        "rear_delts",
+        "lats",
+        "external_rotators",
+        "front_delts"
+      ]
+    },
+    {
+      "material": "defaultMat_10",
+      "vertices": 11772,
+      "triangles": 22258,
+      "regions": [
+        "calves"
+      ]
+    },
+    {
+      "material": "defaultMat_9",
+      "vertices": 9611,
+      "triangles": 17682,
+      "regions": [
+        "hamstrings"
+      ]
+    },
+    {
+      "material": "material_1",
+      "vertices": 30787,
+      "triangles": 61216,
+      "regions": [
+        "context"
+      ]
+    },
+    {
+      "material": "defaultMat_8",
+      "vertices": 30793,
+      "triangles": 57272,
+      "regions": [
+        "upper_back",
+        "upper_traps",
+        "lats",
+        "context"
+      ]
+    },
+    {
+      "material": "defaultMat_6",
+      "vertices": 16375,
+      "triangles": 30492,
+      "regions": [
+        "quads",
+        "context"
+      ]
+    },
+    {
+      "material": "defaultMat_5",
+      "vertices": 12961,
+      "triangles": 22277,
+      "regions": [
+        "context"
+      ]
+    },
+    {
+      "material": "defaultMat_4",
+      "vertices": 7240,
+      "triangles": 12458,
+      "regions": [
+        "context"
+      ]
+    },
+    {
+      "material": "defaultMat_3",
+      "vertices": 22794,
+      "triangles": 42820,
+      "regions": [
+        "abs",
+        "obliques",
+        "chest_middle",
+        "chest_upper",
+        "chest_lower"
+      ]
+    },
+    {
+      "material": "defaultMat_2",
+      "vertices": 21721,
+      "triangles": 38782,
+      "regions": [
+        "context",
+        "tibialis"
+      ]
+    },
+    {
+      "material": "defaultMat_1",
+      "vertices": 8062,
+      "triangles": 14438,
+      "regions": [
+        "adductors"
+      ]
+    },
+    {
+      "material": "material_0",
+      "vertices": 55133,
+      "triangles": 93900,
+      "regions": [
+        "context"
+      ]
+    },
+    {
+      "material": "defaultMat_0",
+      "vertices": 26929,
+      "triangles": 48126,
+      "regions": [
+        "triceps",
+        "forearm_extensors",
+        "forearm_flexors",
+        "brachioradialis"
+      ]
+    },
+    {
+      "material": "defaultMat",
+      "vertices": 17310,
+      "triangles": 32504,
+      "regions": [
+        "triceps",
+        "elbow_flexors"
+      ]
+    }
+  ],
+  "maxAttributeRoundtripError": 0.000003814697265625,
+  "notes": [
+    "Source form and triangle detail retained; exposed face removed for separate neutral head",
+    "Textures resized to 1024 pixels; baked source normal maps retained",
+    "Artist surface groups; upper/middle/lower chest, deltoid heads and trapezius subdivisions use illustrative soft boundaries",
+    "Light tendon pixels within assigned muscles receive the muscle tint in the application shader",
+    "Spinal erectors and deep hip flexors have no exposed surface in this sculpt"
+  ]
+}
