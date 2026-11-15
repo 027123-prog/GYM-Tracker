@@ -4,6 +4,7 @@ import { useAppData } from '../components/AppProvider';
 import BackupControls from '../components/BackupControls';
 import EmptyState from '../components/EmptyState';
 import WorkoutCard from '../components/WorkoutCard';
+import MuscleMapCard from '../components/muscle/MuscleMapCard';
 import {
   calculateWorkoutStats,
   getWorkoutDateTimestamp,
@@ -121,33 +122,36 @@ export default function DashboardPage() {
         </section>
       ) : null}
 
-      <section className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        <div className="metric">
+      <section className="dashboard-overview" aria-label="Trainingsübersicht">
+        <div className="dashboard-overview-figure">
+          <MuscleMapCard exercises={state.exercises} workouts={state.workouts} />
+        </div>
+        <div className="metric dashboard-metric dashboard-metric-total">
           <p className="eyebrow">Gesamt</p>
           <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
-            <span className="font-display text-3xl font-bold tabular-nums text-ink">{completedWorkouts.length}</span>
+            <span className="dashboard-metric-value font-display font-bold tabular-nums text-ink">{completedWorkouts.length}</span>
             <span className="text-xs text-muted">Workouts</span>
           </p>
         </div>
-        <div className="metric">
-          <p className="eyebrow">Dieser Monat</p>
+        <div className="metric dashboard-metric dashboard-metric-month">
+          <p className="eyebrow">Monat</p>
           <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
-            <span className="font-display text-3xl font-bold tabular-nums text-ink">{monthlyWorkouts.length}</span>
+            <span className="dashboard-metric-value font-display font-bold tabular-nums text-ink">{monthlyWorkouts.length}</span>
             <span className="text-xs text-muted">Einheiten</span>
           </p>
         </div>
-        <div className="metric">
+        <div className="metric dashboard-metric dashboard-metric-volume">
           <p className="eyebrow">Volumen</p>
           <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
-            <span className="font-display text-3xl font-bold tabular-nums text-ink">{formatVolume(totalVolume)}</span>
+            <span className="dashboard-metric-value font-display font-bold tabular-nums text-ink">{formatVolume(totalVolume)}</span>
             <span className="text-xs text-muted">kg</span>
           </p>
         </div>
-        <div className="metric">
-          <p className="eyebrow">Abgeschlossen</p>
+        <div className="metric dashboard-metric dashboard-metric-sets">
+          <p className="eyebrow">Sätze</p>
           <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
-            <span className="font-display text-3xl font-bold tabular-nums text-ink">{totalSets}</span>
-            <span className="text-xs text-muted">Sätze</span>
+            <span className="dashboard-metric-value font-display font-bold tabular-nums text-ink">{totalSets}</span>
+            <span className="text-xs text-muted">gesamt</span>
           </p>
         </div>
       </section>
@@ -204,6 +208,9 @@ export default function DashboardPage() {
       <section className="panel p-4 lg:hidden">
         <BackupControls />
       </section>
+      <div className="text-right text-xs text-muted">
+        <a href={`${import.meta.env.BASE_URL}anatomy/credits.html`} target="_blank" rel="noreferrer" className="underline">3D-Quellen</a>
+      </div>
     </div>
   );
 }

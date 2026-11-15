@@ -19,6 +19,7 @@ const TemplateEditorPage = lazy(() => import('./pages/TemplateEditorPage'));
 const WorkoutBuilderPage = lazy(() => import('./pages/WorkoutBuilderPage'));
 const WorkoutDetailPage = lazy(() => import('./pages/WorkoutDetailPage'));
 const WorkoutStartPage = lazy(() => import('./pages/WorkoutStartPage'));
+const MusclePreviewPage = import.meta.env.DEV ? lazy(() => import('./pages/MusclePreviewPage')) : null;
 
 class AppErrorBoundary extends Component {
   constructor(props) {
@@ -60,6 +61,9 @@ function PageLoader() {
 }
 
 export default function App() {
+  if (import.meta.env.DEV && window.location.pathname === '/muscle-preview') {
+    return <Suspense fallback={<PageLoader />}><MusclePreviewPage /></Suspense>;
+  }
   const useHashRouting =
     window.location.protocol === 'file:' || window.location.hostname.endsWith('github.io');
   const Router = useHashRouting ? HashRouter : BrowserRouter;

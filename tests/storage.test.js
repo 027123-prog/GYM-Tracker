@@ -133,6 +133,14 @@ test('normalizeAppState migriert Namen und bereinigt beschädigte v1-Daten', () 
       id: 'exercise-recovered-0',
       name: 'Bankdrücken',
       weightOptions: [10, 20],
+      muscleAssignment: {
+        version: 1,
+        status: 'draft_assigned',
+        primary: ['chest'],
+        chestProfile: 'flat',
+        secondary: ['triceps', 'front_delts'],
+        stabilizers: [],
+      },
       settings: {
         loadType: 'normal',
         bodyweightPercent: 100,
@@ -365,7 +373,7 @@ test('Backup-Export und -Import ergeben einen verlustfreien normalisierten Round
   const restored = parseBackupPayload(JSON.stringify(backup));
 
   assert.equal(backup.app, 'hardgainwaf');
-  assert.equal(backup.appVersion, '2.16.4');
+  assert.equal(backup.appVersion, '2.17.0');
   assert.equal(backup.storageKey, STORAGE_KEY);
   assert.equal(backup.storageVersion, STORAGE_VERSION);
   assert.match(backup.exportedAt, /^\d{4}-\d{2}-\d{2}T/);

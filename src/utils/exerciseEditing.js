@@ -1,5 +1,6 @@
 import { parseLocalizedNumber } from './bodyweight';
 import { createId } from './workout';
+import { getExerciseMuscleAssignment } from './muscleAssignments';
 
 function nameKey(value) {
   return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase('de-DE');
@@ -30,6 +31,8 @@ export function ensureExerciseRecord(exercises, name) {
     settings: { loadType: 'normal', bodyweightPercent: 100, setupNotes: '' },
     createdAt: new Date().toISOString(),
   };
+  const muscleAssignment = getExerciseMuscleAssignment(exercise);
+  if (muscleAssignment) exercise.muscleAssignment = muscleAssignment;
   return { exercises: [...exercises, exercise], exercise };
 }
 
@@ -134,13 +137,14 @@ export function editExerciseRecord(state, exerciseId, changes = {}) {
   }
 
   const renamed = name !== exercise.name;
+  const muscleAssignment = getExerciseMuscleAssignment(exercise);
   const renameEntry = (entry) => entry.exerciseId === exerciseId ? { ...entry, name } : entry;
 
   return {
     error: null,
     state: {
       ...state,
-      exercises: state.exercises.map((item) => item.id === exerciseId ? { ...item, name, settings } : item),
+      exercises: state.exercises.map((item) => item.id === exerciseId ? { ...item, name, settings, ...(muscleAssignment ? { muscleAssignment } : {}) } : item),
       // Only the label changes. IDs, sets, machine settings and timestamps stay intact.
       workouts: renamed
         ? state.workouts.map((workout) => ({ ...workout, exercises: workout.exercises.map(renameEntry) }))

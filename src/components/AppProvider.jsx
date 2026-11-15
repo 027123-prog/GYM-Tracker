@@ -7,18 +7,22 @@ import { updateTemplateRecord } from '../utils/templateEditing';
 import { moveWorkoutExerciseRecord } from '../utils/workoutEditing';
 import { clearStoredActiveWorkoutId, readStoredActiveWorkoutId, storeActiveWorkoutId } from '../utils/workoutNavigation';
 import { resumeWorkoutRecord } from '../utils/workoutLifecycle';
+import { getNewExerciseVariant } from '../utils/muscleAssignments';
+import { applyTrainingPlanImport } from '../utils/trainingPlanImport';
 
 const AppContext = createContext(null);
 
 function createWorkoutEntry(exercise, options = {}) {
+  const variantKey = getNewExerciseVariant(exercise);
   return {
     id: createId('entry'),
     exerciseId: exercise.id,
-    name: exercise.name,
+    name: options.name ?? exercise.name,
     skipped: false,
     targetRepScheme: options.targetRepScheme ?? '',
     machineSettings: options.machineSettings ?? [],
     sets: [],
+    ...(variantKey ? { variantKey } : {}),
   };
 }
 
@@ -235,6 +239,7 @@ export function AppProvider({ children }) {
         : ensureExerciseRecord(nextExercises, exerciseTemplate.name);
       nextExercises = ensured.exercises;
       return createWorkoutEntry(ensured.exercise, {
+        name: exerciseTemplate.name,
         targetRepScheme: exerciseTemplate.repScheme,
         machineSettings: getLastMachineSettings(state.workouts, ensured.exercise.id),
       });
@@ -594,6 +599,10 @@ export function AppProvider({ children }) {
     setState(normalizedState);
   }
 
+  function importTrainingPlans(payload) {
+    setState(current => applyTrainingPlanImport(current, payload));
+  }
+
   function addMaxStrengthRecord(payload) {
     const exerciseName = payload.exerciseName?.trim();
     const value = Number(payload.value);
@@ -653,6 +662,7 @@ export function AppProvider({ children }) {
         completeWorkout,
         deleteWorkout,
         importBackup,
+        importTrainingPlans,
         addMaxStrengthRecord,
         deleteMaxStrengthRecord,
       }}

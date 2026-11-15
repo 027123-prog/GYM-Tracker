@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { createBackupPayload, createLocalRecoveryPoint, parseBackupPayload } from '../utils/storage';
+import { TRAINING_PLAN_FORMAT, applyTrainingPlanImport, parseTrainingPlanImport } from '../utils/trainingPlanImport';
 import { useAppData } from './AppProvider';
 
 function createBackupFilename(prefix = 'hardgainwaf-backup') {
@@ -8,7 +9,7 @@ function createBackupFilename(prefix = 'hardgainwaf-backup') {
 }
 
 export default function BackupControls() {
-  const { state, importBackup } = useAppData();
+  const { state, importBackup, importTrainingPlans } = useAppData();
   const fileInputRef = useRef(null);
   const [status, setStatus] = useState('');
 
@@ -35,6 +36,19 @@ export default function BackupControls() {
 
     try {
       const rawText = await file.text();
+      const payload = JSON.parse(rawText);
+      if (payload?.format === TRAINING_PLAN_FORMAT) {
+        const plans = parseTrainingPlanImport(payload);
+        applyTrainingPlanImport(state, payload);
+        const shouldImportPlans = window.confirm(
+          `Diese Trainingspläne übernehmen?\n\n${plans.templates.map(plan => plan.name).join('\n')}\n\nVorhandene Versionen dieser Pläne werden aktualisiert. Workouts, Satzwerte und vorhandene Geräteeinstellungen bleiben erhalten. Der bisherige Stand wird lokal gesichert.`,
+        );
+        if (!shouldImportPlans) { setStatus('Import abgebrochen'); return; }
+        createLocalRecoveryPoint(state);
+        importTrainingPlans(payload);
+        setStatus(`${plans.templates.length} Trainingspläne importiert`);
+        return;
+      }
       const importedState = parseBackupPayload(rawText);
       const shouldImport = window.confirm(
         `Aktuellen Datenstand ersetzen?\n\n${importedState.workouts.length} Workouts\n${importedState.exercises.length} Übungen\n${importedState.templates.length} Vorlagen\n\nDer bisherige Stand wird lokal als Rücksetzpunkt gesichert.`,
