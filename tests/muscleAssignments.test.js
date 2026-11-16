@@ -65,7 +65,7 @@ test('old automatic drafts upgrade their exact known roles, while custom or conf
   assert(upgraded.secondary.includes('quads'));
   assert(upgraded.stabilizers.includes('upper_back'));
   assert.equal(upgraded.ruleSource,'catalogue');
-  assert.equal(upgraded.ruleRevision,2);
+  assert.equal(upgraded.ruleRevision,3);
   assert.deepEqual(getExerciseMuscleAssignment({name:'Mein umbenanntes Heben',muscleAssignment:upgraded}),upgraded);
   const confirmed=getExerciseMuscleAssignment({name:'Kreuzheben',muscleAssignment:{...legacy,status:'confirmed'}});
   assert.deepEqual(confirmed.primary,legacy.primary);

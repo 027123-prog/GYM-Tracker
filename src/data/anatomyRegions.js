@@ -16,6 +16,7 @@ export const ANATOMY_REGIONS = {
   forearm_extensors: ['extensor_digitorum', 'ulnar_head_of_extensor_carpi_ulnaris', 'humeral_head_of_extensor_carpi_ulnaris', 'extensor_carpi_radialis_longus', 'extensor_carpi_radialis_brevis', 'extensor_digiti_minimi', 'extensor_indicis', 'extensor_pollicis_brevis', 'extensor_pollicis_longus', 'abductor_pollicis_longus', 'supinator'],
   brachioradialis: ['brachioradialis_muscle'], glutes: ['gluteus_maximus'], hip_abductors: ['gluteus_medius', 'gluteus_minimus', 'tensor_fasciae_latae'],
   hip_flexors: ['iliacus', 'psoas_major'], external_rotators: ['infraspinatus', 'teres_minor'],
+  serratus: ['serratus_anterior'],
   calves: ['gastrocnemius_lateral', 'gastrocnemius_medial', 'soleus', 'plantaris'], tibialis: ['tibialis_anterior'],
 };
 const byKey = new Map(Object.entries(ANATOMY_REGIONS).flatMap(([region, keys]) => keys.map(key => [key, region])));

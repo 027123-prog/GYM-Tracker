@@ -52,9 +52,11 @@ Persönliche Trainingswerte sind nicht Teil der Grafikdateien.
 Die freigegebene Figur „Male Full Body Ecorche“ von Diego Luján García (CC BY 4.0)
 verwendet einen neutralen MakeHuman-Kopf (CC0). Helle Sehnenanteile innerhalb
 zugeordneter Muskelflächen werden mitgefärbt; übrige Stützflächen bleiben neutral.
-24 sichtbare Trainingsbereiche werden eingefärbt, darunter obere, mittlere und
-untere Brust mit vereinfachten übungsspezifischen Schwerpunkten. Rückenstrecker und tiefe
-Hüftbeuger besitzen in dieser Figur keine eigene sichtbare Außenfläche.
+27 Trainingsbereiche sind sichtbar zugeordnet, darunter obere, mittlere und
+untere Brust sowie der Serratus. Rückenstrecker im unteren Rücken und tiefe
+Hüftbeuger werden als weiche, beidseitige Farbprojektionen auf den vorhandenen
+Oberflächen sichtbar. Diese beiden Bereiche sind schematische Projektionen,
+keine freigelegten anatomischen Muskelflächen. Die Körpergeometrie bleibt erhalten.
 `scripts/build-diego-anatomy.mjs` bereitet die heruntergeladene Quelle reproduzierbar
 auf; Form und Oberflächendetails bleiben erhalten, Texturen und Geometrie werden
 für den Webeinsatz komprimiert.
@@ -78,3 +80,17 @@ Duplikate. Eine vollständige Sicherungsdatei ersetzt weiterhin den Datenstand.
 
 Persönliche JSON-Backups, `backups/`, Build-Ausgaben und lokale Werkzeuge werden
 nicht in Git eingecheckt.
+
+## Aktualisieren
+
+Die Adresse bleibt gleich. Ab 2.18 prüft die App beim Öffnen, bei Rückkehr in den
+Vordergrund und minütlich eine cachefreie `version.json`. Bei neuer Version
+erscheint „Aktualisieren“. Der Schalter speichert zuerst den aktuellen Stand,
+lädt den App-Einstieg mit einer neuen Versionskennung und erhält die Workout-Route.
+Ein laufendes Training wird nicht automatisch neu geladen. Veraltete Antworten
+führen nicht zum Downgrade; offline bleibt die App benutzbar. Die 3D-Dateien
+haben zusätzlich eine eigene Revisionskennung gegen veraltete Modell-Caches.
+
+Zum Aktualisieren keine Browser-/Websitedaten löschen: Darin liegen auch die
+Trainingsdaten. Vor deren Löschung immer exportieren. Ein Appupdate ersetzt
+oder importiert keine Trainingsdaten.

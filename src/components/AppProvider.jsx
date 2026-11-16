@@ -81,8 +81,10 @@ export function AppProvider({ children }) {
     try {
       saveAppState(stateRef.current);
       setSyncState({ status: 'saved', message: 'Lokal gespeichert', savedAt: new Date().toISOString() });
+      return true;
     } catch {
       setSyncState({ status: 'error', message: 'Speichern fehlgeschlagen', savedAt: null });
+      return false;
     }
   }, []);
 
@@ -638,6 +640,7 @@ export function AppProvider({ children }) {
       value={{
         state,
         syncState,
+        flushState: flushCurrentState,
         activeWorkoutId,
         activateWorkout,
         createFreeWorkout,

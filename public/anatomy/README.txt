@@ -12,11 +12,12 @@ Separate source credits and license: HEAD-ATTRIBUTION.md, HEAD-LICENSE.txt.
 The prepared figure retains the approved artist-authored form, source UVs and
 baked muscle-fiber normal maps. Its exposed anatomy face is replaced by the
 neutral head. Color assignment does not reshape the figure. Connected source
-muscle pieces are mapped to 24 exposed training regions; the upper/middle/lower
+muscle pieces are mapped to 25 exposed training regions; the upper/middle/lower
 chest, deltoid heads and trapezius subdivisions have illustrative soft color
-boundaries. Spinal erectors
-and deep hip flexors are not separately exposed in this sculpt. No exterior
-patches are invented for them. Light tendon areas within assigned muscle pieces
+boundaries. Spinal erectors and deep hip flexors use soft bilateral schematic
+color projections on existing surfaces, adding two visible training regions.
+They are not exposed/dissected anatomy. Geometry and triangle counts are unchanged.
+The visible serratus slips have their own region. Light tendon areas within assigned muscle pieces
 receive the same training tint to make the surfaces visually continuous.
 Unassigned support structures and the head remain neutral in training mode.
 

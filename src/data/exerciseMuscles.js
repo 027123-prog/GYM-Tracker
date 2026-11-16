@@ -26,7 +26,8 @@ export const MUSCLE_GROUPS = {
   "calves": "Waden",
   "tibialis": "Vorderer Unterschenkel",
   "hip_flexors": "Hüftbeuger (teils tief)",
-  "external_rotators": "Schulteraußenrotatoren (teils tief)"
+  "external_rotators": "Schulteraußenrotatoren (teils tief)",
+  "serratus": "Serratus / vorderer Sägemuskel"
 };
 
 export const EXERCISE_MUSCLE_RULES = [
@@ -42,8 +43,22 @@ export const EXERCISE_MUSCLE_RULES = [
       "triceps",
       "front_delts"
     ],
-    "stabilizers": [],
-    "status": "draft_assigned"
+    "stabilizers": [
+      "serratus"
+    ],
+    "status": "draft_assigned",
+    "previousAssignments": [
+      {
+        "primary": [
+          "chest"
+        ],
+        "secondary": [
+          "triceps",
+          "front_delts"
+        ],
+        "stabilizers": []
+      }
+    ]
   },
   {
     "names": [
@@ -183,8 +198,22 @@ export const EXERCISE_MUSCLE_RULES = [
       "front_delts",
       "triceps"
     ],
-    "stabilizers": [],
-    "status": "draft_assigned"
+    "stabilizers": [
+      "serratus"
+    ],
+    "status": "draft_assigned",
+    "previousAssignments": [
+      {
+        "primary": [
+          "chest"
+        ],
+        "secondary": [
+          "front_delts",
+          "triceps"
+        ],
+        "stabilizers": []
+      }
+    ]
   },
   {
     "names": [
@@ -239,13 +268,30 @@ export const EXERCISE_MUSCLE_RULES = [
     ],
     "secondary": [
       "triceps",
-      "upper_traps"
+      "upper_traps",
+      "serratus"
     ],
     "stabilizers": [
       "abs",
       "obliques"
     ],
-    "status": "draft_assigned"
+    "status": "draft_assigned",
+    "previousAssignments": [
+      {
+        "primary": [
+          "front_delts",
+          "lateral_delts"
+        ],
+        "secondary": [
+          "triceps",
+          "upper_traps"
+        ],
+        "stabilizers": [
+          "abs",
+          "obliques"
+        ]
+      }
+    ]
   },
   {
     "names": [
@@ -270,8 +316,22 @@ export const EXERCISE_MUSCLE_RULES = [
       "front_delts",
       "triceps"
     ],
-    "stabilizers": [],
-    "status": "draft_assigned"
+    "stabilizers": [
+      "serratus"
+    ],
+    "status": "draft_assigned",
+    "previousAssignments": [
+      {
+        "primary": [
+          "chest"
+        ],
+        "secondary": [
+          "front_delts",
+          "triceps"
+        ],
+        "stabilizers": []
+      }
+    ]
   },
   {
     "names": [
@@ -670,9 +730,24 @@ export const EXERCISE_MUSCLE_RULES = [
     ],
     "stabilizers": [
       "glutes",
-      "front_delts"
+      "front_delts",
+      "serratus"
     ],
-    "status": "draft_assigned"
+    "status": "draft_assigned",
+    "previousAssignments": [
+      {
+        "primary": [
+          "abs"
+        ],
+        "secondary": [
+          "obliques"
+        ],
+        "stabilizers": [
+          "glutes",
+          "front_delts"
+        ]
+      }
+    ]
   },
   {
     "names": [
@@ -786,8 +861,22 @@ export const EXERCISE_MUSCLE_RULES = [
       "front_delts",
       "triceps"
     ],
-    "stabilizers": [],
-    "status": "draft_assigned"
+    "stabilizers": [
+      "serratus"
+    ],
+    "status": "draft_assigned",
+    "previousAssignments": [
+      {
+        "primary": [
+          "chest"
+        ],
+        "secondary": [
+          "front_delts",
+          "triceps"
+        ],
+        "stabilizers": []
+      }
+    ]
   },
   {
     "names": [
@@ -897,6 +986,22 @@ export const EXERCISE_MUSCLE_RULES = [
     ],
     "secondary": [],
     "stabilizers": [],
+    "status": "draft_assigned"
+  },
+  {
+    "names": [
+      "Scapula Push-ups",
+      "Scapular Push-ups",
+      "Schulterblatt-Liegestütze"
+    ],
+    "primary": [
+      "serratus"
+    ],
+    "secondary": [],
+    "stabilizers": [
+      "abs",
+      "obliques"
+    ],
     "status": "draft_assigned"
   }
 ];

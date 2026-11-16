@@ -1,10 +1,12 @@
 import { MUSCLE_GROUPS } from './exerciseMuscles.js';
 import { chestSurfaceRegion } from './chestRegions.js';
+import { projectDeepRegion } from './deepMuscleProjection.js';
 
 // IDs are stored in the prepared model, independent of triangle ordering.
 export const DIEGO_REGION_IDS = ['context', ...Object.keys(MUSCLE_GROUPS)];
+export const DIEGO_ASSET_REVISION = 'coverage-2';
 export const DIEGO_COVERAGE = Object.fromEntries(Object.keys(MUSCLE_GROUPS).map(id => [id,
-  id === 'chest' ? 'aggregate' : ['spinal_erectors', 'hip_flexors'].includes(id) ? 'not_exposed' : 'surface',
+  id === 'chest' ? 'aggregate' : ['spinal_erectors', 'hip_flexors'].includes(id) ? 'projection' : 'surface',
 ]));
 
 const pairs = (id, ...values) => values.includes(id);
@@ -18,7 +20,11 @@ const one = id => [id, id, 0];
 // component IDs apply to the pinned, hash-checked source, not arbitrary meshes.
 // The source fuses the three deltoid heads and trapezius subdivisions; only
 // these structures and the three chest regions use illustrative soft borders.
-export function classifyDiegoPart(material, component, bounds, point) {
+export function classifyDiegoPart(material, component, bounds, point, normal) {
+  return projectDeepRegion(classifySurface(material, component, bounds, point), material, point, normal);
+}
+
+function classifySurface(material, component, bounds, point) {
   const [x, y, z] = point;
   if (material === 'defaultMat_3') {
     if (pairs(component, 22450, 22359)) return chestSurfaceRegion(x,y);
@@ -39,7 +45,7 @@ export function classifyDiegoPart(material, component, bounds, point) {
     if (pairs(component, 31101, 31104)) return one('lats');
     if (pairs(component, 31042, 31056)) return ['upper_back', 'upper_traps', smooth(y, 1.48, 1.55)];
     if (pairs(component, 31088, 31089)) return one('upper_back');
-    return one('context'); // serratus bundles are not a tracked training region
+    return one('serratus'); // visible serratus slips at the lateral rib cage
   }
   if (material === 'defaultMat') return one(pairs(component, 17007, 17030) ? 'triceps' : 'elbow_flexors');
   if (material === 'defaultMat_0') {

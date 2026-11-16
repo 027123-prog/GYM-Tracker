@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { DIEGO_REGION_IDS, DIEGO_COVERAGE } from '../../data/diegoAnatomy';
+import { DIEGO_REGION_IDS, DIEGO_COVERAGE, DIEGO_ASSET_REVISION } from '../../data/diegoAnatomy';
 import { createNeutralHeadGeometry } from './neutralHead';
 import { muscleLoadColor } from '../../utils/muscleLoadColor';
 
@@ -31,7 +31,7 @@ function attachTrainingColors(material, palette) {
 }
 
 export async function createMuscleFigure() {
-  const assetUrl = file => new URL(`${import.meta.env.BASE_URL}anatomy/${file}`, document.baseURI).href;
+  const assetUrl = file => new URL(`${import.meta.env.BASE_URL}anatomy/${file}?v=${DIEGO_ASSET_REVISION}`, document.baseURI).href;
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   const results = await Promise.allSettled([loader.loadAsync(assetUrl('diego-training.glb')), loader.loadAsync(assetUrl('neutral-head.glb'))]);
   const geometries = new Set(), materials = new Set(), textures = new Set();
@@ -47,7 +47,7 @@ export async function createMuscleFigure() {
   for (const result of results) if (result.status === 'fulfilled') result.value.scene.traverse(collect);
   if (results.some(result => result.status === 'rejected')) { dispose(); throw new Error('Anatomy asset could not be loaded'); }
   const [body, head] = results.map(result => result.value);
-  if (JSON.stringify(body.asset?.extras?.regionIds) !== JSON.stringify(DIEGO_REGION_IDS)) {
+  if (body.asset?.extras?.assetRevision !== DIEGO_ASSET_REVISION || JSON.stringify(body.asset?.extras?.regionIds) !== JSON.stringify(DIEGO_REGION_IDS)) {
     dispose(); throw new Error('Anatomy palette and prepared model do not match');
   }
   const root = new THREE.Group();

@@ -3,9 +3,10 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import BackupControls from './BackupControls';
 import { useAppData } from './AppProvider';
 import SyncIndicator from './SyncIndicator';
+import AppUpdateNotice from './AppUpdateNotice';
 import { calculateWorkoutStats } from '../utils/workout';
 
-const appVersion = '2.17.1';
+const appVersion = '2.18.0';
 const displayVersion = `v${appVersion.split('.').slice(0, 2).join('.')}`;
 
 const navItems = [
@@ -359,6 +360,7 @@ export default function AppShell() {
       data-app-shell
       className="flex h-[100dvh] min-h-0 flex-col overflow-hidden md:h-auto md:min-h-[100dvh] md:overflow-visible"
     >
+      <AppUpdateNotice />
       <header
         className={`relative z-40 shrink-0 border-b backdrop-blur-xl md:sticky md:top-0 ${
           activeWorkout

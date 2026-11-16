@@ -24,7 +24,7 @@ export function getExerciseMuscleAssignment(exercise) {
   } : stored;
   if (!rule) return null;
   const result = { version: 1, status: statuses.includes(rule.status) ? rule.status : 'unassigned' };
-  if (catalogueRule) Object.assign(result, { ruleSource: 'catalogue', ruleKey: candidate.names[0], ruleRevision: 2 });
+  if (catalogueRule) Object.assign(result, { ruleSource: 'catalogue', ruleKey: candidate.names[0], ruleRevision: 3 });
   else if (stored?.ruleSource) {
     result.ruleSource = stored.ruleSource;
     if (stored.ruleKey) result.ruleKey = stored.ruleKey;
