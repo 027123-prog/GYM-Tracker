@@ -23,7 +23,10 @@ Downloaded on 15 November 2026. No affiliation or endorsement is implied.
 - Assigned connected muscle pieces to broader training regions. The fused
   upper/middle/lower chest, deltoid heads and trapezius subdivisions have
   illustrative soft color borders.
-  Deep hip flexors and spinal erectors have no exposed replacement patches.
+  Serratus slips receive their own training region. Covered lumbar spinal
+  erectors and deep hip flexors use soft bilateral color projections on the
+  existing surfaces. These projections are schematic, not dissected muscle
+  geometry; no triangles or anatomical contours are added or reshaped.
 - Converted the colored source textures to neutral/estimated-load display in
   the shader. Light tendon pixels within assigned muscles receive their muscle's
   tint for visual continuity; other support surfaces remain neutral in training
