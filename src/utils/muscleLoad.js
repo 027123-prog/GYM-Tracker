@@ -3,7 +3,7 @@ import { CHEST_LOAD_PROFILES, CHEST_REGION_LABELS, resolveChestProfile } from '.
 import { muscleColorStrength, muscleLoadColor } from './muscleLoadColor';
 export { muscleLoadColor } from './muscleLoadColor';
 
-export const MUSCLE_LOAD_VERSION = 'activity-4';
+export const MUSCLE_LOAD_VERSION = 'activity-5';
 export const MUSCLE_LOAD_DEFAULTS = Object.freeze({
   referenceDays: 90,
   referenceWorkouts: 5,

@@ -73,9 +73,18 @@ Progression. Die sichtbare Belastung klingt stündlich mit einer gewählten
 Halbwertszeit von 24 Stunden ab; nur die letzten fünf Tage tragen zur Farbe bei.
 Dies ist eine Darstellungsheuristik, keine gemessene Regenerationsdauer.
 Hauptarbeit, Mitwirkung und Stabilisierung sind unterschiedlich gewichtet.
+Der obere Trapez ist beim Kreuzheben und Low Row als Mitwirkung, bei Row Plate
+und Face Pull als leichte Stabilisierung berücksichtigt. Die Kataloggewichte
+sind vereinfachte Darstellungsregeln; eigene bestätigte Zuordnungen bleiben erhalten.
+Die Ergänzung stützt sich auf beobachtete Mitwirkung bei
+[Kreuzhebevarianten](https://pubmed.ncbi.nlm.nih.gov/11932579/) und
+[Rudervarianten](https://pubmed.ncbi.nlm.nih.gov/12613134/); die konkreten
+Gewichte der App sind eigene Heuristik und keine aus EMG abgelesenen Prozente.
 Explizit markierte Aufwärmsätze zählen nicht als Arbeitssätze. Erfasste RIR
 fließen ein; freie Kommentare erzeugen keine erfundene Reserve. Kleine Restwerte
 bleiben neutral, und Berechnung sowie 3D nutzen dieselbe Farbkurve.
+Auch auf der Startseite laufen die letzten Farbstufen weicher in volles Rot;
+Zeitskala und Neutralgrenze bleiben gleich.
 Die Figur steht zwischen vier schmalen Kennzahlenkacheln auf der Startseite und dreht
 sich ohne sichtbare Texte oder Bedienelemente. Ziehen/Wischen bleibt möglich;
 reduzierte Bewegung wird respektiert. Quellen und Lizenzen sind über den Link

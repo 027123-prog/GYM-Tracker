@@ -111,7 +111,8 @@ export const EXERCISE_MUSCLE_RULES = [
     "secondary": [
       "quads",
       "hamstrings",
-      "adductors"
+      "adductors",
+      "upper_traps"
     ],
     "stabilizers": [
       "upper_back",
@@ -138,6 +139,24 @@ export const EXERCISE_MUSCLE_RULES = [
           "upper_back"
         ],
         "stabilizers": [
+          "abs",
+          "obliques",
+          "forearm_flexors"
+        ]
+      },
+      {
+        "primary": [
+          "glutes",
+          "spinal_erectors"
+        ],
+        "secondary": [
+          "quads",
+          "hamstrings",
+          "adductors"
+        ],
+        "stabilizers": [
+          "upper_back",
+          "lats",
           "abs",
           "obliques",
           "forearm_flexors"
@@ -407,9 +426,25 @@ export const EXERCISE_MUSCLE_RULES = [
       "rear_delts"
     ],
     "stabilizers": [
-      "forearm_flexors"
+      "forearm_flexors",
+      "upper_traps"
     ],
-    "status": "draft_assigned"
+    "status": "draft_assigned",
+    "previousAssignments": [
+      {
+        "primary": [
+          "lats"
+        ],
+        "secondary": [
+          "upper_back",
+          "elbow_flexors",
+          "rear_delts"
+        ],
+        "stabilizers": [
+          "forearm_flexors"
+        ]
+      }
+    ]
   },
   {
     "names": [
@@ -525,8 +560,21 @@ export const EXERCISE_MUSCLE_RULES = [
       "external_rotators"
     ],
     "secondary": [],
-    "stabilizers": [],
-    "status": "draft_assigned"
+    "stabilizers": [
+      "upper_traps"
+    ],
+    "status": "draft_assigned",
+    "previousAssignments": [
+      {
+        "primary": [
+          "rear_delts",
+          "upper_back",
+          "external_rotators"
+        ],
+        "secondary": [],
+        "stabilizers": []
+      }
+    ]
   },
   {
     "names": [
@@ -692,7 +740,8 @@ export const EXERCISE_MUSCLE_RULES = [
     "secondary": [
       "lats",
       "rear_delts",
-      "elbow_flexors"
+      "elbow_flexors",
+      "upper_traps"
     ],
     "stabilizers": [
       "forearm_flexors"
@@ -700,7 +749,22 @@ export const EXERCISE_MUSCLE_RULES = [
     "status": "draft_assigned",
     "analysis": {
       "comparisonUncertain": true
-    }
+    },
+    "previousAssignments": [
+      {
+        "primary": [
+          "upper_back"
+        ],
+        "secondary": [
+          "lats",
+          "rear_delts",
+          "elbow_flexors"
+        ],
+        "stabilizers": [
+          "forearm_flexors"
+        ]
+      }
+    ]
   },
   {
     "names": [

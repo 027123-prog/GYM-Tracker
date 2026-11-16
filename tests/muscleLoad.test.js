@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { calculateMuscleLoad, muscleLoadColor, MUSCLE_LOAD_DEFAULTS } from '../src/utils/muscleLoad.js';
 import { muscleColorStrength } from '../src/utils/muscleLoadColor.js';
+import { createAppMuscleMapping } from '../src/utils/muscleAssignments.js';
 
 const NOW = '2026-11-15T12:00:00Z';
 const assignment = { exerciseId: 'press', status: 'draft_assigned', primary: ['chest'], secondary: ['triceps'], stabilizers: [] };
@@ -295,4 +296,29 @@ test('the quiet color zone suppresses tiny stale signals and palette strength is
     previous=current;
   }
   assert(muscleColorStrength(0.2)<0.15, 'small residuals are not gamma-amplified');
+});
+
+test('a recorded floor deadlift contributes upper trapezius load with weaker color than the primary muscles', () => {
+  const exercises = [{ id: 'deadlift', name: 'Kreuzheben', settings: { loadType: 'normal' } }];
+  const recorded = { id: 'today', date: NOW, completedAt: NOW, exercises: [{ exerciseId: 'deadlift', variantKey: 'floor_reset',
+    sets: [set(60, 8, { id: 's1' }), set(60, 8, { id: 's2' })] }] };
+  const original = structuredClone(recorded);
+  const result = calculateMuscleLoad({ exercises, workouts: [recorded], mapping: createAppMuscleMapping(exercises), now: NOW });
+  assert.ok(result.muscles.upper_traps.rawLoad > 0);
+  assert.notEqual(result.muscles.upper_traps.color, muscleLoadColor(0));
+  assert.ok(result.muscles.upper_traps.displayIntensity < result.muscles.glutes.displayIntensity);
+  assert.deepEqual(recorded, original);
+  const unresolved = structuredClone(recorded);
+  delete unresolved.exercises[0].variantKey;
+  assert.equal(calculateMuscleLoad({ exercises, workouts: [unresolved], mapping: createAppMuscleMapping(exercises), now: NOW }).muscles.upper_traps.rawLoad, 0);
+});
+
+test('the final steps into full red are softer on the shared dashboard palette while neutral residuals stay quiet', () => {
+  const old = value => Math.max(0, (value - 0.08) / 0.92) ** 1.25;
+  const newGap = muscleColorStrength(1) - muscleColorStrength(0.9);
+  const oldGap = old(1) - old(0.9);
+  assert.ok(newGap < oldGap * 0.6);
+  assert.equal(muscleColorStrength(0.08), 0);
+  assert.equal(muscleColorStrength(1), 1);
+  assert.ok(muscleColorStrength(0.2) < 0.15);
 });

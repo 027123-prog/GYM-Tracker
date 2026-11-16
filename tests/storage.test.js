@@ -138,7 +138,7 @@ test('normalizeAppState migriert Namen und bereinigt beschädigte v1-Daten', () 
         status: 'draft_assigned',
         ruleSource: 'catalogue',
         ruleKey: 'Bankdrücken Stange',
-        ruleRevision: 3,
+        ruleRevision: 4,
         primary: ['chest'],
         chestProfile: 'flat',
         secondary: ['triceps', 'front_delts'],
@@ -376,7 +376,7 @@ test('Backup-Export und -Import ergeben einen verlustfreien normalisierten Round
   const restored = parseBackupPayload(JSON.stringify(backup));
 
   assert.equal(backup.app, 'hardgainwaf');
-  assert.equal(backup.appVersion, '2.20.3');
+  assert.equal(backup.appVersion, '2.20.4');
   assert.equal(backup.storageKey, STORAGE_KEY);
   assert.equal(backup.storageVersion, STORAGE_VERSION);
   assert.match(backup.exportedAt, /^\d{4}-\d{2}-\d{2}T/);

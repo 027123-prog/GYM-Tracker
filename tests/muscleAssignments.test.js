@@ -65,7 +65,7 @@ test('old automatic drafts upgrade their exact known roles, while custom or conf
   assert(upgraded.secondary.includes('quads'));
   assert(upgraded.stabilizers.includes('upper_back'));
   assert.equal(upgraded.ruleSource,'catalogue');
-  assert.equal(upgraded.ruleRevision,3);
+  assert.equal(upgraded.ruleRevision,4);
   assert.deepEqual(getExerciseMuscleAssignment({name:'Mein umbenanntes Heben',muscleAssignment:upgraded}),upgraded);
   const confirmed=getExerciseMuscleAssignment({name:'Kreuzheben',muscleAssignment:{...legacy,status:'confirmed'}});
   assert.deepEqual(confirmed.primary,legacy.primary);
@@ -84,6 +84,21 @@ test('plan display aliases resolve exactly and isolation exercises do not invent
   const reverse=getExerciseMuscleAssignment({name:'Reverse fly - machine'});
   assert(!reverse.primary.includes('external_rotators')&&!reverse.secondary.includes('external_rotators'));
   assert(reverse.stabilizers.includes('external_rotators'));
+});
+
+test('legacy and renamed automatic rowing assignments gain upper trapezius involvement without overwriting confirmed exclusions', () => {
+  const old = { status: 'draft_assigned', primary: ['upper_back'], secondary: ['lats', 'rear_delts', 'elbow_flexors'], stabilizers: ['forearm_flexors'] };
+  const exercise = { name: 'Low Row Plate', muscleAssignment: old };
+  const snapshot = structuredClone(exercise);
+  const updated = getExerciseMuscleAssignment(exercise);
+  assert.ok(updated.secondary.includes('upper_traps'));
+  assert.equal(updated.ruleRevision, 4);
+  const renamed = getExerciseMuscleAssignment({ name: 'Mein Rudern', muscleAssignment: { ...old, ruleSource: 'catalogue', ruleKey: 'Low Row Plate', ruleRevision: 3 } });
+  assert.ok(renamed.secondary.includes('upper_traps'));
+  assert.deepEqual(getExerciseMuscleAssignment({ ...exercise, muscleAssignment: { ...old, status: 'confirmed' } }).secondary, old.secondary);
+  assert.deepEqual(exercise, snapshot);
+  assert.ok(getExerciseMuscleAssignment({ name: 'Row Plate – latbetont' }).stabilizers.includes('upper_traps'));
+  assert.ok(getExerciseMuscleAssignment({ name: 'Face Pull' }).stabilizers.includes('upper_traps'));
 });
 
 test('structured RIR and explicit warm-up flags survive backup normalization without changing historical load values', () => {

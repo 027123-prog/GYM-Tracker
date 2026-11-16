@@ -6,7 +6,10 @@ const RED = [181, 11, 18];
 export function muscleColorStrength(intensity) {
   const amount = typeof intensity === 'number' && Number.isFinite(intensity)
     ? Math.max(0, Math.min(1, intensity)) : 0;
-  return Math.max(0, (amount - 0.08) / 0.92) ** 1.25;
+  const strength = Math.max(0, (amount - 0.08) / 0.92) ** 1.25;
+  // Compress the final color steps into full red without lifting the neutral
+  // threshold or substantially amplifying tiny time-decayed residuals.
+  return strength + 0.65 * strength ** 2 * (1 - strength);
 }
 
 export function muscleLoadColor(intensity) {

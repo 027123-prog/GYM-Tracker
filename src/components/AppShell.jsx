@@ -6,8 +6,8 @@ import SyncIndicator from './SyncIndicator';
 import AppUpdateNotice from './AppUpdateNotice';
 import { calculateWorkoutStats } from '../utils/workout';
 
-const appVersion = '2.20.3';
-const displayVersion = `v${appVersion.split('.').slice(0, 2).join('.')}`;
+const appVersion = '2.20.4';
+const displayVersion = `v${appVersion}`;
 
 const navItems = [
   { to: '/', label: 'Übersicht', shortLabel: 'Übersicht', marker: '01' },
