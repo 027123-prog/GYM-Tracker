@@ -45,7 +45,9 @@ als persönliche Vergleichsbasis dienen weiterhin abgeschlossene Einheiten.
 
 ## Daten
 
-Die Übungsübersicht bietet **Graph**, **Zeilen** und **Körper**. Der Körpermodus
+Die Übungsübersicht wechselt über einen kompakten Symbolbutton zwischen
+**Graph → Zeilen → Körper → Graph**. Sein Symbol zeigt die aktuelle Ansicht.
+Der Körpermodus
 zeigt pro Übung deren geschätzte Muskelbeteiligung; auf der Diagrammseite folgt
 unten die große Körperansicht mit einer von stark nach schwach sortierten Liste.
 Hauptmuskeln, Mitwirkung und Stabilisierung verwenden dieselben Katalogrollen,
