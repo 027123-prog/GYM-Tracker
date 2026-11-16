@@ -156,7 +156,8 @@ export default function ExerciseLibraryPage() {
                 <button type="button" className={`${iconButtonClass} ${exercise.archivedAt ? 'text-amber' : 'hover:text-ember'}`} aria-label={`${exercise.name} ${exercise.archivedAt ? 'wiederherstellen' : 'entfernen'}`} title={exercise.archivedAt ? 'Wiederherstellen' : 'Entfernen'} onClick={() => exercise.archivedAt ? restoreExercise(exercise) : openAction('remove', exercise.id)}><LibraryIcon name={exercise.archivedAt ? 'restore' : 'trash'} /></button>
               </div> : null}
             </div>
-            {previewMode ? <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder, libraryReturnTo, chartMetric: getChartMetric(exercise) }} className="mt-auto block py-2" aria-label={`${bodyMode ? 'Muskelansicht' : 'Diagrammvorschau'} von ${exercise.name}`}>
+            {previewMode ? <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder, libraryReturnTo, chartMetric: getChartMetric(exercise) }} className="mt-auto block py-2" aria-label={`${bodyMode ? 'Muskelansicht' : 'Diagrammvorschau'} von ${exercise.name}`}
+              title={bodyMode ? 'Wischen oder Pfeiltasten zum Drehen · Tippen für Details' : undefined}>
               {bodyMode ? <ExerciseMuscleProfile exercise={exercise} compact />
                 : <ExerciseChartPreview data={chartPreviews.get(exercise.id)} metric={getChartMetric(exercise)} loadType={exercise.settings?.loadType} />}
             </Link> : exercise.latestSummary ? <p className="truncate text-xs leading-5 text-muted" title={exercise.latestSummary}>{exercise.latestSummary}</p> : null}

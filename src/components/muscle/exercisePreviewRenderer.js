@@ -24,7 +24,6 @@ function createService() {
   const rim = new THREE.DirectionalLight('#b7c9ce', 1.3);
   rim.position.set(2, 2, -2); scene.add(rim);
   const entries = new Set();
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   let figure, frame = null, disposed = false, failed = false, lastTick = -Infinity, cursor = 0;
   let renderWidth = 0, renderHeight = 0;
   const suspend = () => { if (frame !== null) cancelAnimationFrame(frame); frame = null; };
@@ -38,9 +37,9 @@ function createService() {
   function draw(time) {
     frame = null;
     if (disposed || failed || document.hidden || !entries.size) return;
-    if (time - lastTick >= 100) {
+    if (time - lastTick >= 1000 / 30) {
       lastTick = time;
-      const pending = [...entries].filter(entry => !reduced.matches || entry.dirty);
+      const pending = [...entries].filter(entry => entry.dirty);
       const count = Math.min(MAX_DRAWS_PER_TICK, pending.length);
       for (let index = 0; index < count; index++) {
         const entry = pending[(cursor + index) % pending.length];
@@ -56,7 +55,7 @@ function createService() {
         }
         camera.left = -1.015 * width / height; camera.right = -camera.left;
         camera.updateProjectionMatrix();
-        figure.root.rotation.y = reduced.matches ? -0.15 : time / 15000 * Math.PI * 2 - 0.15;
+        figure.root.rotation.y = entry.angle;
         figure.setLevels(entry.muscles);
         try {
           renderer.render(scene, camera);
@@ -68,13 +67,11 @@ function createService() {
       }
       cursor = pending.length ? (cursor + count) % pending.length : 0;
     }
-    if (!reduced.matches || [...entries].some(entry => entry.dirty)) requestDraw();
+    if ([...entries].some(entry => entry.dirty)) requestDraw();
   }
   const visibility = () => { if (document.hidden) suspend(); else requestDraw(); };
-  const preference = () => { for (const entry of entries) entry.dirty = true; requestDraw(); };
   const contextLost = event => { event.preventDefault(); fail(); };
   document.addEventListener('visibilitychange', visibility);
-  reduced.addEventListener('change', preference);
   renderer.domElement.addEventListener('webglcontextlost', contextLost);
   createMuscleFigure().then(asset => {
     if (disposed) { asset.dispose(); return; }
@@ -82,34 +79,35 @@ function createService() {
   }).catch(fail);
   return {
     entries,
-    register(canvas, muscles, onStatus) {
+    register(canvas, muscles, onStatus, angle) {
       const context = canvas.getContext('2d');
-      if (failed || !context) { onStatus('failed'); return { update() {}, dispose() {} }; }
-      const entry = { canvas, context, muscles, onStatus, ready: false, dirty: true };
+      if (failed || !context) { onStatus('failed'); return { update() {}, setAngle() {}, dispose() {} }; }
+      const entry = { canvas, context, muscles, onStatus, angle, ready: false, dirty: true };
       entries.add(entry); onStatus('loading'); requestDraw();
       return {
         update(next) { entry.muscles = next; entry.dirty = true; requestDraw(); },
+        setAngle(next) { if (!Number.isFinite(next)) return; entry.angle = next; entry.dirty = true; requestDraw(); },
         dispose() { entries.delete(entry); if (!entries.size) suspend(); canvas.width = 1; canvas.height = 1; },
       };
     },
     dispose() {
       disposed = true; suspend();
       document.removeEventListener('visibilitychange', visibility);
-      reduced.removeEventListener('change', preference);
       renderer.domElement.removeEventListener('webglcontextlost', contextLost);
       figure?.dispose(); renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }
 
-export function registerExercisePreview(canvas, muscles, onStatus) {
+export function registerExercisePreview(canvas, muscles, onStatus, angle = 0) {
   clearTimeout(shutdownTimer);
   try { shared ??= createService(); }
-  catch { onStatus('failed'); return { update() {}, dispose() {} }; }
+  catch { onStatus('failed'); return { update() {}, setAngle() {}, dispose() {} }; }
   const service = shared;
-  const registration = service.register(canvas, muscles, onStatus);
+  const registration = service.register(canvas, muscles, onStatus, Number.isFinite(angle) ? angle : 0);
   return {
     update: registration.update,
+    setAngle: registration.setAngle,
     dispose() {
       registration.dispose();
       if (!service.entries.size) shutdownTimer = setTimeout(() => {

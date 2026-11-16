@@ -1,6 +1,7 @@
 .muscle-figure { position: relative; width: 100%; }
 .exercise-muscle-preview { position: relative; width: 100%; height: 240px; }
-.exercise-muscle-preview canvas { display: block; width: 100%; height: 100%; }
+.exercise-muscle-preview canvas { display: block; width: 100%; height: 100%; touch-action: pan-y; cursor: grab; }
+.exercise-muscle-preview canvas:active { cursor: grabbing; }
 .exercise-muscle-compact { overflow: hidden; background: radial-gradient(ellipse at 50% 42%, #29313580, transparent 75%); }
 @media (min-width: 600px) { .exercise-muscle-preview { height: 280px; } }
 .muscle-figure-stage { position: relative; height: 420px; width: 100%; }

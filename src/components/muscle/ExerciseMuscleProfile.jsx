@@ -13,7 +13,7 @@ export default function ExerciseMuscleProfile({ exercise, compact = false }) {
   const fallback = <div className={compact ? 'exercise-muscle-preview' : 'muscle-figure-stage'} role="status" aria-label="Körperansicht lädt" />;
   if (compact) return <div className="exercise-muscle-compact">
     <Suspense fallback={fallback}>
-      <ExerciseMusclePreview muscles={profile.muscles} label={`Muskelgruppen für ${exercise.name}. ${summary || description}`} />
+      <ExerciseMusclePreview muscles={profile.muscles} initialView={profile.defaultView} label={`Muskelgruppen für ${exercise.name}. ${summary || description}`} />
     </Suspense>
     {profile.rows.length ? <p className="sr-only">{summary}</p> : <p className="px-1 pb-2 text-center text-[10px] text-muted">{description}</p>}
   </div>;

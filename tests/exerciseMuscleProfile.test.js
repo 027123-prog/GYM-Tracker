@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildExerciseMuscleProfile, normalizeExerciseLibraryLayout } from '../src/utils/exerciseMuscleProfile.js';
+import { buildExerciseMuscleProfile, chooseExerciseMuscleView, normalizeExerciseLibraryLayout } from '../src/utils/exerciseMuscleProfile.js';
+import { MUSCLE_VIEW_ASSET_REVISION, MUSCLE_VIEW_VISIBILITY } from '../src/data/muscleViewVisibility.js';
+import { DIEGO_ASSET_REVISION } from '../src/data/diegoAnatomy.js';
 import { muscleLoadColor } from '../src/utils/muscleLoadColor.js';
 
 test('exercise profiles show primary work, assistance and visible light stabilization in descending order', () => {
@@ -56,4 +58,21 @@ test('layout parsing preserves old graph/list URLs and supports the new body vie
   assert.equal(normalizeExerciseLibraryLayout('body'), 'body');
   assert.equal(normalizeExerciseLibraryLayout('list'), 'list');
   for (const value of [null, undefined, '', 'graph', 'preview', 'unrecognized']) assert.equal(normalizeExerciseLibraryLayout(value), 'graph');
+});
+
+test('the starting side favors the most strongly involved visible muscles', () => {
+  for (const name of ['Bankdrücken', 'Kniebeuge - Langhantel', 'Schulterdrücken stehend']) assert.equal(buildExerciseMuscleProfile({ name }).defaultView, 'front', name);
+  for (const name of ['Kreuzheben', 'Low Row Plate', 'Latzug - Kabelzug', 'Face Pull']) assert.equal(buildExerciseMuscleProfile({ name }).defaultView, 'back', name);
+  assert.equal(chooseExerciseMuscleView([{ id: 'chest_upper', weight: 1 }, { id: 'lats', weight: 0.08 }, { id: 'upper_back', weight: 0.08 }, { id: 'glutes', weight: 0.08 }]), 'front');
+  assert.equal(chooseExerciseMuscleView([]), 'front');
+});
+
+test('visibility data comes from the current model and covers its surfaced training regions', () => {
+  assert.equal(MUSCLE_VIEW_ASSET_REVISION, DIEGO_ASSET_REVISION);
+  for (const [id, counts] of Object.entries(MUSCLE_VIEW_VISIBILITY)) {
+    assert.ok(Number.isInteger(counts.front) && counts.front >= 0);
+    assert.ok(Number.isInteger(counts.back) && counts.back >= 0);
+    if (id !== 'chest') assert.ok(counts.front + counts.back > 0, id);
+  }
+  assert.ok(MUSCLE_VIEW_VISIBILITY.spinal_erectors.back > 0);
 });

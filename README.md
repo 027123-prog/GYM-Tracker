@@ -54,8 +54,15 @@ Hauptmuskeln, Mitwirkung und Stabilisierung verwenden dieselben Katalogrollen,
 mit regionalen Schwerpunkten bei Brustübungen. Das ist ein Übungsprofil ohne
 gemessene Aktivierungsprozente, unabhängig von Tagesform und Trainingshistorie.
 Unbekannte Übungen und ungeklärte Varianten bleiben ausdrücklich ohne Zuordnung.
-Die Bibliotheksvorschauen teilen einen WebGL-Renderer und ein Modell, laden nur
-sichtbare Karten und berücksichtigen reduzierte Bewegung sowie Hintergrundtabs.
+Die Bibliotheksvorschauen stehen still und starten vorn oder hinten, wo die
+stärker beteiligten Muskelgruppen im Modell besser sichtbar sind. Jede Figur
+lässt sich einzeln horizontal ziehen und bleibt in ihrer Position, auch nach
+dem Scrollen aus dem sichtbaren Bereich. Tippen öffnet weiterhin die Details;
+Pfeiltasten drehen die fokussierte Karte, Home stellt ihre Startseite wieder her.
+Die Karten teilen einen WebGL-Renderer und ein Modell und zeichnen nur bei
+Änderungen. Offscreen-Karten und Hintergrundtabs verbrauchen keine Zeichenzeit.
+Die Sichtbarkeitsdaten werden mit `scripts/build-muscle-view-visibility.mjs`
+aus dem vorhandenen Modell erzeugt; sie sind keine Aktivierungsmessung.
 
 Die Startseite enthält eine drehbare Muskelkarte. Die Rotabstufungen schätzen die
 aktuelle Trainingsbelastung anhand von relativer Last, Umfang und Zeitabstand.

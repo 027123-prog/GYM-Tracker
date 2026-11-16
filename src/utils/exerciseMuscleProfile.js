@@ -3,15 +3,31 @@ import { MUSCLE_GROUPS } from '../data/exerciseMuscles';
 import { CHEST_LOAD_PROFILES, resolveChestProfile } from '../data/chestRegions';
 import { MUSCLE_LOAD_DEFAULTS } from './muscleLoad';
 import { muscleLoadColor } from './muscleLoadColor';
+import { MUSCLE_VIEW_VISIBILITY } from '../data/muscleViewVisibility';
 
 const roleLabels = { primary: 'Hauptmuskel', secondary: 'Mitwirkung', stabilizers: 'Stabilisierung' };
+
+export function chooseExerciseMuscleView(rows) {
+  let front = 0, back = 0;
+  for (const row of rows) {
+    const visible = MUSCLE_VIEW_VISIBILITY[row.id];
+    const total = (visible?.front ?? 0) + (visible?.back ?? 0);
+    if (!total || !(row.weight > 0)) continue;
+    // Prioritize strongly involved regions over a collection of light stabilizers.
+    // Normalize each region so large surface areas do not dominate automatically.
+    const priority = row.weight ** 2;
+    front += priority * visible.front / total;
+    back += priority * visible.back / total;
+  }
+  return back > front ? 'back' : 'front';
+}
 
 // A prospective exercise profile, independent of logged load, history and rest.
 // Weights describe our catalogue heuristic, never measured activation percentages.
 export function buildExerciseMuscleProfile(exercise) {
   const assignment = exercise ? getExerciseMuscleAssignment(exercise) : null;
   if (!assignment || !['draft_assigned', 'confirmed'].includes(assignment.status)) {
-    return { status: assignment?.status === 'tentative_variant' ? 'tentative' : 'unassigned', rows: [], muscles: {} };
+    return { status: assignment?.status === 'tentative_variant' ? 'tentative' : 'unassigned', rows: [], muscles: {}, defaultView: 'front' };
   }
   const contributions = new Map();
   const add = (id, weight, role) => {
@@ -35,7 +51,7 @@ export function buildExerciseMuscleProfile(exercise) {
       strengthLabel: item.weight >= 0.7 ? 'Stark' : item.weight >= 0.25 ? 'Mittel' : 'Leicht',
       color: muscleLoadColor(intensity) };
   }).sort((a, b) => b.weight - a.weight || a.label.localeCompare(b.label, 'de'));
-  return { status: rows.length ? 'assigned' : 'unassigned', rows,
+  return { status: rows.length ? 'assigned' : 'unassigned', rows, defaultView: chooseExerciseMuscleView(rows),
     muscles: Object.fromEntries(rows.map(item => [item.id, { intensity: item.intensity }])) };
 }
 
