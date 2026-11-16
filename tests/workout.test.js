@@ -7,6 +7,7 @@ import {
   calculateWorkoutStats,
   getExerciseWorkoutCount,
   getLastExerciseSnapshot,
+  getExerciseHistory,
   getLastExerciseWeight,
   getExerciseChartMetricOptions,
   resolveExerciseChartMetric,
@@ -15,6 +16,26 @@ import {
   resolveExerciseLibraryMetric,
   sortWorkoutsByDate,
 } from '../src/utils/workout.js';
+
+test('exercise history groups every completed session for browsing and preserves comments, times and settings', () => {
+  const entry = (id, extra = {}) => ({ exerciseId: 'db', sets: [{ id, weight: 20, reps: 8, comment: 'kontrolliert', savedAt: '2026-11-16T12:00:00Z' }], ...extra });
+  const workouts = [
+    { id: 'older', date: '2026-11-12', completedAt: '2026-11-12', exercises: [entry('a')] },
+    { id: 'newer', date: '2026-11-15', completedAt: '2026-11-15', exercises: [entry('b', { machineSettings: [{ label: 'Sitz', value: '4' }] }), entry('c'), entry('skip', { skipped: true })] },
+    { id: 'running', date: '2026-11-16', completedAt: null, exercises: [entry('d')] },
+  ];
+  const original = structuredClone(workouts);
+  const history = getExerciseHistory(workouts, 'db');
+  assert.deepEqual(history.map(item => item.workoutId), ['newer', 'older']);
+  assert.deepEqual(history[0].sets.map(item => item.id), ['b', 'c']);
+  assert.equal(history[0].sets[0].comment, 'kontrolliert');
+  assert.equal(history[0].sets[0].savedAt, '2026-11-16T12:00:00Z');
+  assert.deepEqual(history[0].machineSettings, [{ label: 'Sitz', value: '4' }]);
+  assert.deepEqual(getLastExerciseSnapshot(workouts, 'db'), history[0]);
+  assert.deepEqual(getExerciseHistory(workouts, 'db', 'newer').map(item => item.workoutId), ['older']);
+  assert.deepEqual(getExerciseHistory(workouts, 'unknown'), []);
+  assert.deepEqual(workouts, original);
+});
 
 test('Körpergewichtsanteil und Zusatzgewicht ergeben eine nachvollziehbare effektive Last', () => {
   assert.equal(calculateBodyweightLoad('90', 2 / 3, 0), 60);

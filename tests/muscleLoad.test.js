@@ -179,12 +179,40 @@ test('date-only ages use local calendar days across DST and future dates stay ex
 
 test('empty drafts, skipped, invalid and explicitly warmup sets do not contribute', () => {
   const result = run([
-    { ...workout('draft', '2026-11-14'), completedAt: null },
+    { ...workout('draft', '2026-11-14', []), completedAt: null },
     workout('skip', '2026-11-14', [set()], { skipped: true }),
     workout('invalid', '2026-11-14', [set(40, 0), set(40, 8, { invalid: true }), set(40, 8, { setType: 'warmup' })]),
   ]);
   assert.equal(result.muscles.chest.intensity, 0);
   assert.equal(result.sessions.flatMap(item => item.sets).length, 0);
+});
+
+test('saved running sets update muscle colors after saving, editing and deleting; completion does not double count', () => {
+  const running = { ...workout('running', '2026-11-15', []), completedAt: null };
+  const calculate = () => run([...ref(50), running]);
+  const empty = calculate().muscles.chest.rawLoad;
+  running.exercises[0].sets.push(set(40, 8, { id: 'saved' }));
+  const first = calculate();
+  assert.ok(first.muscles.chest.rawLoad > empty);
+  assert.equal(first.sessions.at(-1).isInProgress, true);
+  assert.deepEqual(first.sessions.at(-1).sets[0].reference.workoutIds, ['ref1', 'ref2']);
+  running.exercises[0].sets[0].reps = 12;
+  const edited = calculate().muscles.chest.rawLoad;
+  assert.ok(edited > first.muscles.chest.rawLoad);
+  running.completedAt = NOW;
+  assert.equal(calculate().muscles.chest.rawLoad, edited);
+  running.exercises[0].sets = [];
+  assert.equal(calculate().muscles.chest.rawLoad, empty);
+});
+
+test('unfinished sessions contribute exposure but never establish a later reference', () => {
+  const unfinished = { ...workout('unfinished', '2026-11-13', [set(90)]), completedAt: null };
+  const result = run([unfinished, workout('target', '2026-11-14')]);
+  assert.ok(result.sessions[0].sets[0].contribution > 0);
+  assert.equal(targetScore(result).reference, null);
+  const invalid = { ...unfinished, date: 'invalid' };
+  assert.equal(run([invalid]).muscles.chest.rawLoad, 0);
+  assert.equal(run([{ ...unfinished, date: '2026-11-16' }]).muscles.chest.rawLoad, 0);
 });
 
 test('duplicate muscle roles, set IDs and workout IDs never inflate the result', () => {

@@ -14,6 +14,7 @@ import { getExerciseRepSuggestions } from '../utils/repSuggestions';
 import {
   calculateWorkoutStats,
   getLastExerciseCommentText,
+  getExerciseHistory,
   getLastExerciseSummaryText,
 } from '../utils/workout';
 
@@ -352,6 +353,7 @@ export default function WorkoutBuilderPage({ mode }) {
                   state.exercises.find((item) => item.id === activeExercise.exerciseId)?.settings,
                 )}
                 repSuggestions={getExerciseRepSuggestions(state.workouts, activeExercise.exerciseId)}
+                exerciseHistory={getExerciseHistory(previousWorkouts, activeExercise.exerciseId, null, activeExercise.name)}
                 lastWorkoutSummary={getLastExerciseSummaryText(
                   previousWorkouts,
                   activeExercise.exerciseId,

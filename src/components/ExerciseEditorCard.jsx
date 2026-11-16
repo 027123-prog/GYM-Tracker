@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import ExerciseSettingsModal from './ExerciseSettingsModal';
 import SetEntryModal from './SetEntryModal';
 import StopwatchModal from './StopwatchModal';
+import ExerciseHistoryModal from './ExerciseHistoryModal';
+import { formatSetTime } from '../utils/date';
 import { formatSetSummary } from '../utils/setMeasurements';
 import { getRepeatedSetPayload } from '../utils/setEntry';
 import { getExerciseWeightSuggestions } from '../utils/weightSuggestions';
@@ -75,6 +77,7 @@ export default function ExerciseEditorCard({
   repSuggestions,
   lastWorkoutSummary,
   lastWorkoutCommentText,
+  exerciseHistory = [],
   onPrevExercise,
   onNextExercise,
   onInsertExercise,
@@ -93,6 +96,7 @@ export default function ExerciseEditorCard({
   const [timerSetup, setTimerSetup] = useState(false);
   const [timerLoad, setTimerLoad] = useState(null);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [editingSet, setEditingSet] = useState(null);
   const [recentlySaved, setRecentlySaved] = useState('');
   const [draftName, setDraftName] = useState(exercise.name);
@@ -229,7 +233,9 @@ export default function ExerciseEditorCard({
             }`}
           >
             {lastWorkoutSummary || lastWorkoutCommentText ? <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Zuletzt</p>
+              <button type="button" onClick={() => setHistoryOpen(true)}
+                className="min-h-10 text-xs font-bold uppercase tracking-[0.14em] text-amber-deep underline underline-offset-4"
+                aria-label={`Bisherige Trainings für ${exercise.name} öffnen`}>Zuletzt ↗</button>
               {lastWorkoutSummary ? <p className="mt-1 italic text-ink">{lastWorkoutSummary}</p> : null}
               {lastWorkoutCommentText ? <p className="mt-1 text-xs italic text-muted">{lastWorkoutCommentText}</p> : null}
             </div> : null}
@@ -340,7 +346,12 @@ export default function ExerciseEditorCard({
                     recentlySaved === setItem.id ? 'bg-amber-soft' : 'hover:bg-surface-raised'
                   }`}
                 >
-                  <span className="eyebrow">Satz {String(index + 1).padStart(2, '0')}</span>
+                  <div>
+                    <span className="eyebrow">Satz {String(index + 1).padStart(2, '0')}</span>
+                    {formatSetTime(setItem.savedAt) ? <time dateTime={setItem.savedAt} className="mt-1 block text-xs tabular-nums text-muted">
+                      {formatSetTime(setItem.savedAt)} Uhr
+                    </time> : null}
+                  </div>
                   <p className="font-display text-lg font-bold tabular-nums text-ink">
                     {formatSetSummary(setItem)}
                   </p>
@@ -379,6 +390,7 @@ export default function ExerciseEditorCard({
         </div>
       </article>
 
+      {historyOpen ? <ExerciseHistoryModal exerciseName={exercise.name} history={exerciseHistory} onClose={() => setHistoryOpen(false)} /> : null}
       <SetEntryModal
         isOpen={setModalOpen}
         initialSet={editingSet}

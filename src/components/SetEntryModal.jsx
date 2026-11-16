@@ -9,6 +9,19 @@ const repPresets = [5, 6, 7, 8, 9, 10, 11, 12];
 const durationPresets = [15, 20, 30, 40, 45, 60];
 const BODY_WEIGHT_KEY = 'hardgainwaf-body-weight-kg';
 
+function EntryValue({ label, manual, value, onChange, inputMode = 'decimal', focus = false, suffix = '' }) {
+  return <div>
+    {manual ? <label>
+      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">{label}</span>
+      <input className="field text-lg font-bold tabular-nums" inputMode={inputMode}
+        value={value} onChange={event => onChange(event.target.value)} autoFocus={focus} />
+    </label> : <div className="rounded-sm border border-line bg-surface-raised p-3">
+      <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">{label}</p>
+      <p className="mt-1 text-lg font-bold tabular-nums text-ink">{value === '' ? '–' : `${value}${suffix}`}</p>
+    </div>}
+  </div>;
+}
+
 function readBodyWeight() {
   try {
     return window.localStorage.getItem(BODY_WEIGHT_KEY) ?? '';
@@ -57,6 +70,7 @@ export default function SetEntryModal({
   const [bodyWeight, setBodyWeight] = useState(initialSet?.bodyWeight ?? '');
   const [addedWeight, setAddedWeight] = useState(initialSet?.addedWeightInput ?? initialSet?.addedWeight ?? 0);
   const [error, setError] = useState('');
+  const [manual, setManual] = useState(false);
   const parsedAddedWeight = parseWeightInput(addedWeight, { allowNegative: true });
   const parsedWeight = parseWeightInput(weight);
   const displayedWeightOptions = getSetEntryWeightSuggestions(weightOptions, configuredLoadType, loadType);
@@ -73,6 +87,7 @@ export default function SetEntryModal({
     setBodyWeight(initialSet?.bodyWeight ?? readBodyWeight());
     setAddedWeight(initialSet?.addedWeightInput ?? initialSet?.addedWeight ?? 0);
     setError('');
+    setManual(false);
   }, [exerciseName, initialSet, isOpen, duration, loadType]);
 
   function handleSubmit(event) {
@@ -119,81 +134,41 @@ export default function SetEntryModal({
             {timerSetup ? 'Gewicht für Stoppuhr' : initialSet ? 'Satz ändern' : 'Neuer Satz'}
           </h2>
         </div>
+        <button type="button" className="icon-button" aria-label={manual ? 'Manuelle Eingabe schließen' : 'Manuelle Eingabe öffnen'}
+          aria-pressed={manual} onClick={() => setManual(value => !value)}>
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15l-1 6Z" />
+          </svg>
+        </button>
         <button type="button" onClick={onClose} className="icon-button" aria-label="Dialog schließen">×</button>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
         <div className={`grid gap-3 ${withoutWeight || timerSetup ? '' : 'grid-cols-2'}`}>
           {usesBodyweight ? (
-            <label>
-              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Dein Gewicht</span>
-              <input
-                className="field text-lg font-bold tabular-nums"
-                inputMode="decimal"
-                value={bodyWeight}
-                onChange={(event) => {
-                  setBodyWeight(event.target.value);
-                  setError('');
-                }}
-                placeholder="z. B. 90"
-                autoFocus
-                data-autofocus
-              />
-            </label>
+            <EntryValue label="Dein Gewicht" manual={manual} value={bodyWeight} onChange={setBodyWeight} focus suffix=" kg" />
           ) : !withoutWeight ? (
-            <label>
-              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Gewicht</span>
-              <input
-                className="field text-lg font-bold tabular-nums"
-                inputMode={paired ? 'decimal' : 'text'}
-                value={weight}
-                onChange={(event) => {
-                  setWeight(event.target.value);
-                  setError('');
-                }}
-                autoFocus
-                data-autofocus
-              />
+            <div>
+              <EntryValue label={paired ? 'Gewicht je Hantel' : 'Gewicht'} manual={manual} value={weight}
+                onChange={setWeight} inputMode={paired ? 'decimal' : 'text'} focus suffix=" kg" />
               {paired ? (
                 <span className="mt-1.5 block text-xs text-muted">2x</span>
               ) : parsedWeight?.weightInput ? <span className="mt-1.5 block text-xs text-muted">Gesamtlast: {parsedWeight.weight} kg</span> : null}
-            </label>
+            </div>
           ) : null}
-          {!timerSetup ? <label>
-            <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">{duration ? 'Sekunden' : 'Wiederholungen'}</span>
-            <input
-              className="field text-lg font-bold tabular-nums"
-              inputMode="numeric"
-              value={reps}
-              onChange={(event) => {
-                setReps(event.target.value);
-                setError('');
-              }}
-              placeholder={duration ? '30' : '8'}
-              autoFocus={withoutWeight}
-              data-autofocus={withoutWeight || undefined}
-            />
-          </label> : null}
+          {!timerSetup ? <EntryValue label={duration ? 'Sekunden' : 'Wiederholungen'} manual={manual}
+            value={reps} onChange={setReps} inputMode="numeric" focus={withoutWeight} /> : null}
         </div>
 
         {usesBodyweight ? (
           <div className="rounded-sm bg-surface-raised p-3">
             {allowsAddedWeight ? (
-              <label>
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-                  Zusatzgewicht / Unterstützung
-                </span>
-                <input
-                  className="field py-2.5"
-                  inputMode="text"
-                  value={addedWeight}
-                  onChange={(event) => {
-                    setAddedWeight(event.target.value);
-                    setError('');
-                  }}
-                  placeholder="+10 oder -20"
-                />
-              </label>
+              <div className="space-y-2">
+                <EntryValue label="Zusatzgewicht / Unterstützung" manual={manual} value={addedWeight}
+                  onChange={setAddedWeight} inputMode="text" suffix=" kg" />
+                <WeightSuggestionGrid options={[-20, -10, -5, 0, 5, 10, 15, 20]} selectedValue={addedWeight}
+                  onSelect={setAddedWeight} label="Zusatzgewicht / Unterstützung" />
+              </div>
             ) : null}
             <div className={`${allowsAddedWeight ? 'mt-3' : ''} flex items-center justify-between gap-3`}>
               <p className="text-xs text-muted">Körpergewichtsanteil: <strong className="text-ink">{bodyweightPercent} %</strong></p>
@@ -229,7 +204,7 @@ export default function SetEntryModal({
           </div>
         </div> : null}
 
-        {!timerSetup ? <label className="block">
+        {!timerSetup && manual ? <label className="block">
           <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Kommentar</span>
           <textarea
             className="field min-h-[88px] resize-y"
@@ -238,6 +213,7 @@ export default function SetEntryModal({
             placeholder="Form, Tempo, Gefühl …"
           />
         </label> : null}
+        {!timerSetup && !manual && comment ? <p className="text-sm italic text-muted">{comment}</p> : null}
 
         {error ? (
           <p className="rounded-sm border border-ember/35 bg-ember/10 px-3 py-2 text-sm font-semibold text-ember" role="alert">

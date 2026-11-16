@@ -3,7 +3,7 @@ import { CHEST_LOAD_PROFILES, CHEST_REGION_LABELS, resolveChestProfile } from '.
 import { muscleColorStrength, muscleLoadColor } from './muscleLoadColor';
 export { muscleLoadColor } from './muscleLoadColor';
 
-export const MUSCLE_LOAD_VERSION = 'activity-3';
+export const MUSCLE_LOAD_VERSION = 'activity-4';
 export const MUSCLE_LOAD_DEFAULTS = Object.freeze({
   referenceDays: 90,
   referenceWorkouts: 5,
@@ -222,9 +222,8 @@ export function calculateMuscleLoad({ workouts = [], exercises = [], mapping, no
   }]));
   const accepted = [];
   for (const workout of workouts) {
-    if (!workout.completedAt) continue;
-    const completed = dates.parse(workout.completedAt);
-    if (!completed || completed.future) {
+    const completed = workout.completedAt ? dates.parse(workout.completedAt) : null;
+    if (workout.completedAt && (!completed || completed.future)) {
       diagnostics.push({ workoutId: workout.id, reason: 'invalid_or_future_completion' });
       continue;
     }
@@ -244,7 +243,7 @@ export function calculateMuscleLoad({ workouts = [], exercises = [], mapping, no
       continue;
     }
     if (workout.id) seenWorkouts.add(workout.id);
-    const session = { workoutId: workout.id, date: workout.date || workout.completedAt, dateSource,
+    const session = { workoutId: workout.id, date: workout.date || workout.completedAt, dateSource, isInProgress: !workout.completedAt,
       datePrecision: date.dateOnly ? 'day' : 'instant', ageDays: date.ageDays, sets: [], muscleContributions: {} };
     const pendingHistory = new Map();
     const seenSets = new Set();
@@ -282,7 +281,7 @@ export function calculateMuscleLoad({ workouts = [], exercises = [], mapping, no
             state.currentContributions += 1;
           }
         }
-        if (descriptor.compare) {
+        if (descriptor.compare && workout.completedAt) {
           const list = pendingHistory.get(descriptor.key) || [];
           list.push(descriptor);
           pendingHistory.set(descriptor.key, list);

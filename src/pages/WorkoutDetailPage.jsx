@@ -117,7 +117,7 @@ export default function WorkoutDetailPage() {
               {exercise.sets.length ? (
                 <div className="divide-y divide-line">
                   {exercise.sets.map((setItem, index) => {
-                    const setTime = workout.completedAt ? formatSetTime(setItem.savedAt) : '';
+                    const setTime = formatSetTime(setItem.savedAt);
 
                     return (
                       <div

@@ -30,6 +30,19 @@ Um eine ganze Übung samt Sätzen umzusortieren: Übung öffnen → **Übung ver
 → **Neue Position** wählen → **Verschieben**. Das ändert die Reihenfolge in diesem
 Workout; die Vorlage bleibt erhalten.
 
+Neue und bearbeitete Sätze öffnen zunächst mit Auswahlkacheln. Erst der Stift
+blendet die manuellen Felder und den Kommentar ein. Bereits gespeicherte
+Körpergewichte werden wiederverwendet. Gewichte aus der Historie werden nur noch
+aus den letzten sechs Einheiten innerhalb von 90 Tagen der neuesten Einheit
+vorgeschlagen; noch nie verwendete, selbst hinterlegte Optionen bleiben verfügbar.
+Die historischen Sätze werden dabei nicht gelöscht.
+
+**Zuletzt** öffnet bei einer Übung ein kleines Fenster mit älteren und neueren
+abgeschlossenen Einheiten. Gespeicherte Sätze zeigen ihre vorhandene Uhrzeit auch
+im laufenden Training. Die Muskelkarte berücksichtigt bereits gespeicherte Sätze
+laufender Workouts und berechnet Änderungen oder Löschungen unmittelbar neu;
+als persönliche Vergleichsbasis dienen weiterhin abgeschlossene Einheiten.
+
 ## Daten
 
 Die Startseite enthält eine drehbare Muskelkarte. Die Rotabstufungen schätzen die

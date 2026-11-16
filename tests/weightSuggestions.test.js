@@ -3,6 +3,27 @@ import assert from 'node:assert/strict';
 import { getExerciseWeightSuggestions, getWeightSuggestionKey } from '../src/utils/weightSuggestions.js';
 import { createBackupPayload, parseBackupPayload } from '../src/utils/storage.js';
 
+test('obsolete quick weights disappear after six sessions or 90 days, while history and unused configured options survive', () => {
+  const sessions = Array.from({ length: 7 }, (_, index) => ({ date: `2026-11-0${index + 1}`,
+    exercises: [{ exerciseId: 'db', sets: [{ weight: 20 + index * 2, reps: 8 }] }] }));
+  sessions.push({ date: '2026-01-01', exercises: [{ exerciseId: 'db', sets: [{ weight: 10, reps: 10 }] }] });
+  const snapshot = structuredClone(sessions);
+  assert.deepEqual(getExerciseWeightSuggestions([10, 20, 22, 40], sessions, 'db'), [22, 24, 26, 28, 30, 32, 40]);
+  assert.deepEqual(getExerciseWeightSuggestions([10, 32, 40], [sessions[6], sessions[7]], 'db', { loadType: 'paired' }), [16, 20]);
+  assert.deepEqual(sessions, snapshot);
+  // Returning after a long break still offers the last recorded loads.
+  assert.deepEqual(getExerciseWeightSuggestions([10], [sessions[7]], 'db'), [10]);
+});
+
+test('a running saved set reactivates a previously obsolete weight without duplicate tiles', () => {
+  const sessions = [
+    { date: '2026-01-01', exercises: [{ exerciseId: 'db', sets: [{ weight: 10, reps: 10 }] }] },
+    { date: '2026-11-15', exercises: [{ exerciseId: 'db', sets: [{ weight: 30, reps: 10 }] }] },
+    { date: '2026-11-16', completedAt: null, exercises: [{ exerciseId: 'db', sets: [{ weight: 10, reps: 10 }] }] },
+  ];
+  assert.deepEqual(getExerciseWeightSuggestions([10, 30], sessions, 'db'), [10, 30]);
+});
+
 test('quick weights apply a consistent paired convention to every total, sorted by load', () => {
   const workouts = [{ exercises: [
     { exerciseId: 'db', sets: [{ weight: 60, weightInput: '2x30' }, { weight: 25, weightInput: '2×12.50' }] },

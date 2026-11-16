@@ -85,11 +85,12 @@ function matchesExercise(exercise, exerciseId, exerciseName = '') {
   );
 }
 
-export function getLastExerciseSnapshot(workouts, exerciseId, excludeWorkoutId = null, exerciseName = '') {
+export function getExerciseHistory(workouts, exerciseId, excludeWorkoutId = null, exerciseName = '') {
   const sorted = sortWorkoutsByDate(
     workouts.filter((workout) => workout.id !== excludeWorkoutId && workout.completedAt),
   );
 
+  const snapshots = [];
   for (const workout of sorted) {
     const matchingExercises = workout.exercises.filter(
       (exercise) =>
@@ -104,16 +105,21 @@ export function getLastExerciseSnapshot(workouts, exerciseId, excludeWorkoutId =
 
     const workoutTimestamp = getWorkoutDateTimestamp(workout);
 
-    return {
+    snapshots.push({
       workoutId: workout.id,
       workoutName: workout.name,
       workoutDate: workoutTimestamp === null ? null : new Date(workoutTimestamp).toISOString(),
       skipped: false,
       sets: matchingExercises.flatMap((exercise) => exercise.sets),
-    };
+      machineSettings: matchingExercises.flatMap((exercise) => exercise.machineSettings ?? []),
+    });
   }
 
-  return null;
+  return snapshots;
+}
+
+export function getLastExerciseSnapshot(workouts, exerciseId, excludeWorkoutId = null, exerciseName = '') {
+  return getExerciseHistory(workouts, exerciseId, excludeWorkoutId, exerciseName)[0] ?? null;
 }
 
 export function getLastExerciseWeight(workouts, exerciseId, excludeWorkoutId = null, exerciseName = '') {

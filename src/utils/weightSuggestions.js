@@ -59,6 +59,29 @@ export function getWeightSuggestionKey(value) {
 
 export function getExerciseWeightSuggestions(weightOptions = [], workouts = [], exerciseId, settings = {}) {
   const options = new Map();
+  // Keep the last six recorded sessions within 90 days of the latest session.
+  // A break from an exercise should not empty its useful starting suggestions.
+  const sessions = workouts.filter(workout => (workout.exercises ?? []).some(entry =>
+    entry.exerciseId === exerciseId && !entry.skipped && entry.sets?.length))
+    .map(workout => ({ workout, time: validTimestamp(workout.date) ?? validTimestamp(workout.completedAt) }))
+    .sort((a, b) => (b.time ?? -Infinity) - (a.time ?? -Infinity));
+  const latest = sessions.find(session => session.time != null)?.time;
+  const recent = new Set(sessions.filter((session, index) => session.time == null ||
+    (index < 6 && latest - session.time <= 90 * 86400000)).map(session => session.workout));
+  const recorded = new Set();
+  const current = new Set();
+  for (const { workout } of sessions) {
+    for (const entry of workout.exercises ?? []) {
+      if (entry.exerciseId !== exerciseId || entry.skipped) continue;
+      for (const item of entry.sets ?? []) {
+        if (item.weightMode === 'bodyweight' || item.weightMode === 'none') continue;
+        const parsed = parseWeightInput(item.weight);
+        if (!parsed) continue;
+        recorded.add(parsed.weight);
+        if (recent.has(workout)) current.add(parsed.weight);
+      }
+    }
+  }
 
   function add(value, expectedWeight) {
     const parsed = parseWeightInput(value);
@@ -67,10 +90,15 @@ export function getExerciseWeightSuggestions(weightOptions = [], workouts = [], 
     if (parsed.weightInput) options.get(parsed.weight).add(getWeightSuggestionKey(value));
   }
 
-  weightOptions.forEach(value => add(value));
-  for (const workout of workouts) {
+  weightOptions.forEach(value => {
+    const parsed = parseWeightInput(value);
+    // Preserve manually configured, never-used options; hide known obsolete loads.
+    if (parsed && (!recorded.has(parsed.weight) || current.has(parsed.weight))) add(value);
+  });
+  const recentWorkouts = workouts.filter(workout => recent.has(workout));
+  for (const workout of recentWorkouts) {
     for (const exercise of workout.exercises ?? []) {
-      if (exercise.exerciseId !== exerciseId) continue;
+      if (exercise.exerciseId !== exerciseId || exercise.skipped) continue;
       for (const setItem of exercise.sets ?? []) {
         if (setItem.weightMode === 'bodyweight' || setItem.weightMode === 'none') continue;
         add(setItem.weight);
@@ -85,7 +113,7 @@ export function getExerciseWeightSuggestions(weightOptions = [], workouts = [], 
     return [...options.keys()].sort((left, right) => left - right).map(weight => weight / 2);
   }
 
-  const recentCount = getRecentNotation(workouts, exerciseId);
+  const recentCount = getRecentNotation(recentWorkouts, exerciseId);
   return [...options.entries()]
     .sort(([left], [right]) => left - right)
     .flatMap(([weight, expressions]) => recentCount != null
