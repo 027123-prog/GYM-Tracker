@@ -51,7 +51,9 @@ Der Körpermodus
 zeigt pro Übung deren geschätzte Muskelbeteiligung; auf der Diagrammseite folgt
 unten die große Körperansicht mit einer von stark nach schwach sortierten Liste.
 Hauptmuskeln, Mitwirkung und Stabilisierung verwenden dieselben Katalogrollen,
-mit regionalen Schwerpunkten bei Brustübungen. Das ist ein Übungsprofil ohne
+mit regionalen Schwerpunkten bei Brustübungen. Eine weichere Farbskala verringert
+den sichtbaren Sprung zwischen Hauptarbeit und Mitwirkung, ohne ihre Gewichte
+oder die Rangfolge zu ändern. Das ist ein Übungsprofil ohne
 gemessene Aktivierungsprozente, unabhängig von Tagesform und Trainingshistorie.
 Unbekannte Übungen und ungeklärte Varianten bleiben ausdrücklich ohne Zuordnung.
 Die Bibliotheksvorschauen stehen still und starten vorn oder hinten, wo die
@@ -89,6 +91,9 @@ untere Brust sowie der Serratus. Rückenstrecker im unteren Rücken und tiefe
 Hüftbeuger werden als weiche, beidseitige Farbprojektionen auf den vorhandenen
 Oberflächen sichtbar. Diese beiden Bereiche sind schematische Projektionen,
 keine freigelegten anatomischen Muskelflächen. Die Körpergeometrie bleibt erhalten.
+Der obere Trapez setzt seine Farbe als weiche, beidseitige Projektion am hinteren
+Hals des Ersatzkopfs fort. Die bisherige Schnittkante endet dadurch nicht abrupt
+in einem neutralen Nacken; Gesicht, vorderer Hals und Hinterkopf bleiben neutral.
 `scripts/build-diego-anatomy.mjs` bereitet die heruntergeladene Quelle reproduzierbar
 auf; Form und Oberflächendetails bleiben erhalten, Texturen und Geometrie werden
 für den Webeinsatz komprimiert.

@@ -18,6 +18,18 @@ test('exercise profiles show primary work, assistance and visible light stabiliz
   for (const row of profile.rows) assert.equal(profile.muscles[row.id].intensity, row.intensity);
 });
 
+test('exercise color steps are softer while actual role weights, ranking and the full primary red remain unchanged', () => {
+  const profile = buildExerciseMuscleProfile({ name: 'Bankdrücken - Hantel' });
+  const primary = profile.rows.find(row => row.id === 'chest_middle');
+  const assistance = profile.rows.find(row => row.id === 'triceps');
+  const distance = (a, b) => Math.hypot(...[1, 3, 5].map(start => parseInt(a.slice(start, start + 2), 16) - parseInt(b.slice(start, start + 2), 16)));
+  assert.equal(primary.color, muscleLoadColor(1));
+  assert.equal(assistance.weight, 0.35);
+  const oldColor = muscleLoadColor(0.18 + 0.82 * assistance.weight);
+  assert.ok(distance(primary.color, assistance.color) < distance(primary.color, oldColor) * 0.75);
+  assert.ok(primary.intensity > assistance.intensity);
+});
+
 test('incline and flat presses retain their distinct chest region emphasis without listing the aggregate twice', () => {
   const flat = buildExerciseMuscleProfile({ name: 'Bankdrücken - Hantel' });
   const incline = buildExerciseMuscleProfile({ name: 'schrägbankdrücken hantel' });

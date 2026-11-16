@@ -30,7 +30,9 @@ Downloaded on 15 November 2026. No affiliation or endorsement is implied.
 - Converted the colored source textures to neutral/estimated-load display in
   the shader. Light tendon pixels within assigned muscles receive their muscle's
   tint for visual continuity; other support surfaces remain neutral in training
-  mode. The head stays neutral. These color changes do not alter the sculpt.
+  mode. The separately credited MakeHuman neck has a soft bilateral posterior
+  upper-trapezius color projection; its face, anterior neck and skull remain
+  neutral. These color changes do not alter either sculpt.
 - Resized source textures to at most 1024 pixels and compressed geometry with
   EXT_meshopt_compression. Maximum attribute rounding error is in the manifest.
 - Generated fallback-front.png and fallback-back.png from this adapted figure.

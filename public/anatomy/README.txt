@@ -19,7 +19,10 @@ color projections on existing surfaces, adding two visible training regions.
 They are not exposed/dissected anatomy. Geometry and triangle counts are unchanged.
 The visible serratus slips have their own region. Light tendon areas within assigned muscle pieces
 receive the same training tint to make the surfaces visually continuous.
-Unassigned support structures and the head remain neutral in training mode.
+The posterior neck of the replacement head receives a soft bilateral upper-trapezius
+color continuation across the former hard clipping seam. This is schematic,
+not dissected anatomy; face, anterior neck, midline and skull remain neutral.
+Unassigned support structures remain neutral in training mode.
 
 Geometry is normalized to 1.88 units tall, Y up, anterior +Z, feet at zero.
 The neck is clipped at 1.615 units. Textures are resized to at most 1024 pixels;

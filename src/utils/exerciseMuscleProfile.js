@@ -46,7 +46,7 @@ export function buildExerciseMuscleProfile(exercise) {
   const rows = [...contributions.values()].map(item => {
     // Keep even light stabilization visible in this categorical exercise view.
     // The dashboard's time-decayed load colors are deliberately not modified.
-    const intensity = 0.18 + 0.82 * item.weight;
+    const intensity = 0.18 + 0.82 * Math.sqrt(item.weight);
     return { ...item, label: MUSCLE_GROUPS[item.id], roleLabel: roleLabels[item.role], intensity,
       strengthLabel: item.weight >= 0.7 ? 'Stark' : item.weight >= 0.25 ? 'Mittel' : 'Leicht',
       color: muscleLoadColor(intensity) };

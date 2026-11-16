@@ -26,10 +26,14 @@ Applied the male-young shape; normalized the body reference to 1.88 m; extracted
 head and neck with an exact cut at 1.60 m; subdivided the clean facial topology
 once; fitted the original eyes through the supplied barycentric fitting table;
 replaced all materials with one neutral gray sculpture material. No head
-muscle groups, personal likeness, or training coloring.
+separate head-muscle groups or personal likeness.
 
 At runtime the lower neck tapers into the separately licensed anatomy body;
 facial geometry and fitted eyes retain their prepared shape.
+The posterior neck now receives a soft bilateral continuation of the existing
+upper-trapezius training color. This is a schematic surface projection over the
+replacement neck, not a reconstructed or dissected trapezius. Its midline, face,
+anterior neck and skull remain neutral. No head geometry is changed by the mask.
 
 Rebuild with:
 

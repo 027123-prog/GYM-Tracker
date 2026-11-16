@@ -4,6 +4,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { DIEGO_REGION_IDS, DIEGO_COVERAGE, DIEGO_ASSET_REVISION } from '../../data/diegoAnatomy';
 import { createNeutralHeadGeometry } from './neutralHead';
 import { muscleLoadColor } from '../../utils/muscleLoadColor';
+import { neckTrapeziusWeight } from '../../data/neckTrapeziusProjection';
 
 const neutralColor = new THREE.Color(muscleLoadColor(0));
 const NEUTRAL = [neutralColor.r, neutralColor.g, neutralColor.b];
@@ -28,6 +29,23 @@ function attachTrainingColors(material, palette) {
       `);
   };
   material.customProgramCacheKey = () => 'diego-training-palette-3';
+}
+
+function attachNeckTrainingColors(material, palette) {
+  material.onBeforeCompile = shader => {
+    shader.uniforms.uUpperTrapsColor = { value: palette[DIEGO_REGION_IDS.indexOf('upper_traps')] };
+    shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>
+      attribute float _neckTraining;
+      varying float vNeckTraining;
+    `).replace('#include <begin_vertex>', '#include <begin_vertex>\nvNeckTraining = _neckTraining;');
+    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>
+      uniform vec3 uUpperTrapsColor;
+      varying float vNeckTraining;
+    `).replace('#include <color_fragment>', `#include <color_fragment>
+      diffuseColor.rgb = mix(diffuseColor.rgb, 0.85 * uUpperTrapsColor, vNeckTraining);
+    `);
+  };
+  material.customProgramCacheKey = () => 'neck-trapezius-continuation-1';
 }
 
 export async function createMuscleFigure() {
@@ -65,7 +83,15 @@ export async function createMuscleFigure() {
     if (!object.isMesh) return;
     const source = object.geometry.clone().applyMatrix4(object.matrixWorld);
     const geometry = createNeutralHeadGeometry(source); source.dispose(); geometries.add(geometry);
+    const positions = geometry.getAttribute('position'), normals = geometry.getAttribute('normal');
+    const weights = new Float32Array(positions.count);
+    for (let index = 0; index < positions.count; index++) weights[index] = neckTrapeziusWeight(
+      [positions.getX(index), positions.getY(index), positions.getZ(index)],
+      [normals.getX(index), normals.getY(index), normals.getZ(index)],
+    );
+    geometry.setAttribute('_neckTraining', new THREE.BufferAttribute(weights, 1));
     const material = new THREE.MeshStandardMaterial({ color:'#a3adaf', roughness:0.78 }); materials.add(material);
+    attachNeckTrainingColors(material, palette);
     root.add(new THREE.Mesh(geometry,material));
   });
   return {
