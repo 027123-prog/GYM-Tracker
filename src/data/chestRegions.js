@@ -16,8 +16,8 @@ export const CHEST_LOAD_PROFILES = {
 
 const nameKey = (name = '') => name.normalize('NFKC').toLocaleLowerCase('de-DE').replace(/[–—-]/g, ' ').replace(/\s+/g, ' ').trim();
 const aliases = new Map(Object.entries({
-  flat: ['Bankdrücken', 'Bankdrücken Stange', 'Bankdrücken - Hantel'],
-  incline: ['Schrägbankdrücken Stange', 'schrägbankdrücken hantel'],
+  flat: ['Bankdrücken', 'Bankdrücken Stange', 'Bankdrücken - Hantel', 'Kurzhantel-Flachbankdrücken'],
+  incline: ['Schrägbankdrücken Stange', 'schrägbankdrücken hantel', 'Kurzhantel-Schrägbankdrücken'],
   decline: ['Negativbankdrücken', 'Negativbankdrücken Stange', 'Negativbankdrücken Hantel'],
   // Dips depend on posture, and the seated dip machine is not a decline press.
   // The plate chest press name does not establish its backrest/press angle.

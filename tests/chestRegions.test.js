@@ -47,7 +47,7 @@ test('regional history uses the same dates, decay and progression score without 
   const old=run('Schrägbankdrücken Stange',{...inputs,now:'2026-11-30T12:00:00Z'});
   for(const id of Object.keys(CHEST_REGION_LABELS)) {
     assert.equal(current.muscles[id].lastTrainedDate,workout.date);
-    assert(Math.abs(later.muscles[id].rawLoad/current.muscles[id].rawLoad-0.5)<1e-12);
+    assert(Math.abs(later.muscles[id].rawLoad/current.muscles[id].rawLoad-0.25)<1e-12);
     assert.equal(old.muscles[id].intensity,0);
     assert.equal(old.muscles[id].status,'older_history');
   }

@@ -5,7 +5,7 @@ import { useAppData } from './AppProvider';
 import SyncIndicator from './SyncIndicator';
 import { calculateWorkoutStats } from '../utils/workout';
 
-const appVersion = '2.17.0';
+const appVersion = '2.17.1';
 const displayVersion = `v${appVersion.split('.').slice(0, 2).join('.')}`;
 
 const navItems = [

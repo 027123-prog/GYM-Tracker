@@ -1,14 +1,17 @@
 // Display heuristics, not measured fatigue or recovery. No state/storage writes.
 import { CHEST_LOAD_PROFILES, CHEST_REGION_LABELS, resolveChestProfile } from '../data/chestRegions';
+import { muscleColorStrength, muscleLoadColor } from './muscleLoadColor';
+export { muscleLoadColor } from './muscleLoadColor';
 
-export const MUSCLE_LOAD_VERSION = 'prototype-2';
+export const MUSCLE_LOAD_VERSION = 'activity-3';
 export const MUSCLE_LOAD_DEFAULTS = Object.freeze({
   referenceDays: 90,
   referenceWorkouts: 5,
-  halfLifeHours: 48,
-  maxAgeDays: 14,
-  colorScale: 4,
-  roleWeights: Object.freeze({ primary: 1, secondary: 0.5, stabilizers: 0.15 }),
+  // Display recent training exposure, not a physiological recovery clock.
+  halfLifeHours: 24,
+  maxAgeDays: 5,
+  colorScale: 2,
+  roleWeights: Object.freeze({ primary: 1, secondary: 0.35, stabilizers: 0.08 }),
 });
 
 const DAY = 86400000;
@@ -80,6 +83,11 @@ function muscleWeights(mapping, settings, exerciseName) {
 
 function describeSet(set, entry, mapping, exercise) {
   if (set.invalid === true || set.setType === 'warmup') return { excluded: 'explicitly_excluded_set' };
+  // Only explicit warm-up labels count. "Leichtes Ziehen" and other free-form
+  // symptom/effort descriptions must never become guessed warm-ups or RIR.
+  if (/^\s*(?:wu\b|warm[\s-]?up\b|aufw(?:ä|ae)rm(?:en|satz|sätze|saetze)?\b)/iu.test(set.comment || '')) {
+    return { excluded: 'explicit_warmup_note' };
+  }
   const expected = mapping.analysis?.expectedMeasurement ?? exercise?.settings?.measurementType;
   if (expected === 'duration' && set.measurementType !== 'duration') return { excluded: 'missing_duration' };
   if (set.measurementType && !['reps', 'duration'].includes(set.measurementType)) return { excluded: 'unknown_measurement' };
@@ -182,7 +190,7 @@ function scoreSet(descriptor, reference) {
       * clamp(Math.sqrt(descriptor.quantity / 8), 0, 1.6);
   }
   // Optional structured RIR only. Comments never manufacture an RIR value.
-  const effortFactor = descriptor.rir === null ? 1 : clamp(1.1 - descriptor.rir * 0.05, 0.6, 1.1);
+  const effortFactor = descriptor.rir === null ? 1 : clamp(1.2 - descriptor.rir * 0.1, 0.4, 1.2);
   score *= effortFactor;
   // A first/new/ambiguous exercise has a modest baseline, not a self-normalized PR.
   const contribution = clamp(score, 0, reference ? 1.5 : 0.7);
@@ -193,14 +201,7 @@ function scoreSet(descriptor, reference) {
   return { contribution, relativeLoad, relativeQuantity, effortFactor, confidence };
 }
 
-export function muscleLoadColor(intensity) {
-  const amount = clamp(number(intensity) ? intensity : 0, 0, 1);
-  const neutral = [115, 119, 123];
-  const red = [220, 48, 48];
-  return `#${neutral.map((value, index) => Math.round(value + (red[index] - value) * amount).toString(16).padStart(2, '0')).join('')}`;
-}
-
-/** Pure diagnostic prototype. Mapping/now are injected; personal mappings are not bundled. */
+/** Pure recent-exposure estimate. No medical recovery or readiness prediction. */
 export function calculateMuscleLoad({ workouts = [], exercises = [], mapping, now = new Date(), timeZone = 'Europe/Berlin', options = {} }) {
   const settings = settingsFrom(options);
   const dates = dateReader(timeZone, now);
@@ -216,7 +217,7 @@ export function calculateMuscleLoad({ workouts = [], exercises = [], mapping, no
   const seenWorkouts = new Set();
   const groups = { ...mapping?.groups, ...(Object.hasOwn(mapping?.groups || {}, 'chest') ? CHEST_REGION_LABELS : {}) };
   const muscles = Object.fromEntries(Object.entries(groups).map(([id, label]) => [id, {
-    id, label, rawLoad: 0, intensity: 0, color: muscleLoadColor(0), status: 'no_history',
+    id, label, rawLoad: 0, intensity: 0, displayIntensity: 0, color: muscleLoadColor(0), status: 'no_history',
     lastTrainedDate: null, currentContributions: 0, confidence: 0,
   }]));
   const accepted = [];
@@ -300,6 +301,7 @@ export function calculateMuscleLoad({ workouts = [], exercises = [], mapping, no
     if (state.rawLoad > 0) {
       state.confidence /= state.rawLoad;
       state.intensity = 1 - Math.exp(-state.rawLoad / settings.colorScale);
+      state.displayIntensity = muscleColorStrength(state.intensity);
       state.color = muscleLoadColor(state.intensity);
       state.status = 'recent_history';
     }

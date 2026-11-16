@@ -3,9 +3,10 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { DIEGO_REGION_IDS, DIEGO_COVERAGE } from '../../data/diegoAnatomy';
 import { createNeutralHeadGeometry } from './neutralHead';
+import { muscleLoadColor } from '../../utils/muscleLoadColor';
 
-const NEUTRAL = [0.66, 0.70, 0.72];
-const RED = [0.71, 0.045, 0.07]; // display-space endpoints
+const neutralColor = new THREE.Color(muscleLoadColor(0));
+const NEUTRAL = [neutralColor.r, neutralColor.g, neutralColor.b];
 
 // Shared palette changes colors without touching the approved sculpt, UVs,
 // baked fibers or normal maps. Tendon-colored pixels within a muscle share
@@ -26,7 +27,7 @@ function attachTrainingColors(material, palette) {
         diffuseColor.rgb = grey * vTrainingColor;
       `);
   };
-  material.customProgramCacheKey = () => 'diego-training-palette-2';
+  material.customProgramCacheKey = () => 'diego-training-palette-3';
 }
 
 export async function createMuscleFigure() {
@@ -51,8 +52,6 @@ export async function createMuscleFigure() {
   }
   const root = new THREE.Group();
   const palette = DIEGO_REGION_IDS.map(() => new THREE.Vector3(...NEUTRAL));
-  const neutralDisplay = new THREE.Color().setRGB(...NEUTRAL).convertLinearToSRGB();
-  const display = [neutralDisplay.r, neutralDisplay.g, neutralDisplay.b];
   const surfaceRegions = new Set();
   body.scene.traverse(object => {
     if (!object.isMesh) return;
@@ -80,8 +79,9 @@ export async function createMuscleFigure() {
         if (id === 'context') { palette[index].set(...NEUTRAL); return; }
         const value = Number(muscles[id]?.intensity);
         const intensity = Number.isFinite(value) ? THREE.MathUtils.clamp(value,0,1) : 0;
-        const mix = Math.pow(intensity,0.65);
-        const tint = new THREE.Color().setRGB(...display.map((neutral,axis) => neutral + (RED[axis]-neutral)*mix),THREE.SRGBColorSpace);
+        // Consume the same display curve as the calculator, without a second
+        // gamma boost that made tiny old contributions look freshly trained.
+        const tint = new THREE.Color(muscleLoadColor(intensity));
         palette[index].set(tint.r,tint.g,tint.b);
         if (/^#[0-9a-f]{6}$/i.test(muscles[id]?.debugColor)) {
           const color = new THREE.Color(muscles[id].debugColor);

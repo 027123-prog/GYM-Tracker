@@ -125,6 +125,9 @@ function normalizeSets(sets) {
         ...(!weightless && !paired && effectiveBodyweight === null && weightExpression?.weightInput && weightExpression.weight === weight
           ? { weightInput: weightExpression.weightInput } : {}),
         comment: safeString(item?.comment).trim(),
+        ...(typeof item?.rir === 'number' && Number.isFinite(item.rir) && item.rir >= 0 && item.rir <= 10 ? { rir: item.rir } : {}),
+        ...(['warmup', 'work'].includes(item?.setType) ? { setType: item.setType } : {}),
+        ...(item?.invalid === true ? { invalid: true } : {}),
         seatHeight: safeString(item?.seatHeight).trim(),
         savedAt: safeString(item?.savedAt),
         ...(effectiveBodyweight !== null
@@ -403,7 +406,7 @@ export function createBackupPayload(state) {
 
   return {
     app: 'hardgainwaf',
-    appVersion: '2.17.0',
+    appVersion: '2.17.1',
     storageKey: STORAGE_KEY,
     storageVersion: STORAGE_VERSION,
     exportedAt: new Date().toISOString(),

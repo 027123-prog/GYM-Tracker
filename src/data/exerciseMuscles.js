@@ -48,7 +48,8 @@ export const EXERCISE_MUSCLE_RULES = [
   {
     "names": [
       "Kniebeuge - Langhantel",
-      "Kniebeugen"
+      "Kniebeugen",
+      "Langhantel-Kniebeuge"
     ],
     "primary": [
       "quads",
@@ -90,15 +91,16 @@ export const EXERCISE_MUSCLE_RULES = [
     ],
     "primary": [
       "glutes",
-      "quads",
       "spinal_erectors"
     ],
     "secondary": [
+      "quads",
       "hamstrings",
-      "adductors",
-      "upper_back"
+      "adductors"
     ],
     "stabilizers": [
+      "upper_back",
+      "lats",
       "abs",
       "obliques",
       "forearm_flexors"
@@ -107,7 +109,26 @@ export const EXERCISE_MUSCLE_RULES = [
     "variantDetails": {
       "applyToPriorWorkouts": false,
       "variantKey": "floor_reset"
-    }
+    },
+    "previousAssignments": [
+      {
+        "primary": [
+          "glutes",
+          "quads",
+          "spinal_erectors"
+        ],
+        "secondary": [
+          "hamstrings",
+          "adductors",
+          "upper_back"
+        ],
+        "stabilizers": [
+          "abs",
+          "obliques",
+          "forearm_flexors"
+        ]
+      }
+    ]
   },
   {
     "names": [
@@ -117,11 +138,23 @@ export const EXERCISE_MUSCLE_RULES = [
       "rear_delts",
       "upper_back"
     ],
-    "secondary": [
+    "secondary": [],
+    "stabilizers": [
       "external_rotators"
     ],
-    "stabilizers": [],
-    "status": "draft_assigned"
+    "status": "draft_assigned",
+    "previousAssignments": [
+      {
+        "primary": [
+          "rear_delts",
+          "upper_back"
+        ],
+        "secondary": [
+          "external_rotators"
+        ],
+        "stabilizers": []
+      }
+    ]
   },
   {
     "names": [
@@ -197,7 +230,8 @@ export const EXERCISE_MUSCLE_RULES = [
   {
     "names": [
       "Schulterdrücken stehend",
-      "Schulterdrücken"
+      "Schulterdrücken",
+      "Kurzhantel-Schulterdrücken"
     ],
     "primary": [
       "front_delts",
@@ -226,7 +260,8 @@ export const EXERCISE_MUSCLE_RULES = [
   },
   {
     "names": [
-      "Bankdrücken - Hantel"
+      "Bankdrücken - Hantel",
+      "Kurzhantel-Flachbankdrücken"
     ],
     "primary": [
       "chest"
@@ -279,16 +314,29 @@ export const EXERCISE_MUSCLE_RULES = [
       "rear_delts",
       "upper_back"
     ],
-    "secondary": [
+    "secondary": [],
+    "stabilizers": [
       "external_rotators"
     ],
-    "stabilizers": [],
-    "status": "draft_assigned"
+    "status": "draft_assigned",
+    "previousAssignments": [
+      {
+        "primary": [
+          "rear_delts",
+          "upper_back"
+        ],
+        "secondary": [
+          "external_rotators"
+        ],
+        "stabilizers": []
+      }
+    ]
   },
   {
     "names": [
       "Row Plate",
-      "Enges Rudern"
+      "Enges Rudern",
+      "Row Plate – latbetont"
     ],
     "primary": [
       "lats"
@@ -530,7 +578,8 @@ export const EXERCISE_MUSCLE_RULES = [
   },
   {
     "names": [
-      "Beinbeuger liegend - Maschine"
+      "Beinbeuger liegend - Maschine",
+      "Beinbeuger liegend"
     ],
     "primary": [
       "hamstrings"
@@ -574,7 +623,8 @@ export const EXERCISE_MUSCLE_RULES = [
   },
   {
     "names": [
-      "Low Row Plate"
+      "Low Row Plate",
+      "Low Row Plate – trapezbetont"
     ],
     "primary": [
       "upper_back"
@@ -594,7 +644,8 @@ export const EXERCISE_MUSCLE_RULES = [
   },
   {
     "names": [
-      "Bizeps kabelzug"
+      "Bizeps kabelzug",
+      "Bizeps am Kabelzug"
     ],
     "primary": [
       "elbow_flexors"
@@ -643,17 +694,31 @@ export const EXERCISE_MUSCLE_RULES = [
   },
   {
     "names": [
-      "Reverse Crunch - auf der Bank"
+      "Reverse Crunch - auf der Bank",
+      "Reverse Crunch auf der Bank"
     ],
     "primary": [
       "abs"
     ],
     "secondary": [
-      "obliques",
+      "obliques"
+    ],
+    "stabilizers": [
       "hip_flexors"
     ],
-    "stabilizers": [],
-    "status": "draft_assigned"
+    "status": "draft_assigned",
+    "previousAssignments": [
+      {
+        "primary": [
+          "abs"
+        ],
+        "secondary": [
+          "obliques",
+          "hip_flexors"
+        ],
+        "stabilizers": []
+      }
+    ]
   },
   {
     "names": [
@@ -711,7 +776,8 @@ export const EXERCISE_MUSCLE_RULES = [
   },
   {
     "names": [
-      "schrägbankdrücken hantel"
+      "schrägbankdrücken hantel",
+      "Kurzhantel-Schrägbankdrücken"
     ],
     "primary": [
       "chest"
@@ -789,11 +855,23 @@ export const EXERCISE_MUSCLE_RULES = [
       "rear_delts",
       "upper_back"
     ],
-    "secondary": [
+    "secondary": [],
+    "stabilizers": [
       "external_rotators"
     ],
-    "stabilizers": [],
-    "status": "draft_assigned"
+    "status": "draft_assigned",
+    "previousAssignments": [
+      {
+        "primary": [
+          "rear_delts",
+          "upper_back"
+        ],
+        "secondary": [
+          "external_rotators"
+        ],
+        "stabilizers": []
+      }
+    ]
   },
   {
     "names": [
@@ -806,6 +884,18 @@ export const EXERCISE_MUSCLE_RULES = [
       "triceps",
       "front_delts"
     ],
+    "stabilizers": [],
+    "status": "draft_assigned"
+  },
+  {
+    "names": [
+      "Trizepsdrücken am Kabelzug",
+      "Trizepsdrücken Kabelzug"
+    ],
+    "primary": [
+      "triceps"
+    ],
+    "secondary": [],
     "stabilizers": [],
     "status": "draft_assigned"
   }

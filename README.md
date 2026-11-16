@@ -33,9 +33,16 @@ Workout; die Vorlage bleibt erhalten.
 ## Daten
 
 Die Startseite enthält eine drehbare Muskelkarte. Die Rotabstufungen schätzen die
-Trainingsbelastung der letzten zwei Wochen anhand von relativer Last, Umfang und
-Zeitabstand. Vorherige vergleichbare Einheiten berücksichtigen die persönliche
-Progression. Die Figur steht zwischen vier schmalen Kennzahlenkacheln auf der Startseite und dreht
+aktuelle Trainingsbelastung anhand von relativer Last, Umfang und Zeitabstand.
+Vorherige vergleichbare Einheiten bis 90 Tage berücksichtigen die persönliche
+Progression. Die sichtbare Belastung klingt stündlich mit einer gewählten
+Halbwertszeit von 24 Stunden ab; nur die letzten fünf Tage tragen zur Farbe bei.
+Dies ist eine Darstellungsheuristik, keine gemessene Regenerationsdauer.
+Hauptarbeit, Mitwirkung und Stabilisierung sind unterschiedlich gewichtet.
+Explizit markierte Aufwärmsätze zählen nicht als Arbeitssätze. Erfasste RIR
+fließen ein; freie Kommentare erzeugen keine erfundene Reserve. Kleine Restwerte
+bleiben neutral, und Berechnung sowie 3D nutzen dieselbe Farbkurve.
+Die Figur steht zwischen vier schmalen Kennzahlenkacheln auf der Startseite und dreht
 sich ohne sichtbare Texte oder Bedienelemente. Ziehen/Wischen bleibt möglich;
 reduzierte Bewegung wird respektiert. Quellen und Lizenzen sind über den Link
 am Seitenende erreichbar.

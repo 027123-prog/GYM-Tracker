@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calculateMuscleLoad, muscleLoadColor } from '../src/utils/muscleLoad.js';
+import { calculateMuscleLoad, muscleLoadColor, MUSCLE_LOAD_DEFAULTS } from '../src/utils/muscleLoad.js';
+import { muscleColorStrength } from '../src/utils/muscleLoadColor.js';
 
 const NOW = '2026-11-15T12:00:00Z';
 const assignment = { exerciseId: 'press', status: 'draft_assigned', primary: ['chest'], secondary: ['triceps'], stabilizers: [] };
@@ -142,7 +143,8 @@ test('high repetitions and one-rep sets never use the 3–12 repetition index', 
 test('training age only decreases color and old history remains distinct from no history', () => {
   const workouts = [workout('w', '2026-11-01T12:00:00Z')];
   const colors = [1, 2, 5, 10, 15].map(day => run(workouts, { now: `2026-11-${String(day + 1).padStart(2, '0')}T12:00:00Z` }).muscles.chest.intensity);
-  for (let i = 1; i < colors.length; i++) assert.ok(colors[i] < colors[i - 1]);
+  for (let i = 1; i < colors.length; i++) assert.ok(colors[i] <= colors[i - 1]);
+  assert.ok(colors[1] < colors[0] && colors[2] < colors[1]);
   const old = run(workouts, { now: '2026-11-20T12:00:00Z' });
   assert.equal(old.muscles.chest.status, 'older_history');
   assert.equal(old.muscles.chest.intensity, 0);
@@ -192,7 +194,7 @@ test('duplicate muscle roles, set IDs and workout IDs never inflate the result',
   duplicated.exercises.push(structuredClone(duplicated.exercises[0]));
   const result = run([duplicated, duplicated], { mapping: { ...mapping, entries: [{ ...assignment, secondary: ['chest', 'triceps'] }] } });
   assert.equal(result.muscles.chest.rawLoad, clean.muscles.chest.rawLoad);
-  assert.equal(clean.muscles.triceps.rawLoad, clean.muscles.chest.rawLoad * 0.5);
+  assert.equal(clean.muscles.triceps.rawLoad, clean.muscles.chest.rawLoad * MUSCLE_LOAD_DEFAULTS.roleWeights.secondary);
   assert.equal(result.sessions.length, 1);
 });
 
@@ -221,6 +223,48 @@ test('calculation leaves source data untouched and validates configuration', () 
   assert.deepEqual(calculateMuscleLoad(input), a);
   assert.throws(() => run([], { options: { halfLifeHours: 0 } }));
   assert.throws(() => run([], { now: 'invalid' }));
-  assert.equal(muscleLoadColor(0), '#73777b');
-  assert.equal(muscleLoadColor(1), '#dc3030');
+  assert.equal(muscleLoadColor(0), '#d4dadd');
+  assert.equal(muscleLoadColor(1), '#b50b12');
+});
+
+test('two rest days substantially fade a substantial session without claiming everyone is recovered', () => {
+  const start = Date.parse('2026-11-15T12:00:00Z');
+  const workouts = [workout('w', new Date(start).toISOString(), Array.from({length:6}, () => set(50)))];
+  const timeline = [0,12,24,48,72,120].map(hours => calculateMuscleLoad({workouts,mapping,now:new Date(start+hours*3600000)}).muscles.chest);
+  assert(timeline[0].displayIntensity > 0.5, 'fresh substantial direct training is visible');
+  assert(timeline[3].displayIntensity < timeline[0].displayIntensity * 0.4, '48 h does not still look fresh');
+  assert(timeline[3].displayIntensity > 0, 'rest is not forced to an identical neutral result for every dose');
+  for(let i=1;i<timeline.length;i++) assert(timeline[i].displayIntensity <= timeline[i-1].displayIntensity);
+  assert.equal(timeline.at(-1).displayIntensity,0);
+});
+
+test('light assistance and bracing do not paint the whole body like direct work', () => {
+  const custom={groups:{chest:'Chest',triceps:'Triceps',calves:'Calves'},entries:[{...assignment,stabilizers:['calves']}]};
+  const muscles=run([workout('w',NOW,[set(50),set(50),set(50),set(50)])],{mapping:custom}).muscles;
+  assert(muscles.chest.displayIntensity > muscles.triceps.displayIntensity);
+  assert(muscles.triceps.displayIntensity > muscles.calves.displayIntensity);
+  assert(muscles.calves.displayIntensity < 0.05);
+});
+
+test('explicit warm-up notes are excluded, while vague effort and symptom comments remain unclassified', () => {
+  const comments=['WU','WU 20 kg','Warm-up','Warmup: 5 Wdh.','Aufwärmen','Aufwärmsatz'];
+  const warmups=comments.map((comment,i)=>set(30,8,{id:`warm${i}`,comment}));
+  const result=run([workout('w',NOW,[...warmups,set(40,8,{comment:'Leichtes Ziehen im Rücken'}),set(40,8,{comment:'leicht'})])]);
+  assert.equal(result.sessions[0].sets.length,2);
+  assert.equal(result.diagnostics.filter(item=>item.reason==='explicit_warmup_note').length,comments.length);
+  assert(result.sessions[0].sets.every(item=>item.effortFactor===1));
+});
+
+test('the quiet color zone suppresses tiny stale signals and palette strength is monotone', () => {
+  assert.equal(muscleLoadColor(0.04),muscleLoadColor(0));
+  assert.equal(muscleColorStrength(Number.NaN),0);
+  assert.equal(muscleColorStrength(-1),0);
+  assert.equal(muscleColorStrength(2),1);
+  let previous=0;
+  for(let i=0;i<=100;i++) {
+    const current=muscleColorStrength(i/100);
+    assert(current>=previous);
+    previous=current;
+  }
+  assert(muscleColorStrength(0.2)<0.15, 'small residuals are not gamma-amplified');
 });

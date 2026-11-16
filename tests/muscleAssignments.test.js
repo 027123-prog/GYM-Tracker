@@ -57,3 +57,45 @@ test('anatomy regions cover all training groups without assigning one structure 
   assert.equal(getAnatomyRegion('gluteus_maximus'), 'glutes');
   assert.equal(getAnatomyRegion('subscapularis'), null, 'not an external shoulder rotator');
 });
+
+test('old automatic drafts upgrade their exact known roles, while custom or confirmed assignments remain unchanged', () => {
+  const legacy={version:1,status:'draft_assigned',primary:['glutes','quads','spinal_erectors'],secondary:['hamstrings','adductors','upper_back'],stabilizers:['abs','obliques','forearm_flexors']};
+  const upgraded=getExerciseMuscleAssignment({name:'Kreuzheben',muscleAssignment:legacy});
+  assert(!upgraded.primary.includes('quads'));
+  assert(upgraded.secondary.includes('quads'));
+  assert(upgraded.stabilizers.includes('upper_back'));
+  assert.equal(upgraded.ruleSource,'catalogue');
+  assert.equal(upgraded.ruleRevision,2);
+  assert.deepEqual(getExerciseMuscleAssignment({name:'Mein umbenanntes Heben',muscleAssignment:upgraded}),upgraded);
+  const confirmed=getExerciseMuscleAssignment({name:'Kreuzheben',muscleAssignment:{...legacy,status:'confirmed'}});
+  assert.deepEqual(confirmed.primary,legacy.primary);
+  const custom=getExerciseMuscleAssignment({name:'Kreuzheben',muscleAssignment:{...legacy,primary:['lats']}});
+  assert.deepEqual(custom.primary,['lats']);
+  const explicitCustom=getExerciseMuscleAssignment({name:'Kreuzheben',muscleAssignment:{...legacy,ruleSource:'custom'}});
+  assert.deepEqual(explicitCustom.primary,legacy.primary);
+});
+
+test('plan display aliases resolve exactly and isolation exercises do not invent supporting muscle work', () => {
+  assert.deepEqual(getExerciseMuscleAssignment({name:'Low Row Plate – trapezbetont'}).primary,['upper_back']);
+  assert.deepEqual(getExerciseMuscleAssignment({name:'Row Plate – latbetont'}).primary,['lats']);
+  const triceps=getExerciseMuscleAssignment({name:'Trizepsdrücken am Kabelzug'});
+  assert.deepEqual(triceps.primary,['triceps']);
+  assert.deepEqual(triceps.secondary,[]);
+  const reverse=getExerciseMuscleAssignment({name:'Reverse fly - machine'});
+  assert(!reverse.primary.includes('external_rotators')&&!reverse.secondary.includes('external_rotators'));
+  assert(reverse.stabilizers.includes('external_rotators'));
+});
+
+test('structured RIR and explicit warm-up flags survive backup normalization without changing historical load values', () => {
+  const state=normalizeAppState({exercises:[],templates:[],maxStrengthRecords:[],workouts:[{id:'w',date:'2026-11-13',completedAt:'2026-11-13',exercises:[{id:'e',exerciseId:'e',name:'My exercise',sets:[
+    {id:'s1',weight:40,reps:8,rir:2,setType:'warmup'},
+    {id:'s2',weight:50,reps:5,rir:0,setType:'work'},
+    {id:'s3',weight:10,reps:8,rir:'0',invalid:true},
+  ]}]}]});
+  const restored=parseBackupPayload(JSON.stringify(createBackupPayload(state)));
+  const sets=restored.workouts[0].exercises[0].sets;
+  assert.deepEqual(sets.map(set=>[set.weight,set.reps]),[[40,8],[50,5],[10,8]]);
+  assert.deepEqual(sets.map(set=>set.rir),[2,0,undefined]);
+  assert.equal(sets[0].setType,'warmup');
+  assert.equal(sets[2].invalid,true);
+});

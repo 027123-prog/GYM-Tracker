@@ -24,7 +24,7 @@ export default function MusclePreviewPage() {
     return () => abort.abort();
   }, [days]);
   const demo = Object.fromEntries(Object.entries(DEMO).map(([id, value]) => {
-    const intensity = value * 2 ** (-days / 2);
+    const intensity = value * 2 ** (-days);
     return [id, { intensity, color: muscleLoadColor(intensity) }];
   }));
   const test = Object.fromEntries(Object.entries(TEST).map(([id, color]) => [id, { intensity: 0.65, debugColor: color }]));
