@@ -45,6 +45,16 @@ als persönliche Vergleichsbasis dienen weiterhin abgeschlossene Einheiten.
 
 ## Daten
 
+Die Übungsübersicht bietet **Graph**, **Zeilen** und **Körper**. Der Körpermodus
+zeigt pro Übung deren geschätzte Muskelbeteiligung; auf der Diagrammseite folgt
+unten die große Körperansicht mit einer von stark nach schwach sortierten Liste.
+Hauptmuskeln, Mitwirkung und Stabilisierung verwenden dieselben Katalogrollen,
+mit regionalen Schwerpunkten bei Brustübungen. Das ist ein Übungsprofil ohne
+gemessene Aktivierungsprozente, unabhängig von Tagesform und Trainingshistorie.
+Unbekannte Übungen und ungeklärte Varianten bleiben ausdrücklich ohne Zuordnung.
+Die Bibliotheksvorschauen teilen einen WebGL-Renderer und ein Modell, laden nur
+sichtbare Karten und berücksichtigen reduzierte Bewegung sowie Hintergrundtabs.
+
 Die Startseite enthält eine drehbare Muskelkarte. Die Rotabstufungen schätzen die
 aktuelle Trainingsbelastung anhand von relativer Last, Umfang und Zeitabstand.
 Vorherige vergleichbare Einheiten bis 90 Tage berücksichtigen die persönliche

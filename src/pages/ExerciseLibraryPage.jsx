@@ -4,6 +4,8 @@ import { useAppData } from '../components/AppProvider';
 import LibraryExerciseDialog from '../components/LibraryExerciseDialog';
 import AnchoredPopover from '../components/AnchoredPopover';
 import ExerciseChartPreview from '../components/ExerciseChartPreview';
+import ExerciseMuscleProfile from '../components/muscle/ExerciseMuscleProfile';
+import { normalizeExerciseLibraryLayout } from '../utils/exerciseMuscleProfile';
 import LibraryIcon, { compactIconButtonClass as iconButtonClass } from '../components/InterfaceIcon';
 import { getExerciseRemovalImpact, referencesExercise } from '../utils/exerciseEditing';
 import { exerciseSortOptions as sortOptions, normalizeExerciseSortMode, sortExerciseCards } from '../utils/exerciseSort';
@@ -23,7 +25,9 @@ export default function ExerciseLibraryPage() {
   const sortButtonRef = useRef(null);
   const query = searchParams.get('q') ?? '';
   const sortMode = normalizeExerciseSortMode(searchParams.get('sort'));
-  const previewMode = searchParams.get('layout') !== 'list';
+  const layout = normalizeExerciseLibraryLayout(searchParams.get('layout'));
+  const previewMode = layout !== 'list';
+  const bodyMode = layout === 'body';
   const previewMetric = normalizeExerciseLibraryMetric(searchParams.get('metric'));
   const archiveOpen = searchParams.get('archive') === '1' || searchParams.get('view') === 'archive';
 
@@ -59,9 +63,9 @@ export default function ExerciseLibraryPage() {
   const exercises = useMemo(() => matchingExercises.filter((exercise) => !exercise.archivedAt), [matchingExercises]);
   const archivedExercises = matchingExercises.filter((exercise) => exercise.archivedAt);
 
-  const chartPreviews = useMemo(() => previewMode
+  const chartPreviews = useMemo(() => layout === 'graph'
     ? new Map(exercises.map((exercise) => [exercise.id, buildExerciseChartData(state.workouts, exercise.id, exercise.name)]))
-    : null, [previewMode, exercises, state.workouts]);
+    : null, [layout, exercises, state.workouts]);
 
   const currentParams = new URLSearchParams(searchParams);
   currentParams.delete('view');
@@ -107,16 +111,7 @@ export default function ExerciseLibraryPage() {
           <button ref={sortButtonRef} type="button" className={`${iconButtonClass} ${sortMode !== 'count-desc' ? 'bg-amber-soft text-amber' : ''}`} aria-label="Übungen sortieren" title="Sortierung" aria-haspopup="dialog" aria-controls={showSort ? 'library-sort-popover' : undefined} aria-expanded={showSort} onClick={() => setShowSort((open) => !open)}>
             <LibraryIcon name="sort" />
           </button>
-          <button
-            type="button"
-            className={`${iconButtonClass} bg-amber-soft text-amber`}
-            aria-label={previewMode ? 'Zur Listenansicht wechseln' : 'Zur Diagrammvorschau wechseln'}
-            title={previewMode ? 'Diagrammvorschau · Zur Listenansicht wechseln' : 'Listenansicht · Zur Diagrammvorschau wechseln'}
-            onClick={() => updateSearchParams('layout', previewMode ? 'list' : '')}
-          >
-            <LibraryIcon name={previewMode ? 'preview' : 'list'} />
-          </button>
-          <button
+          {!bodyMode ? <button
             type="button"
             className={`${iconButtonClass} bg-amber-soft text-amber`}
             aria-label={previewMetric === 'max' ? 'Zu Volumen wechseln' : 'Zu Max wechseln'}
@@ -124,8 +119,17 @@ export default function ExerciseLibraryPage() {
             onClick={() => updateSearchParams('metric', previewMetric === 'max' ? 'volume' : 'max', 'volume')}
           >
             <LibraryIcon name={previewMetric === 'max' ? 'max' : 'volume'} />
-          </button>
+          </button> : null}
         </div>
+        <div className="grid grid-cols-3 gap-1 rounded-sm bg-surface-raised p-1" role="group" aria-label="Ansicht der Übungen">
+          {[{ value: 'graph', label: 'Graph', icon: 'preview' }, { value: 'list', label: 'Zeilen', icon: 'list' }, { value: 'body', label: 'Körper', icon: 'body' }].map(mode =>
+            <button key={mode.value} type="button" aria-pressed={layout === mode.value}
+              className={`flex min-h-10 items-center justify-center gap-2 rounded-sm text-xs font-bold transition ${layout === mode.value ? 'bg-amber-soft text-amber-deep' : 'text-muted hover:text-ink'}`}
+              onClick={() => updateSearchParams('layout', mode.value, 'graph')}>
+              <LibraryIcon name={mode.icon} />{mode.label}
+            </button>)}
+        </div>
+        {bodyMode ? <p className="text-center text-[11px] text-muted">Kräftigeres Rot = stärkere Beteiligung · Tippen für Details</p> : null}
       </section>
 
       {notice ? <p role={notice.error ? 'alert' : 'status'} className={`rounded-sm border p-3 text-sm ${notice.error ? 'border-ember/35 bg-ember/10 text-ember' : 'border-amber/35 bg-amber-soft text-ink'}`}>{notice.text}</p> : null}
@@ -147,8 +151,9 @@ export default function ExerciseLibraryPage() {
                 <button type="button" className={`${iconButtonClass} ${exercise.archivedAt ? 'text-amber' : 'hover:text-ember'}`} aria-label={`${exercise.name} ${exercise.archivedAt ? 'wiederherstellen' : 'entfernen'}`} title={exercise.archivedAt ? 'Wiederherstellen' : 'Entfernen'} onClick={() => exercise.archivedAt ? restoreExercise(exercise) : openAction('remove', exercise.id)}><LibraryIcon name={exercise.archivedAt ? 'restore' : 'trash'} /></button>
               </div> : null}
             </div>
-            {previewMode ? <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder, libraryReturnTo, chartMetric: getChartMetric(exercise) }} className="mt-auto block py-2" aria-label={`Diagrammvorschau von ${exercise.name}`}>
-              <ExerciseChartPreview data={chartPreviews.get(exercise.id)} metric={getChartMetric(exercise)} loadType={exercise.settings?.loadType} />
+            {previewMode ? <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder, libraryReturnTo, chartMetric: getChartMetric(exercise) }} className="mt-auto block py-2" aria-label={`${bodyMode ? 'Muskelansicht' : 'Diagrammvorschau'} von ${exercise.name}`}>
+              {bodyMode ? <ExerciseMuscleProfile exercise={exercise} compact />
+                : <ExerciseChartPreview data={chartPreviews.get(exercise.id)} metric={getChartMetric(exercise)} loadType={exercise.settings?.loadType} />}
             </Link> : exercise.latestSummary ? <p className="truncate text-xs leading-5 text-muted" title={exercise.latestSummary}>{exercise.latestSummary}</p> : null}
             <div className={`flex items-center justify-between gap-1 ${previewMode ? 'flex-wrap border-t border-line pt-1' : 'mt-0.5'}`}>
               <span className="min-w-0 text-[10px] text-muted">{exercise.workoutCount} {exercise.workoutCount === 1 ? 'Training' : 'Trainings'}{exercise.hasOpenWorkout ? ' · offen' : ''}</span>

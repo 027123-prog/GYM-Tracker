@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { createMuscleFigure } from './createMuscleFigure';
 import './muscleFigure.css';
 
-export default function MuscleFigure({ muscles = {}, className = '', controls = true }) {
+export default function MuscleFigure({ muscles = {}, className = '', controls = true, ariaLabel }) {
   const containerRef = useRef(null);
   const sceneRef = useRef(null);
   const musclesRef = useRef(muscles);
@@ -162,7 +162,7 @@ export default function MuscleFigure({ muscles = {}, className = '', controls = 
 
   return (
     <div className={`muscle-figure ${className}`}>
-      <div ref={containerRef} className="muscle-figure-stage" data-failed={failed} role="img" aria-label={failed ? 'Statische anatomische Ansicht ohne Belastungsfarben. 3D ist nicht verfügbar.' : 'Drehbare anatomische Körperfigur. Rotabstufungen zeigen geschätzte Trainingsbelastung.'}>
+      <div ref={containerRef} className="muscle-figure-stage" data-failed={failed} role="img" aria-label={failed ? 'Statische anatomische Ansicht ohne Belastungsfarben. 3D ist nicht verfügbar.' : ariaLabel || 'Drehbare anatomische Körperfigur. Rotabstufungen zeigen geschätzte Trainingsbelastung.'}>
         {loading && !failed ? <div className="muscle-figure-fallback" role="status" aria-label="Muskelkarte lädt">{controls ? 'Muskelkarte lädt …' : <img className="muscle-figure-static" src={`${import.meta.env.BASE_URL}anatomy/fallback-front.png`} alt="" />}</div> : null}
         {failed ? <><img className="muscle-figure-static" src={`${import.meta.env.BASE_URL}anatomy/fallback-${staticView}.png`} alt="" />{controls ? <span className="muscle-figure-failure-note">Statische Ansicht · 3D nicht verfügbar</span> : null}</> : null}
       </div>

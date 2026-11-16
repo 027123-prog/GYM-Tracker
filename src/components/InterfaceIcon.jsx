@@ -5,6 +5,7 @@ export default function InterfaceIcon({ name }) {
     filter: <path d="M3 4h18l-7 8v7l-4 2v-9Z" />,
     sort: <path d="M8 4v16m-4-4 4 4 4-4M14 4h7M14 8h5M14 12h3" />,
     list: <path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />,
+    body: <><circle cx="12" cy="4" r="2" /><path d="m4 8 5 2v4l-2 7M20 8l-5 2v4l2 7M9 8h6M9 14h6" /></>,
     preview: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="m6 16 4-5 4 2 4-6" /></>,
     volume: <><rect x="4" y="4" width="16" height="4" rx="1" /><rect x="4" y="10" width="16" height="4" rx="1" /><rect x="4" y="16" width="16" height="4" rx="1" /></>,
     max: <><path d="M4 20h16M5 17l5-6 4 3 4-7" /><circle cx="19" cy="5" r="2" /></>,

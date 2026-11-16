@@ -4,6 +4,7 @@ import { useAppData } from '../components/AppProvider';
 import EmptyState from '../components/EmptyState';
 import ExerciseChartCard from '../components/ExerciseChartCard';
 import ExerciseSettingsModal from '../components/ExerciseSettingsModal';
+import ExerciseMuscleProfile from '../components/muscle/ExerciseMuscleProfile';
 import { resolveExerciseNavigationOrder } from '../utils/exerciseSort';
 import { buildExerciseChartData } from '../utils/workout';
 
@@ -135,6 +136,7 @@ export default function ExerciseChartPage() {
           />
         </>
       )}
+      <ExerciseMuscleProfile exercise={exercise} />
       <ExerciseSettingsModal
         isOpen={settingsOpen}
         exerciseName={exercise.name}
