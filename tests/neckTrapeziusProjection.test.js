@@ -5,18 +5,19 @@ import * as THREE from 'three';
 import { neckTrapeziusWeight } from '../src/data/neckTrapeziusProjection.js';
 import { createNeutralHeadGeometry } from '../src/components/muscle/neutralHead.js';
 
-test('the paired posterior-neck projection fades smoothly and leaves face, throat, skull and central line neutral', () => {
+test('the paired neck-base projection ends at the shoulder/neck junction and fades smoothly to neutral', () => {
   const back = [0, 0, -1];
-  assert.equal(neckTrapeziusWeight([0.025, 1.63, -0.09], back), 1);
-  assert.equal(neckTrapeziusWeight([-0.025, 1.63, -0.09], back), 1);
+  assert.equal(neckTrapeziusWeight([0.025, 1.605, -0.09], back), 1);
+  assert.equal(neckTrapeziusWeight([-0.025, 1.605, -0.09], back), 1);
   assert.equal(neckTrapeziusWeight([0, 1.63, -0.09], back), 0);
   assert.equal(neckTrapeziusWeight([0.025, 1.8, -0.1], back), 0);
   assert.equal(neckTrapeziusWeight([0.025, 1.65, 0.06], [0, 0, 1]), 0);
   assert.equal(neckTrapeziusWeight([0.1, 1.65, -0.1], back), 0);
-  const weights = [1.67, 1.69, 1.71, 1.73, 1.735].map(y => neckTrapeziusWeight([0.025, y, -0.09], back));
+  const weights = [1.608, 1.612, 1.616, 1.62, 1.625].map(y => neckTrapeziusWeight([0.025, y, -0.09], back));
   assert.equal(weights[0], 1); assert.equal(weights.at(-1), 0);
   assert.ok(weights.every((value, index) => !index || value < weights[index - 1]));
   assert.equal(neckTrapeziusWeight([NaN, 1.6, -0.1], back), 0);
+  assert.equal(neckTrapeziusWeight([0.025, 1.64, -0.09], back), 0);
 });
 
 test('the current replacement-head mesh exposes the projection on the rear neck while the front stays neutral', () => {
@@ -36,12 +37,12 @@ test('the current replacement-head mesh exposes the projection on the rear neck 
   const geometry = createNeutralHeadGeometry(source);
   const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
   const ray = new THREE.Raycaster();
-  for (const front of [false, true]) {
-    ray.set(new THREE.Vector3(0.025, 1.64, front ? 3 : -3), new THREE.Vector3(0, 0, front ? -1 : 1));
+  for (const [front, y] of [[false, 1.616], [true, 1.616], [false, 1.64], [false, 1.69]]) {
+    ray.set(new THREE.Vector3(0.025, y, front ? 3 : -3), new THREE.Vector3(0, 0, front ? -1 : 1));
     const hit = ray.intersectObject(mesh)[0];
     assert.ok(hit);
     const weight = neckTrapeziusWeight(hit.point.toArray(), hit.normal.toArray());
-    assert.ok(front ? weight === 0 : weight > 0.8, `Visible ${front ? 'front' : 'back'} mask: ${weight}`);
+    assert.ok(front || y > 1.625 ? weight === 0 : weight > 0.4, `Visible ${front ? 'front' : 'back'} mask at ${y}: ${weight}`);
   }
   source.dispose(); geometry.dispose(); mesh.material.dispose();
 });

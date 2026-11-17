@@ -100,9 +100,9 @@ untere Brust sowie der Serratus. Rückenstrecker im unteren Rücken und tiefe
 Hüftbeuger werden als weiche, beidseitige Farbprojektionen auf den vorhandenen
 Oberflächen sichtbar. Diese beiden Bereiche sind schematische Projektionen,
 keine freigelegten anatomischen Muskelflächen. Die Körpergeometrie bleibt erhalten.
-Der obere Trapez setzt seine Farbe als weiche, beidseitige Projektion am hinteren
-Hals des Ersatzkopfs fort. Die bisherige Schnittkante endet dadurch nicht abrupt
-in einem neutralen Nacken; Gesicht, vorderer Hals und Hinterkopf bleiben neutral.
+Der obere Trapez setzt seine Farbe nur als kurze, weiche beidseitige Projektion
+am Nackenansatz direkt über der Schulterlinie fort. Der obere Hals, das Gesicht,
+der vordere Hals und der Hinterkopf bleiben neutral.
 `scripts/build-diego-anatomy.mjs` bereitet die heruntergeladene Quelle reproduzierbar
 auf; Form und Oberflächendetails bleiben erhalten, Texturen und Geometrie werden
 für den Webeinsatz komprimiert.
