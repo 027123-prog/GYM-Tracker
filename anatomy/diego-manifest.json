@@ -6,9 +6,9 @@
     "title": "Male Full Body Ecorche"
   },
   "sourceGitBlob": "71b2f537687dcf821e8d82e030237b68f9042364",
-  "sha256": "063e93f711da904a881715d142067087ad3a6a2f54eeb63dc3376570ce4535fa",
-  "bytes": 9680464,
-  "assetRevision": "coverage-2",
+  "sha256": "7caeb904d0a9bb8c15da2d02db277101b34d93aa16fb8fb1ad920857c194c709",
+  "bytes": 9685804,
+  "assetRevision": "profile-3",
   "regionIds": [
     "context",
     "chest",
@@ -185,11 +185,11 @@
   ],
   "maxAttributeRoundtripError": 0.000003814697265625,
   "notes": [
-    "Source form and triangle detail retained; exposed face removed for separate neutral head",
+    "Retained source topology and detail. Arms open six degrees, collar tucks into the neutral neck, and lumbar contours have shallow paired relief.",
     "Textures resized to 1024 pixels; baked source normal maps retained",
     "Artist surface groups; upper/middle/lower chest, deltoid heads and trapezius subdivisions use illustrative soft boundaries",
     "Light tendon pixels within assigned muscles receive the muscle tint in the application shader",
-    "Lumbar spinal erectors and deep hip flexors are schematic bilateral color projections on existing geometry, not exposed muscle anatomy",
+    "Lumbar relief and hip-flexor color are schematic bilateral representations on the outer surface",
     "Visible serratus slips have their own training region"
   ]
 }
