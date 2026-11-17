@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptEncoder, MeshoptDecoder } from 'meshoptimizer';
 import sharp from 'sharp';
-import { DIEGO_REGION_IDS, DIEGO_ASSET_REVISION, classifyDiegoPart } from '../src/data/diegoAnatomy.js';
+import { DIEGO_REGION_IDS, DIEGO_ASSET_REVISION, DIEGO_MODEL_FILE, classifyDiegoPart } from '../src/data/diegoAnatomy.js';
+import { shapeTrainingVertex } from './trainingFigureShape.mjs';
 
 const sourceDir = path.resolve(process.argv[2] || '.tools/diego-source');
 const outputDir = path.resolve('public/anatomy');
@@ -73,7 +74,9 @@ for(const object of objects){
  const bounds=new Map();for(let i=0;i<p.count;i++){const id=find(i),b=bounds.get(id)||new THREE.Box3();b.expandByPoint(new THREE.Vector3(p.getX(i),p.getY(i),p.getZ(i)));bounds.set(id,b);}
  const positions=[],normals=[],uvs=[],training=[],indices=[],used=new Map(),regions=new Set();
  const vertex=i=>({key:`v${i}`,p:[p.getX(i),p.getY(i),p.getZ(i)],n:[n.getX(i),n.getY(i),n.getZ(i)],uv:[uv?.getX(i)||0,uv?.getY(i)||0],component:find(i)});
- function add(v){if(used.has(v.key))return used.get(v.key);const id=positions.length/3;used.set(v.key,id);positions.push(...v.p);normals.push(...v.n);uvs.push(...v.uv);
+ function add(v){if(used.has(v.key))return used.get(v.key);const id=positions.length/3;used.set(v.key,id);
+ const shaped = shapeTrainingVertex(v.p,v.n);
+ positions.push(...shaped.position);normals.push(...shaped.normal);uvs.push(...v.uv);
  const [a,b,mix]=classifyDiegoPart(object.material.name,v.component,bounds.get(v.component),v.p,v.n);regions.add(a);regions.add(b);training.push(DIEGO_REGION_IDS.indexOf(a),DIEGO_REGION_IDS.indexOf(b),Math.round(mix*255),0);return id;}
  function cut(a,b){const t=(1.615-a.p[1])/(b.p[1]-a.p[1]);return{key:[a.key,b.key].sort().join(':'),p:a.p.map((v,i)=>i===1?1.615:v+t*(b.p[i]-v)),n:a.n.map((v,i)=>v+t*(b.n[i]-v)),uv:a.uv.map((v,i)=>v+t*(b.uv[i]-v)),component:a.component};}
  for(let i=0;i<index.count;i+=3){const vs=[vertex(index.getX(i)),vertex(index.getX(i+1)),vertex(index.getX(i+2))],polygon=[];for(let j=0;j<3;j++){const a=vs[j],b=vs[(j+1)%3],ina=a.p[1]<=1.615,inb=b.p[1]<=1.615;if(ina)polygon.push(a);if(ina!==inb)polygon.push(cut(a,b));}for(let j=1;j+1<polygon.length;j++)indices.push(add(polygon[0]),add(polygon[j]),add(polygon[j+1]));}
@@ -94,6 +97,6 @@ const jsonBytes=Buffer.from(JSON.stringify(out)),jsonChunk=Buffer.concat([jsonBy
 const header=Buffer.alloc(20);header.writeUInt32LE(0x46546c67,0);header.writeUInt32LE(2,4);header.writeUInt32LE(28+jsonChunk.length+binChunk.length,8);header.writeUInt32LE(jsonChunk.length,12);header.writeUInt32LE(0x4e4f534a,16);
 const binHeader=Buffer.alloc(8);binHeader.writeUInt32LE(binChunk.length,0);binHeader.writeUInt32LE(0x004e4942,4);
 const result=Buffer.concat([header,jsonChunk,binHeader,binChunk]);
-await fs.mkdir(outputDir,{recursive:true});await fs.writeFile(path.join(outputDir,'diego-training.glb'),result);
-await fs.writeFile(path.join(outputDir,'diego-manifest.json'),JSON.stringify({source:json.asset.extras,sourceGitBlob:gitHash,sha256:crypto.createHash('sha256').update(result).digest('hex'),bytes:result.length,assetRevision:DIEGO_ASSET_REVISION,regionIds:DIEGO_REGION_IDS,meshes:report,maxAttributeRoundtripError:maxError,notes:['Source form and triangle detail retained; exposed face removed for separate neutral head','Textures resized to 1024 pixels; baked source normal maps retained','Artist surface groups; upper/middle/lower chest, deltoid heads and trapezius subdivisions use illustrative soft boundaries','Light tendon pixels within assigned muscles receive the muscle tint in the application shader','Lumbar spinal erectors and deep hip flexors are schematic bilateral color projections on existing geometry, not exposed muscle anatomy','Visible serratus slips have their own training region']},null,2));
+await fs.mkdir(outputDir,{recursive:true});await fs.writeFile(path.join(outputDir,DIEGO_MODEL_FILE),result);
+await fs.writeFile(path.join(outputDir,'diego-manifest.json'),JSON.stringify({source:json.asset.extras,sourceGitBlob:gitHash,sha256:crypto.createHash('sha256').update(result).digest('hex'),bytes:result.length,assetRevision:DIEGO_ASSET_REVISION,regionIds:DIEGO_REGION_IDS,meshes:report,maxAttributeRoundtripError:maxError,notes:['Retained source topology and detail. Arms open six degrees, collar tucks into the neutral neck, and lumbar contours have shallow paired relief.','Textures resized to 1024 pixels; baked source normal maps retained','Artist surface groups; upper/middle/lower chest, deltoid heads and trapezius subdivisions use illustrative soft boundaries','Light tendon pixels within assigned muscles receive the muscle tint in the application shader','Lumbar relief and hip-flexor color are schematic bilateral representations on the outer surface','Visible serratus slips have their own training region']},null,2));
 console.log(JSON.stringify({bytes:result.length,triangles:report.reduce((n,m)=>n+m.triangles,0),maxAttributeRoundtripError:maxError,meshes:report.length}));

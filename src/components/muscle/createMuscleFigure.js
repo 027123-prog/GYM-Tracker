@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { DIEGO_REGION_IDS, DIEGO_COVERAGE, DIEGO_ASSET_REVISION } from '../../data/diegoAnatomy';
+import { DIEGO_REGION_IDS, DIEGO_COVERAGE, DIEGO_ASSET_REVISION, DIEGO_MODEL_FILE } from '../../data/diegoAnatomy';
 import { createNeutralHeadGeometry } from './neutralHead';
 import { muscleLoadColor } from '../../utils/muscleLoadColor';
 import { neckTrapeziusWeight } from '../../data/neckTrapeziusProjection';
@@ -51,7 +51,7 @@ function attachNeckTrainingColors(material, palette) {
 export async function createMuscleFigure() {
   const assetUrl = file => new URL(`${import.meta.env.BASE_URL}anatomy/${file}?v=${DIEGO_ASSET_REVISION}`, document.baseURI).href;
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-  const results = await Promise.allSettled([loader.loadAsync(assetUrl('diego-training.glb')), loader.loadAsync(assetUrl('neutral-head.glb'))]);
+  const results = await Promise.allSettled([loader.loadAsync(assetUrl(DIEGO_MODEL_FILE)), loader.loadAsync(assetUrl('neutral-head.glb'))]);
   const geometries = new Set(), materials = new Set(), textures = new Set();
   const collect = object => {
     if (!object.isMesh) return;
@@ -98,7 +98,7 @@ export async function createMuscleFigure() {
     root,
     muscleIds: [...surfaceRegions],
     coverage: DIEGO_COVERAGE,
-    setLevels(muscles = {}) {
+    setLevels(muscles = {}, highlightedId = null) {
       DIEGO_REGION_IDS.forEach((id,index) => {
         // Only assigned muscles receive training colors. Light pixels within
         // those surfaces share the tint; unrelated support geometry stays grey.
@@ -108,6 +108,10 @@ export async function createMuscleFigure() {
         // Consume the same display curve as the calculator, without a second
         // gamma boost that made tiny old contributions look freshly trained.
         const tint = new THREE.Color(muscleLoadColor(intensity));
+        if (highlightedId) {
+          if (id === highlightedId) tint.set('#ffc464');
+          else tint.lerp(neutralColor, 0.75);
+        }
         palette[index].set(tint.r,tint.g,tint.b);
         if (/^#[0-9a-f]{6}$/i.test(muscles[id]?.debugColor)) {
           const color = new THREE.Color(muscles[id].debugColor);

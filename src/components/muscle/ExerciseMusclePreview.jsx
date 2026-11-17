@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { registerExercisePreview } from './exercisePreviewRenderer';
 import { bindExercisePreviewInteraction } from './exercisePreviewInteraction';
 
-export default function ExerciseMusclePreview({ muscles, label, initialView = 'front' }) {
+export default function ExerciseMusclePreview({ muscles, label, initialView = 'front', onAngleCommit }) {
   const canvasRef = useRef(null);
   const registrationRef = useRef(null);
   const musclesRef = useRef(muscles);
@@ -32,7 +32,7 @@ export default function ExerciseMusclePreview({ muscles, label, initialView = 'f
       setStaticView(Math.cos(angle) < 0 ? 'back' : 'front');
     };
     const unbind = bindExercisePreviewInteraction(canvas, {
-      getAngle: () => angleRef.current, getDefaultAngle: () => defaultAngleRef.current, onRotate: rotate,
+      getAngle: () => angleRef.current, getDefaultAngle: () => defaultAngleRef.current, onRotate: rotate, onAngleCommit,
     });
     const activate = () => {
       if (!registrationRef.current) registrationRef.current = registerExercisePreview(canvas, musclesRef.current, setStatus, angleRef.current);
@@ -48,7 +48,7 @@ export default function ExerciseMusclePreview({ muscles, label, initialView = 'f
       observer?.disconnect(); resize?.disconnect(); deactivate();
       unbind();
     };
-  }, []);
+  }, [onAngleCommit]);
   return <div className="exercise-muscle-preview" role="img" aria-label={status === 'failed' ? `${label} 3D nicht verfügbar; neutrale Ersatzansicht.` : label}>
     <canvas ref={canvasRef} aria-hidden="true" />
     {status !== 'ready' ? <img className="muscle-figure-static pointer-events-none" src={`${import.meta.env.BASE_URL}anatomy/fallback-${staticView}.png`} alt="" /> : null}

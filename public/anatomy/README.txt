@@ -1,6 +1,6 @@
 HardGainWAF anatomy assets
 
-Active figure: diego-training.glb
+Active figure: diego-training-v3.glb (diego-training.glb serves older clients)
 Male Full Body Ecorche by Diego Luján García (diegoluga), CC BY 4.0.
 Original: https://sketchfab.com/3d-models/male-full-body-ecorche-ab11ebff89224f03bd75efede1164cf6
 Full attribution, public source mirror and modifications: DIEGO-ATTRIBUTION.md.
@@ -16,7 +16,9 @@ muscle pieces are mapped to 25 exposed training regions; the upper/middle/lower
 chest, deltoid heads and trapezius subdivisions have illustrative soft color
 boundaries. Spinal erectors and deep hip flexors use soft bilateral schematic
 color projections on existing surfaces, adding two visible training regions.
-They are not exposed/dissected anatomy. Geometry and triangle counts are unchanged.
+The lumbar zones also have shallow paired surface relief. The arms are angled
+slightly outward, and the cut collar tapers under the fitted jaw and neck.
+The vertex deformation preserves the original triangle topology and UVs.
 The visible serratus slips have their own region. Light tendon areas within assigned muscle pieces
 receive the same training tint to make the surfaces visually continuous.
 The base of the replacement neck receives a short, soft bilateral upper-trapezius

@@ -1,21 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { createMuscleFigure } from './createMuscleFigure';
+import { fitFigureCamera, lightMuscleFigure } from './figureScene';
 import './muscleFigure.css';
 
-export default function MuscleFigure({ muscles = {}, className = '', controls = true, ariaLabel }) {
+export default function MuscleFigure({ muscles = {}, className = '', controls = true, ariaLabel, initialView, initialAngle, focusRequest }) {
   const containerRef = useRef(null);
   const sceneRef = useRef(null);
   const musclesRef = useRef(muscles);
-  const [playing, setPlaying] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const [playing, setPlaying] = useState(() => !initialView && !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [staticView, setStaticView] = useState('front');
+  const startAngle = Number.isFinite(initialAngle) ? initialAngle : initialView === 'back' ? Math.PI : initialView === 'front' ? 0 : -0.15;
+  const [staticView, setStaticView] = useState(Math.cos(startAngle) < 0 ? 'back' : 'front');
+  const highlighted = useRef(null);
   const playingRef = useRef(playing);
   useEffect(() => { playingRef.current = playing; sceneRef.current?.requestDraw(); }, [playing]);
   useEffect(() => {
     musclesRef.current = muscles;
-    sceneRef.current?.figure.setLevels(muscles);
+    sceneRef.current?.figure.setLevels(muscles, highlighted.current);
     sceneRef.current?.requestDraw();
   }, [muscles]);
 
@@ -26,19 +29,17 @@ export default function MuscleFigure({ muscles = {}, className = '', controls = 
     catch { setFailed(true); return undefined; }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
     renderer.setClearColor(0, 0);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.3;
     const canvas = renderer.domElement;
     canvas.setAttribute('aria-hidden', 'true');
     host.prepend(canvas);
     const scene = new THREE.Scene();
+    lightMuscleFigure(renderer, scene);
     const camera = new THREE.OrthographicCamera(-0.7, 0.7, 2, 0, 0.1, 20);
     camera.position.set(0, 1.05, 4);
     camera.lookAt(0, 0.95, 0);
     let disposed = false;
     const figure = { root: new THREE.Group(), setLevels() {}, dispose() {} };
-    figure.root.rotation.y = -0.15;
+    figure.root.rotation.y = startAngle;
     scene.add(figure.root);
     createMuscleFigure().then(asset => {
       if (disposed) { asset.dispose(); return; }
@@ -49,31 +50,29 @@ export default function MuscleFigure({ muscles = {}, className = '', controls = 
       setLoading(false);
       requestDraw();
     }).catch(() => { if (!disposed) { setLoading(false); setFailed(true); } });
-    scene.add(new THREE.HemisphereLight('#e7edef', '#43494b', 1.5));
-    const key = new THREE.DirectionalLight('#f5f6f6', 2.0);
-    key.position.set(-2, 3.5, 3);
-    scene.add(key);
-    const rim = new THREE.DirectionalLight('#b7c9ce', 1.3);
-    rim.position.set(2, 2, -2);
-    scene.add(rim);
     let frame = null;
     let previous = 0;
     let lastDraw = 0;
     let visible = true;
     let dragging = null;
+    let turn = null;
     let dirty = true;
     const draw = (time) => {
       frame = null;
       const elapsed = previous ? Math.min((time - previous) / 1000, 0.08) : 0;
       previous = time;
       const moving = playingRef.current && !dragging;
-      if (moving) figure.root.rotation.y += elapsed * Math.PI * 2 / 15;
+      if (turn) {
+        const progress = Math.min(1, Math.max(0, (time - turn.start) / 320));
+        figure.root.rotation.y = turn.from + turn.distance * progress * progress * (3 - 2 * progress);
+        if (progress === 1) { turn = null; dirty = true; }
+      } else if (moving) figure.root.rotation.y += elapsed * Math.PI * 2 / 15;
       if (dirty || time - lastDraw >= 1000 / 30) {
         renderer.render(scene, camera);
         lastDraw = time;
         dirty = false;
       }
-      if (moving && visible && !document.hidden) frame = requestAnimationFrame(draw);
+      if ((moving || turn) && visible && !document.hidden) frame = requestAnimationFrame(draw);
     };
     const requestDraw = () => {
       dirty = true;
@@ -90,13 +89,7 @@ export default function MuscleFigure({ muscles = {}, className = '', controls = 
     const resize = new ResizeObserver(() => {
       const { width, height } = host.getBoundingClientRect();
       if (!width || !height) return;
-      const halfHeight = 1.015;
-      const halfWidth = halfHeight * width / height;
-      camera.left = -halfWidth;
-      camera.right = halfWidth;
-      camera.top = halfHeight;
-      camera.bottom = -halfHeight;
-      camera.updateProjectionMatrix();
+      fitFigureCamera(camera, width, height);
       renderer.setSize(width, height);
       requestDraw();
     });
@@ -113,6 +106,7 @@ export default function MuscleFigure({ muscles = {}, className = '', controls = 
     reduced.addEventListener('change', preference);
     const down = (event) => {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
+      turn = null;
       dragging = { id: event.pointerId, x: event.clientX, y: event.clientY, angle: figure.root.rotation.y, horizontal: false };
       // Keep vertical scrolling available until horizontal intent is established.
     };
@@ -139,7 +133,16 @@ export default function MuscleFigure({ muscles = {}, className = '', controls = 
     window.addEventListener('pointerup', up);
     canvas.addEventListener('pointercancel', up);
     canvas.addEventListener('webglcontextlost', contextLost);
-    sceneRef.current = { figure, requestDraw, setAngle(angle) { figure.root.rotation.y = angle; setPlaying(false); requestDraw(); } };
+    sceneRef.current = { figure, requestDraw, setAngle(angle, animate = false) {
+      playingRef.current = false;
+      const from = figure.root.rotation.y;
+      const distance = Math.atan2(Math.sin(angle - from), Math.cos(angle - from));
+      turn = animate && !reduced.matches && Math.abs(distance) > 0.01
+        ? { from, distance, start: performance.now() } : null;
+      if (!turn) figure.root.rotation.y = angle;
+      setPlaying(false);
+      requestDraw();
+    } };
     requestDraw();
     return () => {
       disposed = true;
@@ -158,7 +161,32 @@ export default function MuscleFigure({ muscles = {}, className = '', controls = 
       canvas.remove();
       sceneRef.current = null;
     };
-  }, []);
+  }, [startAngle]);
+
+  useEffect(() => {
+    if (!focusRequest) return;
+    setStaticView(focusRequest.view);
+    sceneRef.current?.setAngle(focusRequest.angle, true);
+  }, [focusRequest]);
+
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!focusRequest || !scene || failed || loading) return;
+    highlighted.current = focusRequest.id;
+    scene.figure.setLevels(musclesRef.current, focusRequest.id);
+    scene.requestDraw();
+    const restore = () => {
+      highlighted.current = null;
+      scene.figure.setLevels(musclesRef.current);
+      scene.requestDraw();
+    };
+    const timer = window.setTimeout(restore, 2400);
+    return () => {
+      window.clearTimeout(timer);
+      if (highlighted.current && sceneRef.current === scene) restore();
+      highlighted.current = null;
+    };
+  }, [focusRequest, failed, loading]);
 
   return (
     <div className={`muscle-figure ${className}`}>

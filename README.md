@@ -99,13 +99,15 @@ zugeordneter Muskelflächen werden mitgefärbt; übrige Stützflächen bleiben n
 untere Brust sowie der Serratus. Rückenstrecker im unteren Rücken und tiefe
 Hüftbeuger werden als weiche, beidseitige Farbprojektionen auf den vorhandenen
 Oberflächen sichtbar. Diese beiden Bereiche sind schematische Projektionen,
-keine freigelegten anatomischen Muskelflächen. Die Körpergeometrie bleibt erhalten.
+ergänzt durch ein flaches Relief beidseits der Lendenwirbelsäule.
+Die Arme stehen leicht vom Rumpf ab. In den Übungsdetails startet die Figur
+mit der Ansicht aus der Kachel. Antippen einer Muskelzeile dreht die Figur
+zur passenden Seite und hebt die Region kurz goldfarben hervor.
 Der obere Trapez setzt seine Farbe nur als kurze, weiche beidseitige Projektion
 am Nackenansatz direkt über der Schulterlinie fort. Der obere Hals, das Gesicht,
 der vordere Hals und der Hinterkopf bleiben neutral.
 `scripts/build-diego-anatomy.mjs` bereitet die heruntergeladene Quelle reproduzierbar
-auf; Form und Oberflächendetails bleiben erhalten, Texturen und Geometrie werden
-für den Webeinsatz komprimiert.
+auf und komprimiert Texturen und Geometrie für den Webeinsatz.
 
 Für Übungen mit zwei gleichen Hanteln unter **Übung bearbeiten → Belastungsart →
 Zwei Einzelgewichte** umstellen. Danach nur das Gewicht einer Hantel eingeben:

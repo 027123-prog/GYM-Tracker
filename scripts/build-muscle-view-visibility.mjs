@@ -3,11 +3,11 @@ import crypto from 'node:crypto';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { DIEGO_REGION_IDS, DIEGO_ASSET_REVISION } from '../src/data/diegoAnatomy.js';
+import { DIEGO_REGION_IDS, DIEGO_ASSET_REVISION, DIEGO_MODEL_FILE } from '../src/data/diegoAnatomy.js';
 
 // Offline orthographic depth rendering of the approved mesh. These pixel counts
 // describe visibility in this model, never muscle activation or exercise effects.
-const bytes = fs.readFileSync('public/anatomy/diego-training.glb');
+const bytes = fs.readFileSync(`public/anatomy/${DIEGO_MODEL_FILE}`);
 const manifest = JSON.parse(fs.readFileSync('public/anatomy/diego-manifest.json'));
 if (crypto.createHash('sha256').update(bytes).digest('hex') !== manifest.sha256) throw new Error('Unexpected anatomy asset');
 const size = bytes.readUInt32LE(12);
@@ -22,8 +22,10 @@ scene.updateMatrixWorld(true);
 const meshes = [];
 scene.traverse(object => { if (object.isMesh) meshes.push(object); });
 const width = 240, height = 400, scale = height / 2.02;
-const visibility = Object.fromEntries(DIEGO_REGION_IDS.filter(id => id !== 'context').map(id => [id, { front: 0, back: 0 }]));
-for (const [view, angle] of [['front', 0], ['back', Math.PI]]) {
+const views = { front: 0, back: Math.PI, frontOblique: Math.PI / 4, backOblique: Math.PI * 3 / 4, side: Math.PI / 2 };
+const visibility = Object.fromEntries(DIEGO_REGION_IDS.filter(id => id !== 'context')
+  .map(id => [id, Object.fromEntries(Object.keys(views).map(view => [view, 0]))]));
+for (const [view, angle] of Object.entries(views)) {
   const depth = new Float32Array(width * height).fill(-Infinity);
   const regions = new Int16Array(width * height).fill(-1);
   const cos = Math.cos(angle), sin = Math.sin(angle);

@@ -16,7 +16,8 @@ Downloaded on 15 November 2026. No affiliation or endorsement is implied.
 ## HardGainWAF adaptations
 
 - Normalized to a common 1.88-unit height with feet at zero, anterior +Z.
-- Retained the sculpt, triangle detail, UV layout and baked normal-map fibers.
+- Retained triangle detail, UV layout and baked normal-map fibers. Opened the
+  arms six degrees around the shoulders and tucked the cut collar into the neck.
 - Removed the exposed face and clipped the anatomy neck at 1.615 units.
   A separately credited neutral MakeHuman head (CC0) replaces it; see
   HEAD-ATTRIBUTION.md and HEAD-LICENSE.txt.
@@ -26,7 +27,8 @@ Downloaded on 15 November 2026. No affiliation or endorsement is implied.
   Serratus slips receive their own training region. Covered lumbar spinal
   erectors and deep hip flexors use soft bilateral color projections on the
   existing surfaces. These projections are schematic, not dissected muscle
-  geometry; no triangles or anatomical contours are added or reshaped.
+  geometry. The lumbar zones also have paired surface relief up to 9 mm deep
+  at human scale, tapered toward the midline, the sacrum and the ribs.
 - Converted the colored source textures to neutral/estimated-load display in
   the shader. Light tendon pixels within assigned muscles receive their muscle's
   tint for visual continuity; other support surfaces remain neutral in training

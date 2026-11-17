@@ -1,4 +1,4 @@
-export function bindExercisePreviewInteraction(canvas, { getAngle, getDefaultAngle, onRotate }) {
+export function bindExercisePreviewInteraction(canvas, { getAngle, getDefaultAngle, onRotate, onAngleCommit }) {
   let dragging = null, suppressClick = false;
   const down = event => {
     if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
@@ -18,6 +18,7 @@ export function bindExercisePreviewInteraction(canvas, { getAngle, getDefaultAng
   const up = event => {
     if (!dragging || event.pointerId !== dragging.id) return;
     if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    if (dragging.horizontal) onAngleCommit?.(getAngle());
     dragging = null;
   };
   const cancel = event => { up(event); suppressClick = false; };
@@ -32,6 +33,7 @@ export function bindExercisePreviewInteraction(canvas, { getAngle, getDefaultAng
     if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(event.key)) return;
     event.preventDefault(); event.stopPropagation();
     onRotate(event.key === 'Home' ? getDefaultAngle() : getAngle() + (event.key === 'ArrowLeft' ? -0.3 : 0.3), event.key !== 'Home');
+    onAngleCommit?.(event.key === 'Home' ? undefined : getAngle());
   };
   canvas.addEventListener('pointerdown', down);
   canvas.addEventListener('pointermove', move);

@@ -6,7 +6,7 @@ import SyncIndicator from './SyncIndicator';
 import AppUpdateNotice from './AppUpdateNotice';
 import { calculateWorkoutStats } from '../utils/workout';
 
-const appVersion = '2.20.5';
+const appVersion = '2.21.0';
 const displayVersion = `v${appVersion}`;
 
 const navItems = [

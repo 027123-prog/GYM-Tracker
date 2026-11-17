@@ -6,9 +6,9 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { DIEGO_REGION_IDS, DIEGO_COVERAGE } from '../src/data/diegoAnatomy.js';
 import { MUSCLE_GROUPS } from '../src/data/exerciseMuscles.js';
 import * as THREE from 'three';
-import { DIEGO_ASSET_REVISION } from '../src/data/diegoAnatomy.js';
+import { DIEGO_ASSET_REVISION, DIEGO_MODEL_FILE } from '../src/data/diegoAnatomy.js';
 
-const bytes = fs.readFileSync(new URL('../public/anatomy/diego-training.glb',import.meta.url));
+const bytes = fs.readFileSync(new URL(`../public/anatomy/${DIEGO_MODEL_FILE}`,import.meta.url));
 const manifest = JSON.parse(fs.readFileSync(new URL('../public/anatomy/diego-manifest.json',import.meta.url),'utf8'));
 const jsonSize = bytes.readUInt32LE(12), model = JSON.parse(bytes.subarray(20,20+jsonSize).toString('utf8'));
 const binary = bytes.subarray(28+jsonSize);
@@ -87,6 +87,6 @@ test('covered training regions have documented projections on existing geometry 
   assert.equal(DIEGO_COVERAGE.serratus,'surface');
   assert.equal(DIEGO_COVERAGE.chest,'aggregate');
   assert.equal(Object.values(DIEGO_COVERAGE).filter(value=>value==='surface').length,25);
-  assert.equal(manifest.meshes.reduce((sum,m)=>sum+m.triangles,0),546385,'projection does not add or deform muscle geometry');
+  assert.equal(manifest.meshes.reduce((sum,m)=>sum+m.triangles,0),546385,'surface shaping retains the source topology');
   for(const node of model.nodes)for(const id of node.extras.regions)assert(id==='context'||['surface','projection'].includes(DIEGO_COVERAGE[id]));
 });

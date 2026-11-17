@@ -1,4 +1,7 @@
 .muscle-figure { position: relative; width: 100%; }
+.muscle-focus-row { min-height: 44px; border-radius: 4px; cursor: pointer; }
+.muscle-focus-row:focus-visible { outline: 2px solid #ffc464; outline-offset: 2px; }
+.muscle-focus-row:hover .font-bold, .muscle-focus-row:active .font-bold { color: #ffc464; }
 .exercise-muscle-preview { position: relative; width: 100%; height: 240px; }
 .exercise-muscle-preview canvas { display: block; width: 100%; height: 100%; touch-action: pan-y; cursor: grab; }
 .exercise-muscle-preview canvas:active { cursor: grabbing; }

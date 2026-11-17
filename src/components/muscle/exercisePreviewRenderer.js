@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createMuscleFigure } from './createMuscleFigure';
+import { fitFigureCamera, lightMuscleFigure } from './figureScene';
 
 // All library cards share one model and one WebGL context. Each visible card
 // receives a synchronous copy of its own colored render in a plain 2D canvas.
@@ -11,18 +12,11 @@ function createService() {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
   renderer.setPixelRatio(1);
   renderer.setClearColor(0, 0);
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.3;
   const scene = new THREE.Scene();
+  lightMuscleFigure(renderer, scene);
   const camera = new THREE.OrthographicCamera(-0.7, 0.7, 1.015, -1.015, 0.1, 20);
   camera.position.set(0, 1.05, 4);
   camera.lookAt(0, 0.95, 0);
-  scene.add(new THREE.HemisphereLight('#e7edef', '#43494b', 1.5));
-  const key = new THREE.DirectionalLight('#f5f6f6', 2);
-  key.position.set(-2, 3.5, 3); scene.add(key);
-  const rim = new THREE.DirectionalLight('#b7c9ce', 1.3);
-  rim.position.set(2, 2, -2); scene.add(rim);
   const entries = new Set();
   let figure, frame = null, disposed = false, failed = false, lastTick = -Infinity, cursor = 0;
   let renderWidth = 0, renderHeight = 0;
@@ -53,8 +47,7 @@ function createService() {
         if (renderWidth !== width || renderHeight !== height) {
           renderer.setSize(width, height, false); renderWidth = width; renderHeight = height;
         }
-        camera.left = -1.015 * width / height; camera.right = -camera.left;
-        camera.updateProjectionMatrix();
+        fitFigureCamera(camera, width, height);
         figure.root.rotation.y = entry.angle;
         figure.setLevels(entry.muscles);
         try {

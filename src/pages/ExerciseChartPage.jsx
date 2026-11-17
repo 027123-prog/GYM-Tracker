@@ -136,7 +136,7 @@ export default function ExerciseChartPage() {
           />
         </>
       )}
-      <ExerciseMuscleProfile exercise={exercise} />
+      <ExerciseMuscleProfile key={exercise.id} exercise={exercise} initialAngle={location.state?.figureAngle} />
       <ExerciseSettingsModal
         isOpen={settingsOpen}
         exerciseName={exercise.name}

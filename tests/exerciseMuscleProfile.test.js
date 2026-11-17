@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildExerciseMuscleProfile, chooseExerciseMuscleView, normalizeExerciseLibraryLayout } from '../src/utils/exerciseMuscleProfile.js';
+import { buildExerciseMuscleProfile, chooseExerciseMuscleView, muscleFocusView, normalizeExerciseLibraryLayout } from '../src/utils/exerciseMuscleProfile.js';
 import { MUSCLE_VIEW_ASSET_REVISION, MUSCLE_VIEW_VISIBILITY } from '../src/data/muscleViewVisibility.js';
 import { DIEGO_ASSET_REVISION } from '../src/data/diegoAnatomy.js';
 import { muscleLoadColor } from '../src/utils/muscleLoadColor.js';
@@ -87,4 +87,12 @@ test('visibility data comes from the current model and covers its surfaced train
     if (id !== 'chest') assert.ok(counts.front + counts.back > 0, id);
   }
   assert.ok(MUSCLE_VIEW_VISIBILITY.spinal_erectors.back > 0);
+});
+
+test('a muscle row can turn to the lumbar back, chest front or a clearer rib-cage angle', () => {
+  const focus = id => muscleFocusView({ id, weight: 0.35 });
+  assert.equal(focus('spinal_erectors').angle, Math.PI);
+  assert.equal(focus('chest_middle').angle, 0);
+  assert.equal(focus('serratus').angle, Math.PI / 4);
+  assert.ok(MUSCLE_VIEW_VISIBILITY.serratus.frontOblique > MUSCLE_VIEW_VISIBILITY.serratus.front * 1.15);
 });

@@ -22,6 +22,17 @@ export function chooseExerciseMuscleView(rows) {
   return back > front ? 'back' : 'front';
 }
 
+// Prefer a familiar straight-on view whenever it shows nearly as much muscle.
+export function muscleFocusView(row) {
+  const view = chooseExerciseMuscleView([row]);
+  const counts = MUSCLE_VIEW_VISIBILITY[row.id] || {};
+  let angle = view === 'back' ? Math.PI : 0, visible = counts[view] || 0;
+  for (const [candidate, radians] of [['frontOblique', Math.PI / 4], ['backOblique', Math.PI * 3 / 4], ['side', Math.PI / 2]]) {
+    if (counts[candidate] > visible * 1.15) { visible = counts[candidate]; angle = radians; }
+  }
+  return { id: row.id, view, angle };
+}
+
 // A prospective exercise profile, independent of logged load, history and rest.
 // Weights describe our catalogue heuristic, never measured activation percentages.
 export function buildExerciseMuscleProfile(exercise) {

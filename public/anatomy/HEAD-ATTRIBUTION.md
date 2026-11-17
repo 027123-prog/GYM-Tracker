@@ -28,8 +28,8 @@ once; fitted the original eyes through the supplied barycentric fitting table;
 replaced all materials with one neutral gray sculpture material. No head
 separate head-muscle groups or personal likeness.
 
-At runtime the lower neck tapers into the separately licensed anatomy body;
-facial geometry and fitted eyes retain their prepared shape.
+At runtime the lower edge of the neck extends into the separately licensed
+body. A soft adjustment under the jaw rounds the throat in side view.
 The base of the posterior neck receives a short, soft bilateral continuation of the existing
 upper-trapezius training color. This is a schematic surface projection over the
 replacement neck, not a reconstructed or dissected trapezius. The mask stops
@@ -51,4 +51,4 @@ Source SHA-256:
 - high-poly.mhclo: `b183cfe37120ab726f9b3f2ea6cd3a64c44ce7b4bd91a77c841cf70c04f83a0d`
 
 This asset replaces the earlier BodyParts3D/open-anatomy-3d head. The anatomy
-body remains separately licensed under CC BY-SA 4.0; see README.txt and LICENSE.txt.
+body is separately licensed under CC BY 4.0. See README.txt and LICENSE.txt.

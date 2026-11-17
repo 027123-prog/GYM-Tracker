@@ -113,7 +113,14 @@ export function createNeutralHeadGeometry(source) {
     const y = positions.getY(i);
     const neck = 1 - THREE.MathUtils.smoothstep(y, 1.60, 1.67);
     positions.setX(i, positions.getX(i) * (1 - 0.5 * neck));
-    positions.setZ(i, -0.025 + (positions.getZ(i) + 0.025) * (1 - 0.2 * neck));
+    const z = -0.025 + (positions.getZ(i) + 0.025) * (1 - 0.2 * neck);
+    // Ease the underside of the jaw into the throat. Sink the extraction
+    // edge into the body's collar so it never outlines the side of the neck.
+    const throat = THREE.MathUtils.smoothstep(z, -0.04, 0.01);
+    const underJaw = THREE.MathUtils.smoothstep(y, 1.595, 1.62) * (1 - THREE.MathUtils.smoothstep(y, 1.625, 1.655));
+    const rim = 1 - THREE.MathUtils.smoothstep(y, 1.60, 1.616);
+    positions.setZ(i, z + 0.012 * throat * underJaw + rim * (-0.043 - z) * 0.32);
+    positions.setY(i, y - 0.016 * rim);
   }
   geometry.computeVertexNormals();
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(geometry.getAttribute('position').count * 2), 2));
