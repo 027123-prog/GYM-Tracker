@@ -2,6 +2,8 @@ export const compactIconButtonClass = 'inline-flex h-10 w-10 shrink-0 items-cent
 
 export default function InterfaceIcon({ name }) {
   const paths = {
+    calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M7 3v4m10-4v4M3 10h18M7 14h3m3 3h3" /></>,
+    dumbbell: <><rect x="4" y="6" width="4" height="12" rx="1" /><rect x="16" y="6" width="4" height="12" rx="1" /><path d="M8 12h8M2 10v4m20-4v4" /></>,
     filter: <path d="M3 4h18l-7 8v7l-4 2v-9Z" />,
     sort: <path d="M8 4v16m-4-4 4 4 4-4M14 4h7M14 8h5M14 12h3" />,
     list: <path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />,

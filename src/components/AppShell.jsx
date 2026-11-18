@@ -5,15 +5,16 @@ import { useAppData } from './AppProvider';
 import SyncIndicator from './SyncIndicator';
 import AppUpdateNotice from './AppUpdateNotice';
 import AppSettings from './AppSettings';
+import InterfaceIcon from './InterfaceIcon';
 import { calculateWorkoutStats } from '../utils/workout';
 
 const displayVersion = `v${__APP_RELEASE__.version}`;
 
 const navItems = [
-  { to: '/', label: 'Übersicht', shortLabel: 'Übersicht', marker: '01' },
-  { to: '/workouts/start', label: 'Training', shortLabel: 'Training', marker: '+' },
-  { to: '/exercises', label: 'Übungen', shortLabel: 'Übungen', marker: '02' },
-  { to: '/max-strength', label: 'Fortschritt', shortLabel: 'Fortschritt', marker: '03' },
+  { to: '/', label: 'Übersicht', shortLabel: 'Übersicht', marker: '01', icon: 'calendar' },
+  { to: '/workouts/start', label: 'Training', shortLabel: 'Training', marker: '+', icon: 'dumbbell' },
+  { to: '/exercises', label: 'Übungen', shortLabel: 'Übungen', marker: '02', icon: 'list' },
+  { to: '/max-strength', label: 'Fortschritt', shortLabel: 'Fortschritt', marker: '03', icon: 'chart' },
 ];
 
 function isNavActive(pathname, to) {
@@ -66,14 +67,13 @@ function AppNavigation({ mobile = false, trainingTarget, hasActiveWorkout = fals
                   }`
             }
           >
-            <span
-              aria-hidden="true"
-              className={`font-display text-xs font-bold ${
-                active ? (mobile ? 'text-on-accent' : 'text-amber') : workoutRunning ? 'text-amber' : 'text-muted'
-              }`}
-            >
-              {item.marker}
-            </span>
+            {mobile ? (
+              <span className="inline-flex" aria-hidden="true"><InterfaceIcon name={item.icon} /></span>
+            ) : (
+              <span aria-hidden="true" className={`font-display text-xs font-bold ${active || workoutRunning ? 'text-amber' : 'text-muted'}`}>
+                {item.marker}
+              </span>
+            )}
             <span>{mobile ? item.shortLabel : item.label}</span>
           </NavLink>
         );
@@ -246,7 +246,7 @@ function ActiveWorkoutControl({ workout, trainingTarget }) {
 
   return (
     <div ref={controlRef} className="min-w-0 flex-1 md:relative md:max-w-[280px] md:flex-none">
-      <div className="flex min-w-0 items-stretch rounded-sm border border-amber/55 bg-amber-soft">
+      <div className="active-workout-shortcut flex min-w-0 items-stretch rounded-sm border border-amber/55 bg-amber-soft">
         <Link
           to={trainingTarget}
           className="min-w-0 flex-1 px-2.5 py-1.5 transition hover:bg-amber/10"

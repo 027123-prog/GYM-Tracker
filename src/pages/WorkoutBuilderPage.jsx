@@ -230,7 +230,7 @@ export default function WorkoutBuilderPage({ mode }) {
 
   return (
     <>
-      <div className="space-y-3">
+      <div className="workout-editor space-y-3">
         {workout.completedAt ? (
           <section className="panel p-4 sm:p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">

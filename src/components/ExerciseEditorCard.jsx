@@ -228,7 +228,7 @@ export default function ExerciseEditorCard({
           ) : null}
 
           {lastWorkoutSummary || lastWorkoutCommentText || machineSettingsText ? <div
-            className={`${compact ? '' : 'mt-3'} grid gap-x-5 gap-y-3 bg-surface-raised px-3 py-3 text-sm ${
+            className={`workout-reference ${compact ? '' : 'mt-3'} grid gap-x-5 gap-y-3 bg-surface-raised px-3 py-3 text-sm ${
               machineSettingsText ? 'md:grid-cols-2' : ''
             }`}
           >

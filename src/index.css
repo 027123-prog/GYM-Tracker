@@ -140,3 +140,26 @@
 
 .app-header-active { background: var(--header-active); }
 .dialog-backdrop { background: var(--dialog-overlay); }
+
+[data-theme='dark'] [data-mobile-navigation] nav {
+  column-gap: 3px;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 3px);
+}
+
+[data-theme='dark'] [data-mobile-navigation] nav a,
+[data-theme='dark'] .app-header-active :is(.active-workout-shortcut, .icon-button),
+[data-theme='dark'] .workout-editor :is(.rounded-sm, .action-button, .secondary-button, .danger-button, .field, .workout-reference) {
+  border-radius: .5rem;
+}
+
+[data-theme='dark'] .active-workout-shortcut > a {
+  border-top-left-radius: inherit;
+  border-bottom-left-radius: inherit;
+}
+
+[data-theme='dark'] .active-workout-shortcut > button {
+  border-top-right-radius: inherit;
+  border-bottom-right-radius: inherit;
+}
+
+[data-theme='dark'] .workout-editor .panel { border-radius: .75rem; }
