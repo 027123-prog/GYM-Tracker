@@ -6,11 +6,11 @@ const version = JSON.parse(fs.readFileSync(new URL('./package.json', import.meta
 const builtAt = Date.now();
 const release = { schemaVersion: 1, version, builtAt, buildId: `${version}-${builtAt.toString(36)}` };
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   base: './',
-  define: { __APP_RELEASE__: JSON.stringify(release) },
+  define: { __APP_RELEASE__: JSON.stringify(release), __ANDROID_BUILD__: mode === 'android' },
   plugins: [react(), {
     name: 'app-release-manifest',
     generateBundle() { this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify(release) }); },
   }],
-});
+}));

@@ -4,10 +4,10 @@ import BackupControls from './BackupControls';
 import { useAppData } from './AppProvider';
 import SyncIndicator from './SyncIndicator';
 import AppUpdateNotice from './AppUpdateNotice';
+import AppSettings from './AppSettings';
 import { calculateWorkoutStats } from '../utils/workout';
 
-const appVersion = '2.21.0';
-const displayVersion = `v${appVersion}`;
+const displayVersion = `v${__APP_RELEASE__.version}`;
 
 const navItems = [
   { to: '/', label: 'Übersicht', shortLabel: 'Übersicht', marker: '01' },
@@ -54,14 +54,14 @@ function AppNavigation({ mobile = false, trainingTarget, hasActiveWorkout = fals
               mobile
                 ? `flex min-h-0 flex-col items-center justify-center gap-0.5 rounded-sm px-1 text-[10px] font-semibold transition ${
                     active
-                      ? 'bg-amber text-paper shadow-[0_0_0_1px_rgba(244,122,36,0.35)]'
+                      ? 'nav-current bg-amber text-on-accent'
                       : workoutRunning
                         ? 'bg-amber-soft text-amber-deep ring-1 ring-inset ring-amber/55'
                         : 'text-muted hover:text-ink'
                   }`
                 : `flex min-h-10 items-center gap-2 rounded-sm border px-3 text-sm font-semibold transition ${
                     active || workoutRunning
-                      ? 'border-amber/60 bg-amber-soft text-amber-deep'
+                      ? `${active ? 'nav-current' : ''} border-amber/60 bg-amber-soft text-amber-deep`
                       : 'border-transparent text-muted hover:border-line hover:bg-surface-raised hover:text-ink'
                   }`
             }
@@ -69,7 +69,7 @@ function AppNavigation({ mobile = false, trainingTarget, hasActiveWorkout = fals
             <span
               aria-hidden="true"
               className={`font-display text-xs font-bold ${
-                active ? (mobile ? 'text-paper' : 'text-amber') : workoutRunning ? 'text-amber' : 'text-muted'
+                active ? (mobile ? 'text-on-accent' : 'text-amber') : workoutRunning ? 'text-amber' : 'text-muted'
               }`}
             >
               {item.marker}
@@ -138,7 +138,7 @@ function NewWorkoutControl() {
         ref={buttonRef}
         type="button"
         onClick={() => setMenuOpen((open) => !open)}
-        className="flex h-10 w-10 items-center justify-center rounded-sm bg-amber text-3xl leading-none text-paper transition hover:bg-amber-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
+        className="flex h-10 w-10 items-center justify-center rounded-sm bg-amber text-3xl leading-none text-on-accent transition hover:bg-amber-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
         aria-label="Workout starten"
         title="Workout starten"
         aria-expanded={menuOpen}
@@ -364,11 +364,11 @@ export default function AppShell() {
       <header
         className={`relative z-40 shrink-0 border-b backdrop-blur-xl md:sticky md:top-0 ${
           activeWorkout
-            ? 'border-amber/55 bg-[linear-gradient(90deg,rgba(244,122,36,0.13),rgba(25,25,25,0.94)_62%)]'
+            ? 'app-header-active border-amber/55'
             : 'border-line bg-paper/90'
         }`}
       >
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-3 py-2.5 sm:px-5">
+        <div className="mx-auto flex max-w-7xl items-center gap-2 px-3 py-2.5 sm:gap-4 sm:px-5">
           <Link to="/" className="flex shrink-0 items-center" aria-label="Zur Übersicht">
             <span className="relative flex h-10 w-10 items-center justify-center" aria-hidden="true">
               <span className="absolute inset-[2px] rounded-full border-2 border-amber" />
@@ -395,6 +395,7 @@ export default function AppShell() {
             <div className="hidden lg:block">
               <BackupControls compact />
             </div>
+            <AppSettings />
           </div>
         </div>
       </header>

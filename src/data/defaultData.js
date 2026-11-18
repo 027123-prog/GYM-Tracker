@@ -50,7 +50,7 @@ export const defaultData = {
     },
   ],
   workouts: [],
-  maxStrengthRecords,
+  maxStrengthRecords: typeof __ANDROID_BUILD__ !== 'undefined' && __ANDROID_BUILD__ ? [] : maxStrengthRecords,
   meta: {
     lastSyncAt: null,
   },

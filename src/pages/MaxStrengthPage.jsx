@@ -289,10 +289,10 @@ export default function MaxStrengthPage() {
           <div className="h-[260px] w-full p-2 sm:h-[340px] sm:p-4" aria-label={`Verlauf ${selectedGroup.exerciseName}`}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={selectedGroup.values} margin={{ top: 16, right: 12, left: 6, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 6" stroke="#3A3A3A" vertical={false} />
-                <XAxis dataKey="shortDate" stroke="#AAA6A2" tickLine={false} axisLine={false} minTickGap={24} />
+                <CartesianGrid strokeDasharray="3 6" stroke="rgb(var(--line))" vertical={false} />
+                <XAxis dataKey="shortDate" stroke="rgb(var(--muted))" tickLine={false} axisLine={false} minTickGap={24} />
                 <YAxis
-                  stroke="#AAA6A2"
+                  stroke="rgb(var(--muted))"
                   tickLine={false}
                   axisLine={false}
                   domain={[Math.max(0, minValue - padding), maxValue + padding]}
@@ -301,15 +301,15 @@ export default function MaxStrengthPage() {
                   width={76}
                 />
                 <Tooltip content={<StrengthTooltip />} />
-                <ReferenceLine y={latest.value} stroke="#F47A24" strokeOpacity={0.42} />
+                <ReferenceLine y={latest.value} stroke="var(--chart-volume)" strokeOpacity={0.42} />
                 <Line
                   type="monotone"
                   dataKey="value"
                   name="Maximalkraft"
-                  stroke="#F47A24"
+                  stroke="var(--chart-volume)"
                   strokeWidth={3}
-                  dot={{ r: 4, fill: '#222222', stroke: '#F47A24', strokeWidth: 2 }}
-                  activeDot={{ r: 6, fill: '#F47A24', strokeWidth: 0 }}
+                  dot={{ r: 4, fill: 'rgb(var(--surface))', stroke: 'var(--chart-volume)', strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: 'var(--chart-volume)', strokeWidth: 0 }}
                 />
               </LineChart>
             </ResponsiveContainer>

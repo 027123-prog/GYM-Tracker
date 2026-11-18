@@ -145,7 +145,7 @@ export default function ModalShell({
       onClick={dismissOnBackdrop ? (event) => {
         if (event.target === event.currentTarget) onClose();
       } : undefined}
-      className={`fixed inset-0 z-[60] flex justify-center overscroll-contain bg-black/75 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6 ${
+      className={`dialog-backdrop fixed inset-0 z-[60] flex justify-center overscroll-contain backdrop-blur-sm sm:items-center sm:px-4 sm:py-6 ${
         topAligned
           ? 'items-start px-2 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))]'
           : 'items-end px-0 pt-4'

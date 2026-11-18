@@ -1,7 +1,7 @@
 import { getWeightSuggestionKey } from '../utils/weightSuggestions';
 
-export default function WeightSuggestionGrid({ options, selectedValue, onSelect, perWeight = false, label }) {
-  if (!options.length) {
+export default function WeightSuggestionGrid({ options, selectedValue, onSelect, perWeight = false, label, editControl }) {
+  if (!options.length && !editControl) {
     return null;
   }
 
@@ -9,6 +9,7 @@ export default function WeightSuggestionGrid({ options, selectedValue, onSelect,
     <div>
       <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted">{label ?? (perWeight ? 'Bekannte Einzelgewichte' : 'Bekannte Gewichte')}</p>
       <div className="flex max-h-24 flex-wrap gap-1.5 overflow-y-auto">
+        {editControl}
         {options.map((weight) => {
           const selected = getWeightSuggestionKey(selectedValue) === getWeightSuggestionKey(weight);
 
@@ -17,7 +18,7 @@ export default function WeightSuggestionGrid({ options, selectedValue, onSelect,
               key={weight}
               type="button"
               onClick={() => onSelect(weight)}
-              className={`min-h-10 rounded-sm border px-3 py-2 text-sm font-bold transition ${
+              className={`quick-entry-choice min-h-10 rounded-sm border px-3 py-2 text-sm font-bold transition ${
                 selected
                   ? 'border-amber bg-amber-soft text-amber-deep'
                   : 'border-line bg-paper text-muted hover:border-amber/60 hover:text-amber-deep'

@@ -20,6 +20,29 @@ npm test
 npm run build
 ```
 
+## Android
+
+Die signierte APK liegt nach `./android/Build.ps1` in `android/build/out/`. Der Build
+benötigt JDK 17, Android SDK Platform 35 und Build Tools 35.0.0. Der Tracker läuft
+ab Android 11 lokal. Browserdaten lassen sich über **Export** im Browser und
+**Import** in der Android-App übernehmen. Das Zahnrad in der Kopfzeile öffnet
+die Einstellung **Kalenderdesign**.
+
+Ab 2.22.1 findet **Einstellungen → Nach Updates suchen** die aktuelle
+Android-Version auf GitHub. Beim ersten In-App-Update kann Android einmalig
+nach der Freigabe für Installationen durch HardGainWAF fragen. Das Training
+selbst funktioniert offline.
+
+Für eine neue Version `package.json` und `package-lock.json` aktualisieren und
+die APK mit derselben App-ID und demselben Schlüssel bauen. Die Versionsnummer
+bestimmt den Android-Versioncode. Die signierte Release-Datei
+`HardGainWAF-<Version>.apk` an das GitHub-Release `android-v<Version>` hängen und
+das vollständige Release als **Latest** veröffentlichen. Die App prüft Dateigröße,
+SHA-256, App-ID, Versionscode und Signatur vor der Android-Installationsbestätigung.
+
+Der Schlüssel liegt unter `%LOCALAPPDATA%/HardGainWAF/signing`. Die dort
+gespeicherte Passwortdatei ist über Windows DPAPI an den Benutzer und Rechner gebunden.
+
 ## Workouts bearbeiten
 
 **Korrigieren** öffnet ein abgeschlossenes Workout wieder als laufendes Training.

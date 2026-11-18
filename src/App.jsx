@@ -65,7 +65,7 @@ export default function App() {
     return <Suspense fallback={<PageLoader />}><MusclePreviewPage /></Suspense>;
   }
   const useHashRouting =
-    window.location.protocol === 'file:' || window.location.hostname.endsWith('github.io');
+    import.meta.env.MODE === 'android' || window.location.protocol === 'file:' || window.location.hostname.endsWith('github.io');
   const Router = useHashRouting ? HashRouter : BrowserRouter;
 
   return (

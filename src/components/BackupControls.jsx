@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createBackupPayload, createLocalRecoveryPoint, parseBackupPayload } from '../utils/storage';
 import { TRAINING_PLAN_FORMAT, applyTrainingPlanImport, parseTrainingPlanImport } from '../utils/trainingPlanImport';
 import { useAppData } from './AppProvider';
@@ -13,14 +13,33 @@ export default function BackupControls() {
   const fileInputRef = useRef(null);
   const [status, setStatus] = useState('');
 
+  useEffect(() => {
+    if (import.meta.env.MODE !== 'android') return undefined;
+    function handleExportResult(event) {
+      setStatus({
+        saved: 'Exportiert',
+        cancelled: 'Export abgebrochen',
+        error: 'Export fehlgeschlagen',
+      }[event.detail] ?? '');
+    }
+    window.addEventListener('hardgain-backup-export', handleExportResult);
+    return () => window.removeEventListener('hardgain-backup-export', handleExportResult);
+  }, []);
+
   function handleExport() {
-    const payload = createBackupPayload(state);
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const json = JSON.stringify(createBackupPayload(state), null, 2);
+    const filename = createBackupFilename();
+    if (import.meta.env.MODE === 'android') {
+      if (window.HardGainAndroid) window.HardGainAndroid.saveBackup(filename, json);
+      else setStatus('Export fehlgeschlagen');
+      return;
+    }
+    const blob = new Blob([json], { type: 'application/json' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
 
     link.href = url;
-    link.download = createBackupFilename();
+    link.download = filename;
     link.click();
 
     window.URL.revokeObjectURL(url);

@@ -29,6 +29,21 @@
 .dashboard-overview { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2.4fr) minmax(0, 1fr); grid-template-rows: 1fr 1fr; gap: 10px; width: 100%; max-width: 760px; margin-inline: auto; }
 .dashboard-overview-figure { grid-column: 2; grid-row: 1 / 3; min-width: 0; }
 .dashboard-overview .muscle-map-card { border: 0; background: radial-gradient(ellipse at 50% 44%, #29313580, transparent 72%); box-shadow: none; }
+[data-theme='calendar'] .muscle-map-card,
+[data-theme='calendar'] .exercise-muscle-compact {
+  background: radial-gradient(ellipse at 50% 49%, #dce9d5, #edf1e6 42%, transparent 73%);
+}
+[data-theme='calendar'] .muscle-figure-tools button {
+  color: rgb(var(--ink));
+  border-color: #70816f;
+  background: rgb(var(--surface));
+}
+[data-theme='calendar'] .muscle-figure-tools button:hover { background: rgb(var(--accent-soft)); }
+[data-theme='calendar'] .muscle-figure-failure-note,
+[data-theme='calendar'] .muscle-figure-fallback { color: rgb(var(--muted)); }
+[data-theme='calendar'] .muscle-focus-row:focus-visible { outline-color: rgb(var(--accent)); }
+[data-theme='calendar'] .muscle-focus-row:hover .font-bold,
+[data-theme='calendar'] .muscle-focus-row:active .font-bold { color: rgb(var(--accent-text)); }
 .dashboard-overview .muscle-figure-stage, .dashboard-overview .muscle-map-loading { height: 350px; }
 .dashboard-overview .dashboard-metric { min-width: 0; padding: 10px 8px; }
 .dashboard-metric-total { grid-column: 1; grid-row: 1; align-self: end; }

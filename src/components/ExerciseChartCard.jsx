@@ -100,7 +100,7 @@ function SelectableChartDot({ cx, cy, payload, color, isSelected, onSelect }) {
         cx={cx}
         cy={cy}
         r={isSelected ? 6 : 4}
-        fill={isSelected ? color : '#222222'}
+        fill={isSelected ? color : 'rgb(var(--surface))'}
         stroke={color}
         strokeWidth="2"
       />
@@ -161,8 +161,7 @@ export default function ExerciseChartCard({
 
   const config = chartMetrics[metric];
   const paired = loadType === 'paired' || data.some((point) => point.sets.some((setItem) => setItem.weightMode === 'paired'));
-  const strokeColor = metric === 'volume' ? '#F47A24' : '#73B991';
-  const dotColor = metric === 'volume' ? '#F47A24' : '#73B991';
+  const strokeColor = metric === 'volume' ? 'var(--chart-volume)' : 'var(--chart-max)';
   const titleSizeClass = exerciseName.length > 22 ? 'text-2xl' : 'text-3xl';
 
   return (
@@ -223,9 +222,9 @@ export default function ExerciseChartCard({
               }
             }}
           >
-            <CartesianGrid strokeDasharray="3 6" stroke="#3A3A3A" vertical={false} />
-            <XAxis dataKey="shortDate" stroke="#AAA6A2" tickLine={false} axisLine={false} minTickGap={22} />
-            <YAxis stroke="#AAA6A2" tickLine={false} axisLine={false} width={64} unit={` ${config.unit}`} />
+            <CartesianGrid strokeDasharray="3 6" stroke="rgb(var(--line))" vertical={false} />
+            <XAxis dataKey="shortDate" stroke="rgb(var(--muted))" tickLine={false} axisLine={false} minTickGap={22} />
+            <YAxis stroke="rgb(var(--muted))" tickLine={false} axisLine={false} width={64} unit={` ${config.unit}`} />
             <Line
               type="monotone"
               dataKey={config.field}
@@ -236,12 +235,12 @@ export default function ExerciseChartCard({
               dot={(props) => (
                 <SelectableChartDot
                   {...props}
-                  color={dotColor}
+                  color={strokeColor}
                   isSelected={selectedPoint?.workoutId === props.payload?.workoutId}
                   onSelect={selectPoint}
                 />
               )}
-              activeDot={{ r: 6, fill: dotColor, strokeWidth: 0 }}
+              activeDot={{ r: 6, fill: strokeColor, strokeWidth: 0 }}
             />
           </LineChart>
         </ResponsiveContainer>

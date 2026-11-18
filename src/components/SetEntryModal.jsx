@@ -2,6 +2,7 @@ import { useLayoutEffect, useState } from 'react';
 import { calculateBodyweightLoad, parseLocalizedNumber } from '../utils/bodyweight';
 import { isDurationSet, parseWeightInput, prepareSetValues } from '../utils/setMeasurements';
 import { getSetEntryLoadType, getSetEntryWeight, getSetEntryWeightSuggestions } from '../utils/setEntry';
+import InterfaceIcon from './InterfaceIcon';
 import ModalShell from './ModalShell';
 import WeightSuggestionGrid from './WeightSuggestionGrid';
 
@@ -9,16 +10,17 @@ const repPresets = [5, 6, 7, 8, 9, 10, 11, 12];
 const durationPresets = [15, 20, 30, 40, 45, 60];
 const BODY_WEIGHT_KEY = 'hardgainwaf-body-weight-kg';
 
-function EntryValue({ label, manual, value, onChange, inputMode = 'decimal', focus = false, suffix = '' }) {
-  return <div>
+function EntryValue({ field, label, manual, value, onChange, inputMode = 'decimal', suffix = '', editControl }) {
+  return <div className="set-entry-value min-w-0 rounded-sm border border-line bg-surface-raised p-3" data-field={field}>
     {manual ? <label>
       <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">{label}</span>
       <input className="field text-lg font-bold tabular-nums" inputMode={inputMode}
-        value={value} onChange={event => onChange(event.target.value)} autoFocus={focus} />
-    </label> : <div className="rounded-sm border border-line bg-surface-raised p-3">
+        value={value} onChange={event => onChange(event.target.value)} autoFocus />
+    </label> : <>
       <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">{label}</p>
       <p className="mt-1 text-lg font-bold tabular-nums text-ink">{value === '' ? '–' : `${value}${suffix}`}</p>
-    </div>}
+    </>}
+    {editControl && <div className="mt-2">{editControl}</div>}
   </div>;
 }
 
@@ -70,7 +72,9 @@ export default function SetEntryModal({
   const [bodyWeight, setBodyWeight] = useState(initialSet?.bodyWeight ?? '');
   const [addedWeight, setAddedWeight] = useState(initialSet?.addedWeightInput ?? initialSet?.addedWeight ?? 0);
   const [error, setError] = useState('');
-  const [manual, setManual] = useState(false);
+  const [manualField, setManualField] = useState(null);
+  const repsLabel = duration ? 'Sekunden' : 'Wiederholungen';
+  const weightLabel = usesBodyweight ? 'Dein Gewicht' : paired ? 'Gewicht je Hantel' : 'Gewicht';
   const parsedAddedWeight = parseWeightInput(addedWeight, { allowNegative: true });
   const parsedWeight = parseWeightInput(weight);
   const displayedWeightOptions = getSetEntryWeightSuggestions(weightOptions, configuredLoadType, loadType);
@@ -87,8 +91,19 @@ export default function SetEntryModal({
     setBodyWeight(initialSet?.bodyWeight ?? readBodyWeight());
     setAddedWeight(initialSet?.addedWeightInput ?? initialSet?.addedWeight ?? 0);
     setError('');
-    setManual(false);
+    setManualField(null);
   }, [exerciseName, initialSet, isOpen, duration, loadType]);
+
+  function editButton(field, label) {
+    const active = manualField === field;
+    return (
+      <button type="button" className="quick-entry-edit icon-button"
+        aria-label={`${label} manuell eingeben`} aria-pressed={active}
+        onClick={() => setManualField(active ? null : field)}>
+        <InterfaceIcon name="pencil" />
+      </button>
+    );
+  }
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -134,40 +149,36 @@ export default function SetEntryModal({
             {timerSetup ? 'Gewicht für Stoppuhr' : initialSet ? 'Satz ändern' : 'Neuer Satz'}
           </h2>
         </div>
-        <button type="button" className="icon-button" aria-label={manual ? 'Manuelle Eingabe schließen' : 'Manuelle Eingabe öffnen'}
-          aria-pressed={manual} onClick={() => setManual(value => !value)}>
-          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15l-1 6Z" />
-          </svg>
-        </button>
         <button type="button" onClick={onClose} className="icon-button" aria-label="Dialog schließen">×</button>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
         <div className={`grid gap-3 ${withoutWeight || timerSetup ? '' : 'grid-cols-2'}`}>
           {usesBodyweight ? (
-            <EntryValue label="Dein Gewicht" manual={manual} value={bodyWeight} onChange={setBodyWeight} focus suffix=" kg" />
+            <EntryValue field="weight" label={weightLabel} manual={manualField === 'weight'} value={bodyWeight}
+              onChange={setBodyWeight} suffix=" kg" editControl={editButton('weight', weightLabel)} />
           ) : !withoutWeight ? (
             <div>
-              <EntryValue label={paired ? 'Gewicht je Hantel' : 'Gewicht'} manual={manual} value={weight}
-                onChange={setWeight} inputMode={paired ? 'decimal' : 'text'} focus suffix=" kg" />
+              <EntryValue field="weight" label={weightLabel} manual={manualField === 'weight'} value={weight}
+                onChange={setWeight} inputMode={paired ? 'decimal' : 'text'} suffix=" kg" />
               {paired ? (
                 <span className="mt-1.5 block text-xs text-muted">2x</span>
               ) : parsedWeight?.weightInput ? <span className="mt-1.5 block text-xs text-muted">Gesamtlast: {parsedWeight.weight} kg</span> : null}
             </div>
           ) : null}
-          {!timerSetup ? <EntryValue label={duration ? 'Sekunden' : 'Wiederholungen'} manual={manual}
-            value={reps} onChange={setReps} inputMode="numeric" focus={withoutWeight} /> : null}
+          {!timerSetup ? <EntryValue field="reps" label={repsLabel} manual={manualField === 'reps'}
+            value={reps} onChange={setReps} inputMode="numeric" /> : null}
         </div>
 
         {usesBodyweight ? (
           <div className="rounded-sm bg-surface-raised p-3">
             {allowsAddedWeight ? (
               <div className="space-y-2">
-                <EntryValue label="Zusatzgewicht / Unterstützung" manual={manual} value={addedWeight}
+                <EntryValue field="added" label="Zusatzgewicht / Unterstützung" manual={manualField === 'added'} value={addedWeight}
                   onChange={setAddedWeight} inputMode="text" suffix=" kg" />
                 <WeightSuggestionGrid options={[-20, -10, -5, 0, 5, 10, 15, 20]} selectedValue={addedWeight}
-                  onSelect={setAddedWeight} label="Zusatzgewicht / Unterstützung" />
+                  onSelect={setAddedWeight} label="Zusatzgewicht / Unterstützung"
+                  editControl={editButton('added', 'Zusatzgewicht / Unterstützung')} />
               </div>
             ) : null}
             <div className={`${allowsAddedWeight ? 'mt-3' : ''} flex items-center justify-between gap-3`}>
@@ -181,17 +192,19 @@ export default function SetEntryModal({
             </div>
           </div>
         ) : !withoutWeight ? (
-          <WeightSuggestionGrid options={displayedWeightOptions} selectedValue={weight} onSelect={setWeight} perWeight={paired} />
+          <WeightSuggestionGrid options={displayedWeightOptions} selectedValue={weight} onSelect={setWeight}
+            perWeight={paired} editControl={editButton('weight', weightLabel)} />
         ) : null}
 
         {!timerSetup ? <div>
           <div className="flex flex-wrap gap-1">
+            {editButton('reps', repsLabel)}
             {(duration ? durationPresets : repSuggestions).map((preset) => (
               <button
                 key={preset}
                 type="button"
                 onClick={() => setReps(preset)}
-                className={`inline-flex min-h-10 min-w-10 items-center justify-center rounded-sm border px-2 text-xs font-semibold tabular-nums transition ${
+                className={`quick-entry-choice inline-flex min-h-10 min-w-10 items-center justify-center rounded-sm border px-2 text-xs font-semibold tabular-nums transition ${
                   Number(reps) === preset
                     ? 'border-amber bg-amber-soft text-amber-deep'
                     : 'border-line bg-paper text-muted hover:border-amber/55 hover:text-ink'
@@ -204,7 +217,7 @@ export default function SetEntryModal({
           </div>
         </div> : null}
 
-        {!timerSetup && manual ? <label className="block">
+        {!timerSetup && manualField ? <label className="block">
           <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Kommentar</span>
           <textarea
             className="field min-h-[88px] resize-y"
@@ -213,7 +226,7 @@ export default function SetEntryModal({
             placeholder="Form, Tempo, Gefühl …"
           />
         </label> : null}
-        {!timerSetup && !manual && comment ? <p className="text-sm italic text-muted">{comment}</p> : null}
+        {!timerSetup && !manualField && comment ? <p className="text-sm italic text-muted">{comment}</p> : null}
 
         {error ? (
           <p className="rounded-sm border border-ember/35 bg-ember/10 px-3 py-2 text-sm font-semibold text-ember" role="alert">

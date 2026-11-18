@@ -6,7 +6,7 @@ export default function AppUpdateNotice() {
   const [available, setAvailable] = useState(null);
   const [saveError, setSaveError] = useState(false);
   useEffect(() => {
-    if (!import.meta.env.PROD) return undefined;
+    if (!import.meta.env.PROD || import.meta.env.MODE === 'android') return undefined;
     const current = __APP_RELEASE__;
     let disposed = false, checking = false, request;
     const check = async () => {

@@ -1,0 +1,117 @@
+:root[data-theme='calendar'] {
+  color-scheme: light;
+  --ink: 38 57 47;
+  --paper: 248 245 238;
+  --surface: 255 253 248;
+  --raised: 241 237 227;
+  --line: 209 217 203;
+  --muted: 78 98 86;
+  --accent: 56 87 74;
+  --accent-dark: 44 71 59;
+  --accent-text: 48 78 65;
+  --accent-soft: 222 233 220;
+  --on-accent: 255 255 248;
+  --danger: 152 56 48;
+  --success: 50 104 66;
+  --success-soft: 224 239 217;
+  --font-body: 'Patrick Hand', 'Segoe UI', sans-serif;
+  --font-display: Caveat, 'Segoe UI', sans-serif;
+  --font-numeric: system-ui, sans-serif;
+  --tint-lavender: #e9e0f5;
+  --tint-peach: #f7dfca;
+  --tint-yellow: #f0edb7;
+  --tint-blue: #dce9ee;
+  --panel-shadow: 0 3px 10px rgb(53 71 50 / .06);
+  --page-background: radial-gradient(ellipse at 25% 0%, #e7eddf85, transparent 36rem), rgb(var(--paper));
+  --scroll-thumb: #a4b0a1;
+  --scroll-track: #f8f5ee;
+  --dialog-overlay: rgb(38 57 47 / .36);
+  --header-active: linear-gradient(90deg, rgb(var(--accent-soft)), rgb(var(--paper)) 78%);
+  --chart-volume: #466951;
+  --chart-max: #785898;
+  --ink-radius: 9px 12px 9px 11px / 11px 8px 12px 9px;
+}
+
+[data-theme='calendar'] :is(h1, h2, h3) {
+  font-family: var(--font-display);
+  font-weight: 650;
+  text-transform: none;
+}
+
+[data-theme='calendar'] :is(h1, h2):not(.sr-only) { font-size: 1.65rem; }
+[data-theme='calendar'] :is(input, .tabular-nums, .quick-entry-choice, .recharts-cartesian-axis-tick-value) {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-theme='calendar'] .eyebrow {
+  font-size: .855rem;
+  text-transform: none;
+  letter-spacing: .01em;
+}
+
+[data-theme='calendar'] :is(.panel, .field) { border-radius: 9px; }
+[data-theme='calendar'] .field {
+  border-color: #879686;
+  background-color: rgb(var(--surface));
+}
+
+[data-theme='calendar'] :is(.action-button, .secondary-button, .icon-button, .danger-button, .quick-entry-choice, .nav-current) {
+  border-radius: var(--ink-radius);
+  border: 1px solid #70816f;
+  box-shadow: 0 2px 0 -1px #7e8a7980;
+}
+
+[data-theme='calendar'] :is(.action-button, .secondary-button, .icon-button, .danger-button) { font-size: .98rem; }
+[data-theme='calendar'] .danger-button { border-color: #bd8b80; }
+[data-theme='calendar'] .action-button:not(:disabled):hover { background-color: rgb(var(--accent-dark)); }
+[data-theme='calendar'] .nav-current,
+[data-theme='calendar'] .nav-current [aria-hidden='true'] {
+  color: rgb(var(--ink));
+  background-color: rgb(var(--accent-soft));
+}
+[data-theme='calendar'] nav[aria-label='Hauptnavigation'] a:not(.nav-current):hover { background-color: var(--tint-blue); }
+[data-theme='calendar'] [data-mobile-navigation] nav a { font-size: .8rem; }
+[data-theme='calendar'] button[aria-label='Workout starten'] { border-radius: var(--ink-radius); }
+[data-theme='calendar'] button[aria-label='Einstellungen'] { background-color: var(--tint-blue); }
+[data-theme='calendar'] button[role='switch'][aria-checked='true'] { background-color: rgb(var(--accent-soft)); }
+[data-theme='calendar'] .panel.rounded-b-none { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+
+[data-theme='calendar'] .dashboard-metric {
+  border-radius: var(--ink-radius);
+  background-color: rgb(var(--surface));
+}
+[data-theme='calendar'] .dashboard-metric .eyebrow {
+  font-size: clamp(.69rem, 2.8vw, .95rem);
+  letter-spacing: 0;
+}
+[data-theme='calendar'] :is(.dashboard-metric .eyebrow, #workout-history-list .eyebrow) {
+  position: relative;
+  isolation: isolate;
+  display: inline-block;
+  color: rgb(var(--ink));
+}
+[data-theme='calendar'] :is(.dashboard-metric .eyebrow, #workout-history-list .eyebrow)::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 29% -3px 2%;
+  background: var(--marker, #d3e7ce);
+  clip-path: polygon(3% 10%, 26% 6%, 53% 13%, 96% 0%, 100% 21%, 97% 90%, 69% 99%, 45% 91%, 0 100%);
+}
+[data-theme='calendar'] .dashboard-metric-month { --marker: var(--tint-lavender); }
+[data-theme='calendar'] .dashboard-metric-volume { --marker: var(--tint-yellow); }
+[data-theme='calendar'] .dashboard-metric-sets { --marker: var(--tint-blue); }
+[data-theme='calendar'] .panel:has(#workout-history-list) > div:first-child { background-color: #e9eede; }
+[data-theme='calendar'] #workout-history-list article:nth-child(even) > a:not(:hover) { background-color: #f0f2e7; }
+[data-theme='calendar'] #workout-history-list article:nth-child(even) { --marker: var(--tint-peach); }
+
+[data-theme='calendar'] .quick-entry-choice[aria-pressed='true'] {
+  color: rgb(var(--ink));
+  box-shadow: inset 0 -2px 0 rgb(var(--accent));
+}
+[data-theme='calendar'] .quick-entry-edit { background-color: var(--tint-lavender); }
+[data-theme='calendar'] .quick-entry-edit[aria-pressed='true'] { box-shadow: inset 0 -2px 0 #785898; }
+[data-theme='calendar'] .set-entry-value[data-field='weight'] { background-color: var(--tint-peach); }
+[data-theme='calendar'] .set-entry-value[data-field='reps'] { background-color: var(--tint-blue); }
+[data-theme='calendar'] .set-entry-value[data-field='added'] { background-color: var(--tint-yellow); }
