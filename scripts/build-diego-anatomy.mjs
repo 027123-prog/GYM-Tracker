@@ -6,7 +6,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptEncoder, MeshoptDecoder } from 'meshoptimizer';
 import sharp from 'sharp';
 import { DIEGO_REGION_IDS, DIEGO_ASSET_REVISION, DIEGO_MODEL_FILE, classifyDiegoPart } from '../src/data/diegoAnatomy.js';
-import { shapeTrainingVertex } from './trainingFigureShape.mjs';
+import { neckCutDistance, shapeTrainingVertex } from './trainingFigureShape.mjs';
+import { createCollarFitter } from './fitTrainingCollar.mjs';
 
 const sourceDir = path.resolve(process.argv[2] || '.tools/diego-source');
 const outputDir = path.resolve('public/anatomy');
@@ -20,6 +21,11 @@ sceneJson.materials = json.materials.map(m => ({ name: m.name, pbrMetallicRoughn
 delete sceneJson.images; delete sceneJson.textures; delete sceneJson.samplers;
 globalThis.ProgressEvent = class { constructor(type, values) { this.type=type; Object.assign(this,values); } };
 const source = await new GLTFLoader().parseAsync(JSON.stringify(sceneJson), '');
+const headBytes = await fs.readFile(path.join(outputDir, 'neutral-head.glb'));
+const head = await new GLTFLoader().parseAsync(Uint8Array.from(headBytes).buffer, '');
+const headMesh = head.scene.getObjectByProperty('isMesh', true);
+headMesh.updateWorldMatrix(true, false);
+const fitCollar = createCollarFitter(headMesh.geometry.clone().applyMatrix4(headMesh.matrixWorld));
 await Promise.all([MeshoptEncoder.ready, MeshoptDecoder.ready]);
 source.scene.updateMatrixWorld(true);
 const box = new THREE.Box3().setFromObject(source.scene), center = box.getCenter(new THREE.Vector3());
@@ -75,11 +81,19 @@ for(const object of objects){
  const positions=[],normals=[],uvs=[],training=[],indices=[],used=new Map(),regions=new Set();
  const vertex=i=>({key:`v${i}`,p:[p.getX(i),p.getY(i),p.getZ(i)],n:[n.getX(i),n.getY(i),n.getZ(i)],uv:[uv?.getX(i)||0,uv?.getY(i)||0],component:find(i)});
  function add(v){if(used.has(v.key))return used.get(v.key);const id=positions.length/3;used.set(v.key,id);
- const shaped = shapeTrainingVertex(v.p,v.n);
+ const shaped = fitCollar(shapeTrainingVertex(v.p,v.n));
  positions.push(...shaped.position);normals.push(...shaped.normal);uvs.push(...v.uv);
- const [a,b,mix]=classifyDiegoPart(object.material.name,v.component,bounds.get(v.component),v.p,v.n);regions.add(a);regions.add(b);training.push(DIEGO_REGION_IDS.indexOf(a),DIEGO_REGION_IDS.indexOf(b),Math.round(mix*255),0);return id;}
- function cut(a,b){const t=(1.615-a.p[1])/(b.p[1]-a.p[1]);return{key:[a.key,b.key].sort().join(':'),p:a.p.map((v,i)=>i===1?1.615:v+t*(b.p[i]-v)),n:a.n.map((v,i)=>v+t*(b.n[i]-v)),uv:a.uv.map((v,i)=>v+t*(b.uv[i]-v)),component:a.component};}
- for(let i=0;i<index.count;i+=3){const vs=[vertex(index.getX(i)),vertex(index.getX(i+1)),vertex(index.getX(i+2))],polygon=[];for(let j=0;j<3;j++){const a=vs[j],b=vs[(j+1)%3],ina=a.p[1]<=1.615,inb=b.p[1]<=1.615;if(ina)polygon.push(a);if(ina!==inb)polygon.push(cut(a,b));}for(let j=1;j+1<polygon.length;j++)indices.push(add(polygon[0]),add(polygon[j]),add(polygon[j+1]));}
+ const [a,b,mix]=classifyDiegoPart(object.material.name,v.component,bounds.get(v.component),v.p,v.n);regions.add(a);regions.add(b);training.push(DIEGO_REGION_IDS.indexOf(a),DIEGO_REGION_IDS.indexOf(b),Math.round(mix*255),Math.round(shaped.blend*255));return id;}
+ function cut(a,b,da,db){const t=da/(da-db);return{key:[a.key,b.key].sort().join(':'),p:a.p.map((v,i)=>v+t*(b.p[i]-v)),n:a.n.map((v,i)=>v+t*(b.n[i]-v)),uv:a.uv.map((v,i)=>v+t*(b.uv[i]-v)),component:a.component};}
+ for(let i=0;i<index.count;i+=3){
+   const vs=[vertex(index.getX(i)),vertex(index.getX(i+1)),vertex(index.getX(i+2))],polygon=[];
+   for(let j=0;j<3;j++){
+     const a=vs[j],b=vs[(j+1)%3],da=neckCutDistance(a.p),db=neckCutDistance(b.p);
+     if(da<=0)polygon.push(a);
+     if((da<=0)!==(db<=0))polygon.push(cut(a,b,da,db));
+   }
+   for(let j=1;j+1<polygon.length;j++)indices.push(add(polygon[0]),add(polygon[j]),add(polygon[j+1]));
+ }
  if(!indices.length)continue;
  const triangleArray=Uint32Array.from(indices),[remap,count]=MeshoptEncoder.reorderMesh(triangleArray,true,true);
  function reorder(values,stride,Type){const target=new Type(count*stride);for(let i=0;i<remap.length;i++)if(remap[i]!==0xffffffff)for(let j=0;j<stride;j++)target[remap[i]*stride+j]=values[i*stride+j];return target;}
@@ -98,5 +112,5 @@ const header=Buffer.alloc(20);header.writeUInt32LE(0x46546c67,0);header.writeUIn
 const binHeader=Buffer.alloc(8);binHeader.writeUInt32LE(binChunk.length,0);binHeader.writeUInt32LE(0x004e4942,4);
 const result=Buffer.concat([header,jsonChunk,binHeader,binChunk]);
 await fs.mkdir(outputDir,{recursive:true});await fs.writeFile(path.join(outputDir,DIEGO_MODEL_FILE),result);
-await fs.writeFile(path.join(outputDir,'diego-manifest.json'),JSON.stringify({source:json.asset.extras,sourceGitBlob:gitHash,sha256:crypto.createHash('sha256').update(result).digest('hex'),bytes:result.length,assetRevision:DIEGO_ASSET_REVISION,regionIds:DIEGO_REGION_IDS,meshes:report,maxAttributeRoundtripError:maxError,notes:['Retained source topology and detail. Arms open six degrees, collar tucks into the neutral neck, and lumbar contours have shallow paired relief.','Textures resized to 1024 pixels; baked source normal maps retained','Artist surface groups; upper/middle/lower chest, deltoid heads and trapezius subdivisions use illustrative soft boundaries','Light tendon pixels within assigned muscles receive the muscle tint in the application shader','Lumbar relief and hip-flexor color are schematic bilateral representations on the outer surface','Visible serratus slips have their own training region']},null,2));
+await fs.writeFile(path.join(outputDir,'diego-manifest.json'),JSON.stringify({source:json.asset.extras,sourceGitBlob:gitHash,headSha256:crypto.createHash('sha256').update(headBytes).digest('hex'),sha256:crypto.createHash('sha256').update(result).digest('hex'),bytes:result.length,assetRevision:DIEGO_ASSET_REVISION,regionIds:DIEGO_REGION_IDS,meshes:report,maxAttributeRoundtripError:maxError,notes:['Retained source detail below an oblique jaw-to-nape cut. The original trapezius is fitted to the MakeHuman neck, with blended normals and material at contact. Arms open six degrees and lumbar contours have shallow paired relief.','Textures resized to 1024 pixels; baked source normal maps retained','Artist surface groups; upper/middle/lower chest, deltoid heads and trapezius subdivisions use illustrative soft boundaries','Light tendon pixels within assigned muscles receive the muscle tint in the application shader','Lumbar relief and hip-flexor color are schematic bilateral representations on the outer surface','Visible serratus slips have their own training region']},null,2));
 console.log(JSON.stringify({bytes:result.length,triangles:report.reduce((n,m)=>n+m.triangles,0),maxAttributeRoundtripError:maxError,meshes:report.length}));

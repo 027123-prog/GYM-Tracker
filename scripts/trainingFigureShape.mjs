@@ -2,14 +2,19 @@ import { MathUtils, Matrix3, Vector3 } from 'three';
 
 const smooth = MathUtils.smoothstep;
 
+// The clipping plane follows the underside of the jaw and rises toward the nape.
+export const neckCutDistance = ([, y, z]) => y + 0.47 * z - 1.635;
+
 // Work in the normalized source coordinates, before quantization. Use one
 // continuous displacement for skin, muscle, tendon and bone at shared seams.
 export function shapeTrainingPoint([x, y, z]) {
   const side = Math.abs(x);
-  if (y > 1.578 && side < 0.13) {
-    // Tuck the exposed body's cut rim under the replacement neck.
-    const collar = smooth(y, 1.578, 1.615) * (1 - smooth(side, 0.085, 0.13));
-    return [x * (1 - 0.32 * collar), y, -0.043 + (z + 0.043) * (1 - 0.39 * collar)];
+  if (y > 1.53 && side < 0.14) {
+    const neck = smooth(y, 1.53, 1.63) * (1 - smooth(side, 0.11, 0.14));
+    const depth = smooth(-z, 0.012, 0.071);
+    const top = smooth(neckCutDistance([x, y, z]), -0.055, 0) * (1 - smooth(side, 0.11, 0.14));
+    return [x * (1 + neck * 0.19 - 0.40 * top), y,
+      -0.043 + (z + 0.043) * (1 - top * 0.46) - 0.017 * neck * depth * (1 - 0.75 * top)];
   }
   if (side > 0.14 && y > 0.64 && y < 1.56) {
     const shoulder = smooth(y, 1.30, 1.48);

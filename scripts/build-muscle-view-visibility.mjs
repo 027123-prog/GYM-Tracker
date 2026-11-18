@@ -35,7 +35,8 @@ for (const [view, angle] of Object.entries(views)) {
     for (let index = 0; index < positions.count; index++) {
       point.fromBufferAttribute(positions, index).applyMatrix4(object.matrixWorld);
       const x = cos * point.x + sin * point.z, z = -sin * point.x + cos * point.z;
-      const region = training ? (training.getZ(index) > 127.5 ? training.getY(index) : training.getX(index)) : 0;
+      const region = training && training.getW(index) < 128
+        ? (training.getZ(index) > 127.5 ? training.getY(index) : training.getX(index)) : 0;
       vertices.push([width / 2 + x * scale, (1.95 - point.y) * scale, z, region]);
     }
     for (let index = 0; index < (indices?.count ?? positions.count); index += 3) {

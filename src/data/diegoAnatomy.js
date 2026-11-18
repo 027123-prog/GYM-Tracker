@@ -4,8 +4,8 @@ import { projectDeepRegion } from './deepMuscleProjection.js';
 
 // IDs are stored in the prepared model, independent of triangle ordering.
 export const DIEGO_REGION_IDS = ['context', ...Object.keys(MUSCLE_GROUPS)];
-export const DIEGO_ASSET_REVISION = 'profile-3';
-export const DIEGO_MODEL_FILE = 'diego-training-v3.glb';
+export const DIEGO_ASSET_REVISION = 'profile-4';
+export const DIEGO_MODEL_FILE = 'diego-training-v4.glb';
 export const DIEGO_COVERAGE = Object.fromEntries(Object.keys(MUSCLE_GROUPS).map(id => [id,
   id === 'chest' ? 'aggregate' : ['spinal_erectors', 'hip_flexors'].includes(id) ? 'projection' : 'surface',
 ]));

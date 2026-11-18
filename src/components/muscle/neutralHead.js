@@ -102,25 +102,33 @@ function subdivideHead(geometry) {
 
 export { subdivideHead as subdivideAnatomyGeometry };
 
-// The MakeHuman head is prepared offline with coherent facial topology and
-// fitted neutral eyes. Keep its sculpted features and attachment proportions;
-// The concealed lower neck is tapered into the anatomy body's neck so the
-// flat extraction boundary does not appear as a flared collar.
+// Seat the MakeHuman collar inside the torso while retaining the widening
+// of its sculpted nape toward the shoulders.
 export function createNeutralHeadGeometry(source) {
   const geometry = source.clone();
   const positions = geometry.getAttribute('position');
   for (let i = 0; i < positions.count; i++) {
     const y = positions.getY(i);
-    const neck = 1 - THREE.MathUtils.smoothstep(y, 1.60, 1.67);
-    positions.setX(i, positions.getX(i) * (1 - 0.5 * neck));
-    const z = -0.025 + (positions.getZ(i) + 0.025) * (1 - 0.2 * neck);
-    // Ease the underside of the jaw into the throat. Sink the extraction
-    // edge into the body's collar so it never outlines the side of the neck.
-    const throat = THREE.MathUtils.smoothstep(z, -0.04, 0.01);
-    const underJaw = THREE.MathUtils.smoothstep(y, 1.595, 1.62) * (1 - THREE.MathUtils.smoothstep(y, 1.625, 1.655));
-    const rim = 1 - THREE.MathUtils.smoothstep(y, 1.60, 1.616);
-    positions.setZ(i, z + 0.012 * throat * underJaw + rim * (-0.043 - z) * 0.32);
-    positions.setY(i, y - 0.016 * rim);
+    if (y >= 1.67) continue;
+    const x = positions.getX(i), z = positions.getZ(i);
+    const throat = THREE.MathUtils.smoothstep(z, -0.055, 0.008);
+    const collar = (1 - THREE.MathUtils.smoothstep(y, 1.60, 1.67))
+      * (1 - THREE.MathUtils.smoothstep(z, 0.026, 0.055));
+    const rim = 1 - THREE.MathUtils.smoothstep(y, 1.60, 1.623);
+    const height = y - collar * (0.044 - 0.026 * throat);
+    positions.setY(i, height);
+    positions.setX(i, x * (1 - 0.07 * collar - 0.12 * rim));
+    const groove = (1 - THREE.MathUtils.smoothstep(Math.abs(x), 0.002, 0.042))
+      * THREE.MathUtils.smoothstep(-z, 0.064, 0.095);
+    // Retain the transverse shape of the sculpt and fit its rear outline to
+    // the shoulder slope. Both profiles meet at the base of the skull.
+    const sourceDepth = 0.014 * ((1.67 - y) / 0.07) ** 2.4;
+    const fittedDepth = 0.030 * ((1.67 - height) / 0.11) ** 2.5;
+    const back = THREE.MathUtils.smoothstep(-z, 0.048, 0.095);
+    const inset = 0.019 * (1 - THREE.MathUtils.smoothstep(height, 1.565, 1.615));
+    positions.setZ(i, z + (sourceDepth - fittedDepth + inset) * back
+      + 0.014 * rim * groove + 0.008 * throat * collar
+      + rim * (-0.042 - z) * (0.16 + 0.24 * throat));
   }
   geometry.computeVertexNormals();
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(geometry.getAttribute('position').count * 2), 2));

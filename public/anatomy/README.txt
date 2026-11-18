@@ -1,6 +1,6 @@
 HardGainWAF anatomy assets
 
-Active figure: diego-training-v3.glb (diego-training.glb serves older clients)
+Active figure: diego-training-v4.glb (earlier GLBs serve older clients)
 Male Full Body Ecorche by Diego Luján García (diegoluga), CC BY 4.0.
 Original: https://sketchfab.com/3d-models/male-full-body-ecorche-ab11ebff89224f03bd75efede1164cf6
 Full attribution, public source mirror and modifications: DIEGO-ATTRIBUTION.md.
@@ -21,13 +21,13 @@ slightly outward, and the cut collar tapers under the fitted jaw and neck.
 The vertex deformation preserves the original triangle topology and UVs.
 The visible serratus slips have their own region. Light tendon areas within assigned muscle pieces
 receive the same training tint to make the surfaces visually continuous.
-The base of the replacement neck receives a short, soft bilateral upper-trapezius
-color continuation across the former hard clipping seam. This is schematic,
-not dissected anatomy; upper neck, face, anterior neck, midline and skull remain neutral.
+The upper trapezius retains its original fibers into the nape. Their surface
+normals and shading blend into the fitted MakeHuman neck. The training color
+fades at the neck base.
 Unassigned support structures remain neutral in training mode.
 
 Geometry is normalized to 1.88 units tall, Y up, anterior +Z, feet at zero.
-The neck is clipped at 1.615 units. Textures are resized to at most 1024 pixels;
+The oblique neck cut rises from the jaw toward the nape. Textures are resized to at most 1024 pixels;
 geometry uses EXT_meshopt_compression with high-precision attribute rounding.
 No body triangle simplification is applied. Finger/foot geometry and muscle
 surface detail remain part of the original artist's sculpt.

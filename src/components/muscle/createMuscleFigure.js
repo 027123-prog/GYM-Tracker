@@ -4,48 +4,52 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { DIEGO_REGION_IDS, DIEGO_COVERAGE, DIEGO_ASSET_REVISION, DIEGO_MODEL_FILE } from '../../data/diegoAnatomy';
 import { createNeutralHeadGeometry } from './neutralHead';
 import { muscleLoadColor } from '../../utils/muscleLoadColor';
-import { neckTrapeziusWeight } from '../../data/neckTrapeziusProjection';
 
 const neutralColor = new THREE.Color(muscleLoadColor(0));
 const NEUTRAL = [neutralColor.r, neutralColor.g, neutralColor.b];
+const headColor = new THREE.Color('#a3adaf');
+const collarColor = new THREE.Color('#c6cdd0');
+
+function addCollarColor(shader) {
+  shader.uniforms.uHeadColor = { value: headColor };
+  shader.uniforms.uCollarColor = { value: collarColor };
+  shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>
+    uniform vec3 uHeadColor;
+    uniform vec3 uCollarColor;
+    varying vec3 vCollarColor;
+  `).replace('#include <begin_vertex>', `#include <begin_vertex>
+    vCollarColor = mix(uCollarColor, uHeadColor, smoothstep(1.575, 1.67, position.y));
+  `);
+  shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vCollarColor;');
+}
 
 // Shared palette changes colors without touching the approved sculpt, UVs,
 // baked fibers or normal maps. Tendon-colored pixels within a muscle share
 // that muscle's tint, so no white cutouts interrupt the colored surface.
 function attachTrainingColors(material, palette) {
   material.onBeforeCompile = shader => {
+    addCollarColor(shader);
     shader.uniforms.uMusclePalette = { value: palette };
     shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>
       attribute vec4 _training;
       uniform vec3 uMusclePalette[${DIEGO_REGION_IDS.length}];
       varying vec3 vTrainingColor;
+      varying float vCollarBlend;
     `).replace('#include <begin_vertex>', `#include <begin_vertex>
       vTrainingColor = mix(uMusclePalette[int(_training.x)], uMusclePalette[int(_training.y)], _training.z / 255.0);
+      vCollarBlend = _training.w / 255.0;
     `);
-    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vTrainingColor;')
+    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vTrainingColor;\nvarying float vCollarBlend;')
       .replace('#include <color_fragment>', `#include <color_fragment>
         float grey = 0.63 + 0.37 * clamp(dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722)) * 2.0, 0.0, 1.0);
-        diffuseColor.rgb = grey * vTrainingColor;
-      `);
+        diffuseColor.rgb = mix(grey * vTrainingColor, vCollarColor, vCollarBlend);
+      `).replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        vec3 collarNormal = gl_FrontFacing ? nonPerturbedNormal : -nonPerturbedNormal;
+        normal = normalize(mix(normal, collarNormal, vCollarBlend));
+      `)
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.78, vCollarBlend);');
   };
-  material.customProgramCacheKey = () => 'diego-training-palette-3';
-}
-
-function attachNeckTrainingColors(material, palette) {
-  material.onBeforeCompile = shader => {
-    shader.uniforms.uUpperTrapsColor = { value: palette[DIEGO_REGION_IDS.indexOf('upper_traps')] };
-    shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>
-      attribute float _neckTraining;
-      varying float vNeckTraining;
-    `).replace('#include <begin_vertex>', '#include <begin_vertex>\nvNeckTraining = _neckTraining;');
-    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>
-      uniform vec3 uUpperTrapsColor;
-      varying float vNeckTraining;
-    `).replace('#include <color_fragment>', `#include <color_fragment>
-      diffuseColor.rgb = mix(diffuseColor.rgb, 0.85 * uUpperTrapsColor, vNeckTraining);
-    `);
-  };
-  material.customProgramCacheKey = () => 'neck-trapezius-continuation-1';
+  material.customProgramCacheKey = () => 'diego-training-palette-4';
 }
 
 export async function createMuscleFigure() {
@@ -83,15 +87,11 @@ export async function createMuscleFigure() {
     if (!object.isMesh) return;
     const source = object.geometry.clone().applyMatrix4(object.matrixWorld);
     const geometry = createNeutralHeadGeometry(source); source.dispose(); geometries.add(geometry);
-    const positions = geometry.getAttribute('position'), normals = geometry.getAttribute('normal');
-    const weights = new Float32Array(positions.count);
-    for (let index = 0; index < positions.count; index++) weights[index] = neckTrapeziusWeight(
-      [positions.getX(index), positions.getY(index), positions.getZ(index)],
-      [normals.getX(index), normals.getY(index), normals.getZ(index)],
-    );
-    geometry.setAttribute('_neckTraining', new THREE.BufferAttribute(weights, 1));
-    const material = new THREE.MeshStandardMaterial({ color:'#a3adaf', roughness:0.78 }); materials.add(material);
-    attachNeckTrainingColors(material, palette);
+    const material = new THREE.MeshStandardMaterial({ color:headColor, roughness:0.78 }); materials.add(material);
+    material.onBeforeCompile = shader => {
+      addCollarColor(shader);
+      shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = vCollarColor;');
+    };
     root.add(new THREE.Mesh(geometry,material));
   });
   return {
