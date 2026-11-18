@@ -8,6 +8,7 @@ import ExerciseEditorCard from '../components/ExerciseEditorCard';
 import MoveExerciseModal from '../components/MoveExerciseModal';
 import TemplatePicker from '../components/TemplatePicker';
 import WorkoutSummaryModal from '../components/WorkoutSummaryModal';
+import { splitExerciseName } from '../utils/workoutPresentation';
 import { readWorkoutExerciseIndex, saveWorkoutExercisePosition } from '../utils/workoutNavigation';
 import { getExerciseWeightSuggestions } from '../utils/weightSuggestions';
 import { getExerciseRepSuggestions } from '../utils/repSuggestions';
@@ -284,9 +285,7 @@ export default function WorkoutBuilderPage({ mode }) {
                 aria-label="Übungen im Workout"
               >
                 {workout.exercises.map((exercise, index) => {
-                  const nameParts = exercise.name.match(/^(.+?)(?:\s+-\s+|\s*[–—]\s*)(.+)$/);
-                  const mainName = nameParts ? nameParts[1].trim() : exercise.name;
-                  const nameDetail = nameParts ? nameParts[2].trim() : '';
+                  const { mainName, nameDetail } = splitExerciseName(exercise.name);
 
                   return (
                   <button
@@ -337,12 +336,6 @@ export default function WorkoutBuilderPage({ mode }) {
                 key={activeExercise.id}
                 exercise={activeExercise}
                 compact={isCompact}
-                canMovePrevExercise={activeExerciseIndex > 0}
-                canMoveNextExercise={activeExerciseIndex < workout.exercises.length - 1}
-                onPrevExercise={() => setActiveExerciseIndex((current) => Math.max(current - 1, 0))}
-                onNextExercise={() =>
-                  setActiveExerciseIndex((current) => Math.min(current + 1, workout.exercises.length - 1))
-                }
                 onInsertExercise={() => setExerciseModalOpen(true)}
                 onMoveExercise={workout.exercises.length > 1 ? () => setMoveExerciseModalOpen(true) : undefined}
                 libraryEntry={state.exercises.find((item) => item.id === activeExercise.exerciseId)}

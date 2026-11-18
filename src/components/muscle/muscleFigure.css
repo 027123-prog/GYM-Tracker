@@ -26,7 +26,17 @@
 @media (max-width: 520px) { .muscle-figure-tools { flex-direction: column; } }
 @media (min-width: 900px) { .muscle-map-card .muscle-figure-stage, .muscle-map-loading { height: 450px; } }
 
-.dashboard-overview { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2.4fr) minmax(0, 1fr); grid-template-rows: 1fr 1fr; gap: 10px; width: 100%; max-width: 760px; margin-inline: auto; }
+.dashboard-overview {
+  --dashboard-figure-height: 350px;
+  display: grid;
+  /* Fit the front view from hand to hand at the current figure height. */
+  grid-template-columns: minmax(0, 1fr) min(50%, calc(var(--dashboard-figure-height) * .465)) minmax(0, 1fr);
+  grid-template-rows: 1fr 1fr;
+  gap: 10px 2px;
+  width: 100%;
+  max-width: 760px;
+  margin-inline: auto;
+}
 .dashboard-overview-figure { grid-column: 2; grid-row: 1 / 3; min-width: 0; }
 .dashboard-overview .muscle-map-card { border: 0; background: radial-gradient(ellipse at 50% 44%, #29313580, transparent 72%); box-shadow: none; }
 [data-theme='calendar'] .muscle-map-card,
@@ -44,7 +54,8 @@
 [data-theme='calendar'] .muscle-focus-row:focus-visible { outline-color: rgb(var(--accent)); }
 [data-theme='calendar'] .muscle-focus-row:hover .font-bold,
 [data-theme='calendar'] .muscle-focus-row:active .font-bold { color: rgb(var(--accent-text)); }
-.dashboard-overview .muscle-figure-stage, .dashboard-overview .muscle-map-loading { height: 350px; }
+.dashboard-overview .muscle-figure-stage, .dashboard-overview .muscle-map-loading { height: var(--dashboard-figure-height); }
+[data-theme='dark'] .dashboard-overview .muscle-figure-static { left: -20%; width: 140%; max-width: none; }
 .dashboard-overview .dashboard-metric { min-width: 0; padding: 10px 8px; }
 .dashboard-metric-total { grid-column: 1; grid-row: 1; align-self: end; }
 .dashboard-metric-month { grid-column: 3; grid-row: 1; align-self: end; }
@@ -56,8 +67,7 @@
 .dashboard-metric p + p { flex-direction: column; align-items: flex-start; gap: 3px; }
 .dashboard-metric p + p > .text-xs { font-size: 10px; }
 @media (min-width: 600px) {
-  .dashboard-overview { gap: 16px; }
-  .dashboard-overview .muscle-figure-stage, .dashboard-overview .muscle-map-loading { height: 390px; }
+  .dashboard-overview { --dashboard-figure-height: 390px; row-gap: 16px; }
   .dashboard-overview .dashboard-metric { padding: 12px 14px; }
   .dashboard-metric .eyebrow { font-size: 10px; letter-spacing: .1em; }
   .dashboard-metric-value { font-size: 28px; }

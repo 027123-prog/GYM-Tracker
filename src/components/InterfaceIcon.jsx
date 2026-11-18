@@ -6,6 +6,7 @@ export default function InterfaceIcon({ name }) {
     dumbbell: <><rect x="4" y="6" width="4" height="12" rx="1" /><rect x="16" y="6" width="4" height="12" rx="1" /><path d="M8 12h8M2 10v4m20-4v4" /></>,
     filter: <path d="M3 4h18l-7 8v7l-4 2v-9Z" />,
     sort: <path d="M8 4v16m-4-4 4 4 4-4M14 4h7M14 8h5M14 12h3" />,
+    reorder: <path d="M3 7h17m-4-4 4 4-4 4M21 17H4m4-4-4 4 4 4" />,
     list: <path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />,
     body: <><circle cx="12" cy="4" r="2" /><path d="m4 8 5 2v4l-2 7M20 8l-5 2v4l2 7M9 8h6M9 14h6" /></>,
     preview: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="m6 16 4-5 4 2 4-6" /></>,

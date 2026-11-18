@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import InterfaceIcon, { compactIconButtonClass } from './InterfaceIcon';
+import { splitExerciseName } from '../utils/workoutPresentation';
 
 export default function TemplatePicker({ templates, onSelect, onDelete, onDuplicate }) {
   const [expandedTemplateIds, setExpandedTemplateIds] = useState(() => new Set());
@@ -25,7 +26,7 @@ export default function TemplatePicker({ templates, onSelect, onDelete, onDuplic
         const isExpanded = expandedTemplateIds.has(template.id);
         const detailsId = `template-details-${templateIndex}`;
         const exercisePreview =
-          template.exerciseTemplates.map((exercise) => exercise.name).join(' · ') || 'Noch keine Übungen';
+          template.exerciseTemplates.map((exercise) => splitExerciseName(exercise.name).mainName).join(' · ') || 'Noch keine Übungen';
 
         return (
           <article key={template.id} className="panel p-4 sm:p-5">

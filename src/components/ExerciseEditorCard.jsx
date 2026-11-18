@@ -4,6 +4,7 @@ import ExerciseSettingsModal from './ExerciseSettingsModal';
 import SetEntryModal from './SetEntryModal';
 import StopwatchModal from './StopwatchModal';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
+import InterfaceIcon from './InterfaceIcon';
 import { formatSetTime } from '../utils/date';
 import { formatSetSummary } from '../utils/setMeasurements';
 import { getRepeatedSetPayload } from '../utils/setEntry';
@@ -11,7 +12,7 @@ import { getExerciseWeightSuggestions } from '../utils/weightSuggestions';
 import { getTimerLoad } from '../utils/timerLoad';
 
 const compactIconButtonClass =
-  'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-line bg-surface-raised text-ink transition hover:border-amber/70 hover:text-amber-deep disabled:cursor-not-allowed disabled:opacity-35 min-[380px]:h-11 min-[380px]:w-11';
+  'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border border-line bg-surface-raised text-ink transition hover:border-amber/70 hover:text-amber-deep';
 
 function ChartIcon() {
   return (
@@ -55,20 +56,6 @@ function TrashIcon() {
   );
 }
 
-function SettingsIcon() {
-  return (
-    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" className="h-4 w-4" fill="none">
-      <path
-        d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7ZM19 12l2-1.2-2-3.5-2.2.7a7.5 7.5 0 0 0-1.3-.8L15 5h-4l-.5 2.2a7.5 7.5 0 0 0-1.3.8L7 7.3l-2 3.5L7 12c0 .5 0 .9.1 1.3L5 14.5 7 18l2.2-.7c.4.3.8.6 1.3.8L11 20h4l.5-1.9c.5-.2.9-.5 1.3-.8l2.2.7 2-3.5-2.1-1.2c.1-.4.1-.8.1-1.3Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 export default function ExerciseEditorCard({
   exercise,
   compact = false,
@@ -78,12 +65,8 @@ export default function ExerciseEditorCard({
   lastWorkoutSummary,
   lastWorkoutCommentText,
   exerciseHistory = [],
-  onPrevExercise,
-  onNextExercise,
   onInsertExercise,
   onMoveExercise,
-  canMovePrevExercise,
-  canMoveNextExercise,
   onRenameExercise,
   onUpdateExerciseSettings,
   onDeleteExercise,
@@ -196,7 +179,7 @@ export default function ExerciseEditorCard({
   return (
     <>
       <article className="panel overflow-hidden">
-        <div className="border-b border-line p-4 sm:p-5">
+        <div className="space-y-2 border-b border-line p-3 sm:p-4">
           {!compact ? (
             <div className="min-w-0">
               <label htmlFor={`exercise-name-${exercise.id}`} className="sr-only">
@@ -228,40 +211,30 @@ export default function ExerciseEditorCard({
           ) : null}
 
           {lastWorkoutSummary || lastWorkoutCommentText || machineSettingsText ? <div
-            className={`workout-reference ${compact ? '' : 'mt-3'} grid gap-x-5 gap-y-3 bg-surface-raised px-3 py-3 text-sm ${
+            className={`workout-reference grid gap-x-5 gap-y-1.5 bg-surface-raised px-3 py-2 text-sm leading-5 ${
               machineSettingsText ? 'md:grid-cols-2' : ''
             }`}
           >
-            {lastWorkoutSummary || lastWorkoutCommentText ? <div>
+            {lastWorkoutSummary || lastWorkoutCommentText ? <div className="min-w-0 break-words">
               <button type="button" onClick={() => setHistoryOpen(true)}
-                className="min-h-10 text-xs font-bold uppercase tracking-[0.14em] text-amber-deep underline underline-offset-4"
+                className="mr-2 min-h-6 text-[10px] font-bold uppercase tracking-wider text-amber-deep underline underline-offset-2"
                 aria-label={`Bisherige Trainings für ${exercise.name} öffnen`}>Zuletzt ↗</button>
-              {lastWorkoutSummary ? <p className="mt-1 italic text-ink">{lastWorkoutSummary}</p> : null}
-              {lastWorkoutCommentText ? <p className="mt-1 text-xs italic text-muted">{lastWorkoutCommentText}</p> : null}
+              {lastWorkoutSummary && <span className="text-ink">{lastWorkoutSummary}</span>}
+              {lastWorkoutCommentText && <span className={`text-xs italic text-muted ${lastWorkoutSummary ? 'block' : ''}`}>{lastWorkoutCommentText}</span>}
             </div> : null}
             {machineSettingsText ? (
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Setup</p>
-                <p className="mt-1 italic text-ink">{machineSettingsText}</p>
-              </div>
+              <p className="min-w-0 break-words text-muted">
+                <span className="mr-2 text-[10px] font-bold uppercase tracking-wider">Setup</span>
+                {machineSettingsText}
+              </p>
             ) : null}
           </div> : null}
 
           <div
-            className="mt-3 flex w-full items-center justify-between gap-0.5 min-[380px]:gap-1"
+            className="flex flex-wrap items-center gap-2"
             role="toolbar"
             aria-label="Übungsaktionen"
           >
-            <button
-              type="button"
-              onClick={onPrevExercise}
-              disabled={!canMovePrevExercise}
-              className={compactIconButtonClass}
-              aria-label="Vorherige Übung"
-              title="Vorherige Übung"
-            >
-              ←
-            </button>
             <button
               type="button"
               onClick={onInsertExercise}
@@ -271,6 +244,18 @@ export default function ExerciseEditorCard({
             >
               <PlusIcon />
             </button>
+            {onMoveExercise && (
+              <button
+                type="button"
+                onClick={onMoveExercise}
+                className={compactIconButtonClass}
+                aria-label="Übung verschieben"
+                aria-haspopup="dialog"
+                title="Übung verschieben"
+              >
+                <InterfaceIcon name="reorder" />
+              </button>
+            )}
             <Link
               to={`/exercises/${exercise.exerciseId}/chart`}
               state={{ returnTo: `${location.pathname}${location.search}` }}
@@ -287,7 +272,7 @@ export default function ExerciseEditorCard({
               aria-label="Übung bearbeiten"
               title="Name und Einstellungen bearbeiten"
             >
-              <SettingsIcon />
+              <InterfaceIcon name="settings" />
             </button>
             <button
               type="button"
@@ -298,22 +283,7 @@ export default function ExerciseEditorCard({
             >
               <TrashIcon />
             </button>
-            <button
-              type="button"
-              onClick={onNextExercise}
-              disabled={!canMoveNextExercise}
-              className={compactIconButtonClass}
-              aria-label="Nächste Übung"
-              title="Nächste Übung"
-            >
-              →
-            </button>
           </div>
-          {onMoveExercise ? (
-            <button type="button" onClick={onMoveExercise} className="secondary-button mt-3 w-full">
-              Übung verschieben
-            </button>
-          ) : null}
         </div>
 
         <div className="p-3 sm:p-4">

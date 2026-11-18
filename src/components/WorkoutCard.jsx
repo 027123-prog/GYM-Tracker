@@ -6,7 +6,7 @@ import { getWorkoutLoadMetrics } from '../utils/workoutPresentation';
 
 export default function WorkoutCard({ workout, compact = false }) {
   const stats = calculateWorkoutStats(workout);
-  const { primary, additional } = getWorkoutLoadMetrics(stats);
+  const { primary, additional } = getWorkoutLoadMetrics(stats, { showAdditionalDuration: !compact });
 
   if (compact) {
     return (
