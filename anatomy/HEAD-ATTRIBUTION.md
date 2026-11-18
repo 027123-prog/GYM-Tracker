@@ -28,13 +28,11 @@ once; fitted the original eyes through the supplied barycentric fitting table;
 replaced all materials with one neutral gray sculpture material. No head
 separate head-muscle groups or personal likeness.
 
-At runtime the lower edge of the neck extends into the separately licensed
-body. A soft adjustment under the jaw rounds the throat in side view.
-The base of the posterior neck receives a short, soft bilateral continuation of the existing
-upper-trapezius training color. This is a schematic surface projection over the
-replacement neck, not a reconstructed or dissected trapezius. The mask stops
-just above the shoulder/neck junction. The upper neck, midline, face, anterior
-neck and skull remain neutral. No head geometry is changed by the mask.
+The lower neck fits beneath the separately licensed anatomy body. The rear
+outline widens toward the shoulder, with a shallow central groove. The front
+edge follows the underside of the jaw. The anatomy builder uses this fitted
+surface to shape the ends of the original trapezius. Both surfaces share a
+neutral material gradient at the join. Training colors belong to the body.
 
 Rebuild with:
 

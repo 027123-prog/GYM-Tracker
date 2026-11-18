@@ -17,10 +17,11 @@ Downloaded on 15 November 2026. No affiliation or endorsement is implied.
 
 - Normalized to a common 1.88-unit height with feet at zero, anterior +Z.
 - Retained triangle detail, UV layout and baked normal-map fibers. Opened the
-  arms six degrees around the shoulders and tucked the cut collar into the neck.
-- Removed the exposed face and clipped the anatomy neck at 1.615 units.
-  A separately credited neutral MakeHuman head (CC0) replaces it; see
-  HEAD-ATTRIBUTION.md and HEAD-LICENSE.txt.
+  arms six degrees around the shoulders.
+- Removed the exposed face along a plane that rises from the jaw toward the
+  nape, retaining the original upper trapezius fibers. Fitted the muscle ends
+  and their normals against the separate MakeHuman neck (CC0). Details of
+  the replacement head are in HEAD-ATTRIBUTION.md and HEAD-LICENSE.txt.
 - Assigned connected muscle pieces to broader training regions. The fused
   upper/middle/lower chest, deltoid heads and trapezius subdivisions have
   illustrative soft color borders.
@@ -32,9 +33,8 @@ Downloaded on 15 November 2026. No affiliation or endorsement is implied.
 - Converted the colored source textures to neutral/estimated-load display in
   the shader. Light tendon pixels within assigned muscles receive their muscle's
   tint for visual continuity; other support surfaces remain neutral in training
-  mode. The separately credited MakeHuman neck has a soft bilateral posterior
-  upper-trapezius color projection; its face, anterior neck and skull remain
-  neutral. These color changes do not alter either sculpt.
+  mode. Training tint and fiber shading fade into the neutral neck material
+  at the fitted junction. The replacement head uses neutral shading.
 - Resized source textures to at most 1024 pixels and compressed geometry with
   EXT_meshopt_compression. Maximum attribute rounding error is in the manifest.
 - Generated fallback-front.png and fallback-back.png from this adapted figure.
