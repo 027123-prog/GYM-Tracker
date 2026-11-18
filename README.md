@@ -28,7 +28,7 @@ ab Android 11 lokal. Browserdaten lassen sich über **Export** im Browser und
 **Import** in der Android-App übernehmen. Das Zahnrad in der Kopfzeile öffnet
 die Einstellung **Kalenderdesign**.
 
-Ab 2.22.1 findet **Einstellungen → Nach Updates suchen** die aktuelle
+Ab 2.22.2 findet **Einstellungen → Nach Updates suchen** die aktuelle
 Android-Version auf GitHub. Beim ersten In-App-Update kann Android einmalig
 nach der Freigabe für Installationen durch HardGainWAF fragen. Das Training
 selbst funktioniert offline.

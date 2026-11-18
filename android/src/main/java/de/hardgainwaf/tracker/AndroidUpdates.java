@@ -1,6 +1,7 @@
 package de.hardgainwaf.tracker;
 
 import android.app.Activity;
+import android.app.ActivityOptions;
 import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
@@ -259,8 +260,12 @@ final class AndroidUpdates {
                 session.fsync(output);
             }
             Intent result = new Intent(activity, UpdateConfirmationActivity.class);
+            ActivityOptions options = ActivityOptions.makeBasic();
+            if (Build.VERSION.SDK_INT >= 35) {
+                options.setPendingIntentCreatorBackgroundActivityStartMode(ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+            }
             PendingIntent pending = PendingIntent.getActivity(activity, id, result,
-                PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_UPDATE_CURRENT, options.toBundle());
             session.commit(pending.getIntentSender());
             committed = true;
         } finally {
