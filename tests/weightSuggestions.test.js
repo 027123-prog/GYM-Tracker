@@ -8,7 +8,7 @@ test('obsolete quick weights disappear after six sessions or 90 days, while hist
     exercises: [{ exerciseId: 'db', sets: [{ weight: 20 + index * 2, reps: 8 }] }] }));
   sessions.push({ date: '2026-01-01', exercises: [{ exerciseId: 'db', sets: [{ weight: 10, reps: 10 }] }] });
   const snapshot = structuredClone(sessions);
-  assert.deepEqual(getExerciseWeightSuggestions([10, 20, 22, 40], sessions, 'db'), [22, 24, 26, 28, 30, 32, 40]);
+  assert.deepEqual(getExerciseWeightSuggestions([10, 20, 22, 40], sessions, 'db'), [22, 24, 26, 28, 30, 32, 34, 40]);
   assert.deepEqual(getExerciseWeightSuggestions([10, 32, 40], [sessions[6], sessions[7]], 'db', { loadType: 'paired' }), [16, 20]);
   assert.deepEqual(sessions, snapshot);
   // Returning after a long break still offers the last recorded loads.
@@ -22,6 +22,23 @@ test('a running saved set reactivates a previously obsolete weight without dupli
     { date: '2026-11-16', completedAt: null, exercises: [{ exerciseId: 'db', sets: [{ weight: 10, reps: 10 }] }] },
   ];
   assert.deepEqual(getExerciseWeightSuggestions([10, 30], sessions, 'db'), [10, 30]);
+});
+
+test('a regular recent progression adds neighboring weights in per-dumbbell units', () => {
+  const weights = [24, 28, 32, 80];
+  const workouts = [{ date: '2026-11-19', exercises: [
+    { exerciseId: 'db', sets: weights.map((weight) => ({ weight, weightMode: 'paired', reps: 8 })) },
+  ] }];
+  assert.deepEqual(getExerciseWeightSuggestions([], workouts, 'db', { loadType: 'paired' }), [10, 12, 14, 16, 18, 40]);
+});
+
+test('irregular gaps do not add guesses and a single load stays above the known positive minimum', () => {
+  const suggestions = (weights) => getExerciseWeightSuggestions([], [{
+    date: '2026-11-19',
+    exercises: [{ exerciseId: 'bar', sets: weights.map((weight) => ({ weight, reps: 8 })) }],
+  }], 'bar');
+  assert.deepEqual(suggestions([0, 20, 30, 40]), [0, 20, 30, 40, 50]);
+  assert.deepEqual(suggestions([20, 40, 70]), [20, 40, 70]);
 });
 
 test('quick weights apply a consistent paired convention to every total, sorted by load', () => {

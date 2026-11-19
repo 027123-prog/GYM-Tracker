@@ -1,34 +1,26 @@
 import { getWeightSuggestionKey } from '../utils/weightSuggestions';
+import QuickEntryTile from './QuickEntryTile';
 
-export default function WeightSuggestionGrid({ options, selectedValue, onSelect, perWeight = false, label, editControl }) {
-  if (!options.length && !editControl) {
-    return null;
-  }
+export default function WeightSuggestionGrid({ options, selectedValue, onSelect, label = 'Gewicht', editControl, allowNegative = false }) {
+  const getKey = (value) => getWeightSuggestionKey(value, { allowNegative });
+  const selectedKey = getKey(selectedValue);
+  const hasSelectedTile = options.some((option) => getKey(option) === selectedKey);
+  const weights = selectedKey !== null && !hasSelectedTile ? [...options, selectedValue] : options;
 
   return (
     <div>
-      <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted">{label ?? (perWeight ? 'Bekannte Einzelgewichte' : 'Bekannte Gewichte')}</p>
-      <div className="flex max-h-24 flex-wrap gap-1.5 overflow-y-auto">
+      <p className="mb-1.5 text-xs font-bold text-muted">{label}</p>
+      <div className="flex max-h-36 flex-wrap gap-1.5 overflow-y-auto">
         {editControl}
-        {options.map((weight) => {
-          const selected = getWeightSuggestionKey(selectedValue) === getWeightSuggestionKey(weight);
-
-          return (
-            <button
-              key={weight}
-              type="button"
-              onClick={() => onSelect(weight)}
-              className={`quick-entry-choice min-h-10 rounded-sm border px-3 py-2 text-sm font-bold transition ${
-                selected
-                  ? 'border-amber bg-amber-soft text-amber-deep'
-                  : 'border-line bg-paper text-muted hover:border-amber/60 hover:text-amber-deep'
-              }`}
-              aria-pressed={selected}
-            >
-              {typeof weight === 'number' ? weight.toLocaleString('de-DE') : weight} kg{perWeight ? ' je' : ''}
-            </button>
-          );
-        })}
+        {weights.map((weight) => (
+          <QuickEntryTile
+            key={weight}
+            selected={selectedKey !== null && getKey(weight) === selectedKey}
+            onClick={() => onSelect(weight)}
+          >
+            {typeof weight === 'number' ? weight.toLocaleString('de-DE') : weight} kg
+          </QuickEntryTile>
+        ))}
       </div>
     </div>
   );

@@ -4,24 +4,21 @@ import { isDurationSet, parseWeightInput, prepareSetValues } from '../utils/setM
 import { getSetEntryLoadType, getSetEntryWeight, getSetEntryWeightSuggestions } from '../utils/setEntry';
 import InterfaceIcon from './InterfaceIcon';
 import ModalShell from './ModalShell';
+import QuickEntryTile from './QuickEntryTile';
 import WeightSuggestionGrid from './WeightSuggestionGrid';
 
-const repPresets = [5, 6, 7, 8, 9, 10, 11, 12];
+const repPresets = Array.from({ length: 13 }, (_, index) => index + 3);
 const durationPresets = [15, 20, 30, 40, 45, 60];
 const BODY_WEIGHT_KEY = 'hardgainwaf-body-weight-kg';
 
-function EntryValue({ field, label, manual, value, onChange, inputMode = 'decimal', suffix = '', editControl }) {
-  return <div className="set-entry-value min-w-0 rounded-sm border border-line bg-surface-raised p-3" data-field={field}>
-    {manual ? <label>
-      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">{label}</span>
-      <input className="field text-lg font-bold tabular-nums" inputMode={inputMode}
-        value={value} onChange={event => onChange(event.target.value)} autoFocus />
-    </label> : <>
-      <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">{label}</p>
-      <p className="mt-1 text-lg font-bold tabular-nums text-ink">{value === '' ? '–' : `${value}${suffix}`}</p>
-    </>}
-    {editControl && <div className="mt-2">{editControl}</div>}
-  </div>;
+function ManualEntry({ label, value, onChange, inputMode = 'decimal' }) {
+  return (
+    <label className="mt-2 block">
+      <span className="sr-only">{label}</span>
+      <input className="field tabular-nums" inputMode={inputMode} value={value}
+        onChange={(event) => onChange(event.target.value)} autoFocus />
+    </label>
+  );
 }
 
 function readBodyWeight() {
@@ -47,7 +44,6 @@ export default function SetEntryModal({
   exerciseName,
   exerciseSettings,
   weightOptions,
-  repSuggestions = repPresets,
   onClose,
   onSave,
 }) {
@@ -75,9 +71,14 @@ export default function SetEntryModal({
   const [manualField, setManualField] = useState(null);
   const repsLabel = duration ? 'Sekunden' : 'Wiederholungen';
   const weightLabel = usesBodyweight ? 'Dein Gewicht' : paired ? 'Gewicht je Hantel' : 'Gewicht';
+  const addedWeightLabel = 'Zusatzgewicht / Unterstützung';
   const parsedAddedWeight = parseWeightInput(addedWeight, { allowNegative: true });
-  const parsedWeight = parseWeightInput(weight);
   const displayedWeightOptions = getSetEntryWeightSuggestions(weightOptions, configuredLoadType, loadType);
+  const quantityOptions = duration ? durationPresets : repPresets;
+  const quantity = parseLocalizedNumber(reps);
+  const displayedQuantities = Number.isInteger(quantity) && quantity > 0 && !quantityOptions.includes(quantity)
+    ? [...quantityOptions, quantity].sort((a, b) => a - b)
+    : quantityOptions;
   const effectiveBodyweight = parsedAddedWeight ? calculateBodyweightLoad(
     bodyWeight,
     bodyweightFactor,
@@ -97,11 +98,10 @@ export default function SetEntryModal({
   function editButton(field, label) {
     const active = manualField === field;
     return (
-      <button type="button" className="quick-entry-edit icon-button"
-        aria-label={`${label} manuell eingeben`} aria-pressed={active}
+      <QuickEntryTile aria-label={`${label} manuell eingeben`} selected={active}
         onClick={() => setManualField(active ? null : field)}>
         <InterfaceIcon name="pencil" />
-      </button>
+      </QuickEntryTile>
     );
   }
 
@@ -142,46 +142,36 @@ export default function SetEntryModal({
 
   return (
     <ModalShell isOpen={isOpen} onClose={onClose} labelledBy="set-entry-title" maxWidth="max-w-xl">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="eyebrow">{exerciseName || 'Übung'}</p>
-          <h2 id="set-entry-title" className="mt-2 font-display text-2xl font-bold text-ink">
-            {timerSetup ? 'Gewicht für Stoppuhr' : initialSet ? 'Satz ändern' : 'Neuer Satz'}
-          </h2>
-        </div>
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="set-entry-title" className="min-w-0 break-words font-display text-xl font-bold text-amber-deep [[data-theme=calendar]_&]:text-orange-800">
+          {exerciseName || 'Übung'}
+        </h2>
         <button type="button" onClick={onClose} className="icon-button" aria-label="Dialog schließen">×</button>
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-        <div className={`grid gap-3 ${withoutWeight || timerSetup ? '' : 'grid-cols-2'}`}>
-          {usesBodyweight ? (
-            <EntryValue field="weight" label={weightLabel} manual={manualField === 'weight'} value={bodyWeight}
-              onChange={setBodyWeight} suffix=" kg" editControl={editButton('weight', weightLabel)} />
-          ) : !withoutWeight ? (
-            <div>
-              <EntryValue field="weight" label={weightLabel} manual={manualField === 'weight'} value={weight}
-                onChange={setWeight} inputMode={paired ? 'decimal' : 'text'} suffix=" kg" />
-              {paired ? (
-                <span className="mt-1.5 block text-xs text-muted">2x</span>
-              ) : parsedWeight?.weightInput ? <span className="mt-1.5 block text-xs text-muted">Gesamtlast: {parsedWeight.weight} kg</span> : null}
-            </div>
-          ) : null}
-          {!timerSetup ? <EntryValue field="reps" label={repsLabel} manual={manualField === 'reps'}
-            value={reps} onChange={setReps} inputMode="numeric" /> : null}
-        </div>
+      <form onSubmit={handleSubmit} className="mt-3 space-y-3">
+        {!withoutWeight ? (
+          <div>
+            <WeightSuggestionGrid options={usesBodyweight ? [] : displayedWeightOptions}
+              selectedValue={usesBodyweight ? bodyWeight : weight} onSelect={usesBodyweight ? setBodyWeight : setWeight}
+              label={usesBodyweight ? weightLabel : 'Gewicht'} editControl={editButton('weight', weightLabel)} />
+            {manualField === 'weight' ? (
+              <ManualEntry label={weightLabel} value={usesBodyweight ? bodyWeight : weight}
+                onChange={usesBodyweight ? setBodyWeight : setWeight} inputMode={paired || usesBodyweight ? 'decimal' : 'text'} />
+            ) : null}
+          </div>
+        ) : null}
+
+        {allowsAddedWeight ? (
+          <div>
+            <WeightSuggestionGrid options={[-20, -10, -5, 0, 5, 10, 15, 20]} selectedValue={addedWeight}
+              onSelect={setAddedWeight} label={addedWeightLabel} allowNegative editControl={editButton('added', addedWeightLabel)} />
+            {manualField === 'added' ? <ManualEntry label={addedWeightLabel} value={addedWeight} onChange={setAddedWeight} inputMode="text" /> : null}
+          </div>
+        ) : null}
 
         {usesBodyweight ? (
-          <div className="rounded-sm bg-surface-raised p-3">
-            {allowsAddedWeight ? (
-              <div className="space-y-2">
-                <EntryValue field="added" label="Zusatzgewicht / Unterstützung" manual={manualField === 'added'} value={addedWeight}
-                  onChange={setAddedWeight} inputMode="text" suffix=" kg" />
-                <WeightSuggestionGrid options={[-20, -10, -5, 0, 5, 10, 15, 20]} selectedValue={addedWeight}
-                  onSelect={setAddedWeight} label="Zusatzgewicht / Unterstützung"
-                  editControl={editButton('added', 'Zusatzgewicht / Unterstützung')} />
-              </div>
-            ) : null}
-            <div className={`${allowsAddedWeight ? 'mt-3' : ''} flex items-center justify-between gap-3`}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs text-muted">Körpergewichtsanteil: <strong className="text-ink">{bodyweightPercent} %</strong></p>
               <p className="text-xs text-muted">
                 Effektive Last:{' '}
@@ -190,31 +180,19 @@ export default function SetEntryModal({
                 </strong>
               </p>
             </div>
-          </div>
-        ) : !withoutWeight ? (
-          <WeightSuggestionGrid options={displayedWeightOptions} selectedValue={weight} onSelect={setWeight}
-            perWeight={paired} editControl={editButton('weight', weightLabel)} />
         ) : null}
 
         {!timerSetup ? <div>
-          <div className="flex flex-wrap gap-1">
+          <p className="mb-1.5 text-xs font-bold text-muted">{repsLabel}</p>
+          <div className="flex flex-wrap gap-1.5">
             {editButton('reps', repsLabel)}
-            {(duration ? durationPresets : repSuggestions).map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => setReps(preset)}
-                className={`quick-entry-choice inline-flex min-h-10 min-w-10 items-center justify-center rounded-sm border px-2 text-xs font-semibold tabular-nums transition ${
-                  Number(reps) === preset
-                    ? 'border-amber bg-amber-soft text-amber-deep'
-                    : 'border-line bg-paper text-muted hover:border-amber/55 hover:text-ink'
-                }`}
-                aria-pressed={Number(reps) === preset}
-              >
+            {displayedQuantities.map((preset) => (
+              <QuickEntryTile key={preset} selected={quantity === preset} onClick={() => setReps(preset)}>
                 {preset}{duration ? ' s' : ''}
-              </button>
+              </QuickEntryTile>
             ))}
           </div>
+          {manualField === 'reps' ? <ManualEntry label={repsLabel} value={reps} onChange={setReps} inputMode="numeric" /> : null}
         </div> : null}
 
         {!timerSetup && manualField ? <label className="block">
@@ -234,9 +212,8 @@ export default function SetEntryModal({
           </p>
         ) : null}
 
-        <div className="sticky bottom-0 -mx-5 flex gap-2 border-t border-line bg-surface px-5 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-4 sm:-mx-6 sm:px-6">
-          <button type="button" onClick={onClose} className="secondary-button flex-1">Abbrechen</button>
-          <button type="submit" className="action-button flex-1">{timerSetup ? 'Übernehmen' : 'Speichern'}</button>
+        <div className="sticky bottom-0 -mx-5 border-t border-line bg-surface px-5 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-3 sm:-mx-6 sm:px-6">
+          <button type="submit" className="action-button w-full">{timerSetup ? 'Übernehmen' : 'Speichern'}</button>
         </div>
       </form>
     </ModalShell>

@@ -171,7 +171,7 @@ export default function ExerciseLibraryPage() {
             </Link> : exercise.latestSummary ? <p className="truncate text-xs leading-5 text-muted" title={exercise.latestSummary}>{exercise.latestSummary}</p> : null}
             <div className={`flex items-center justify-between gap-1 ${previewMode ? 'flex-wrap border-t border-line pt-1' : 'mt-0.5'}`}>
               <span className="min-w-0 text-[10px] text-muted">{exercise.workoutCount} {exercise.workoutCount === 1 ? 'Training' : 'Trainings'}{exercise.hasOpenWorkout ? ' · offen' : ''}</span>
-              {previewMode ? <div className="ml-auto flex shrink-0">
+              {previewMode ? <div className="flex w-full justify-between">
                 <button type="button" className={iconButtonClass} aria-label={`${exercise.name} umbenennen`} title="Umbenennen" onClick={() => openAction('rename', exercise.id)}><LibraryIcon name="pencil" /></button>
                 <Link to={`/exercises/${exercise.id}/chart`} state={{ exerciseOrder, libraryReturnTo, chartMetric: getChartMetric(exercise) }} className={iconButtonClass} aria-label={`Verlauf von ${exercise.name}`} title="Verlauf"><LibraryIcon name="chart" /></Link>
                 <button type="button" className={`${iconButtonClass} ${exercise.archivedAt ? 'text-amber' : 'hover:text-ember'}`} aria-label={`${exercise.name} ${exercise.archivedAt ? 'wiederherstellen' : 'entfernen'}`} title={exercise.archivedAt ? 'Wiederherstellen' : 'Entfernen'} onClick={() => exercise.archivedAt ? restoreExercise(exercise) : openAction('remove', exercise.id)}><LibraryIcon name={exercise.archivedAt ? 'restore' : 'trash'} /></button>

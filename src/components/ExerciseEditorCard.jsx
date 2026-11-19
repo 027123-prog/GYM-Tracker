@@ -56,12 +56,16 @@ function TrashIcon() {
   );
 }
 
+function renderSetSummary(setItem) {
+  const [prefix, multiplier, load] = formatSetSummary(setItem).split(/(\d+x)(?=\d)/);
+  return multiplier ? <>{prefix}<span className="mr-0.5 text-sm font-semibold text-muted">{multiplier}</span>{load}</> : prefix;
+}
+
 export default function ExerciseEditorCard({
   exercise,
   compact = false,
   libraryEntry,
   weightSuggestions,
-  repSuggestions,
   lastWorkoutSummary,
   lastWorkoutCommentText,
   exerciseHistory = [],
@@ -323,7 +327,7 @@ export default function ExerciseEditorCard({
                     </time> : null}
                   </div>
                   <p className="font-display text-lg font-bold tabular-nums text-ink">
-                    {formatSetSummary(setItem)}
+                    {renderSetSummary(setItem)}
                   </p>
                   {setItem.comment ? (
                     <div className="min-w-0 text-xs italic text-muted">
@@ -369,7 +373,6 @@ export default function ExerciseEditorCard({
         exerciseSettings={libraryEntry?.settings}
         lastWorkoutSummary={lastWorkoutSummary}
         weightOptions={weightSuggestions ?? getExerciseWeightSuggestions(libraryEntry?.weightOptions, [], exercise.exerciseId, libraryEntry?.settings)}
-        repSuggestions={repSuggestions}
         onClose={() => setSetModalOpen(false)}
         onSave={saveModalValues}
       />

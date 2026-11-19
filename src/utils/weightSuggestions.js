@@ -48,13 +48,33 @@ function formatLoadSplit(weight, count) {
   return parseWeightInput(expression)?.weight === weight ? expression : weight;
 }
 
-export function getWeightSuggestionKey(value) {
-  const parsed = parseWeightInput(value);
+export function getWeightSuggestionKey(value, { allowNegative = false } = {}) {
+  const parsed = parseWeightInput(value, { allowNegative });
   if (!parsed) return null;
   if (!parsed.weightInput) return String(parsed.weight);
 
   const [count, single] = parsed.weightInput.split('x');
   return `${Number(count)}x${Number(single.replace(',', '.')).toString().replace('.', ',')}`;
+}
+
+function addNeighboringWeights(options, recentWeights, recordedWeights, paired) {
+  const weights = [...recentWeights].filter((weight) => weight > 0).sort((left, right) => left - right);
+  const lightestKnown = Math.min(...[...options.keys()].filter((weight) => weight > 0));
+  const normalize = (value) => Number(value.toFixed(6));
+
+  for (let index = 1; index < weights.length - 1; index += 1) {
+    const lower = weights[index - 1];
+    const middle = weights[index];
+    const upper = weights[index + 1];
+    const step = normalize(middle - lower);
+    // A single gap does not show which increments this exercise uses.
+    if (step <= 0 || step !== normalize(upper - middle)) continue;
+
+    for (const neighbor of [normalize(lower - step), normalize(upper + step)]) {
+      if (neighbor <= 0 || neighbor > 2000 || (!paired && neighbor < lightestKnown)) continue;
+      if (!options.has(neighbor) && !recordedWeights.has(neighbor)) options.set(neighbor, new Set());
+    }
+  }
 }
 
 export function getExerciseWeightSuggestions(weightOptions = [], workouts = [], exerciseId, settings = {}) {
@@ -109,7 +129,9 @@ export function getExerciseWeightSuggestions(weightOptions = [], workouts = [], 
 
   // Stored options and historical sets always contain total loads. An explicit
   // paired setting takes precedence over any notation learned from old sets.
-  if (settings?.loadType === 'paired') {
+  const paired = settings?.loadType === 'paired';
+  addNeighboringWeights(options, current, recorded, paired);
+  if (paired) {
     return [...options.keys()].sort((left, right) => left - right).map(weight => weight / 2);
   }
 

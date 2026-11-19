@@ -1,15 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppData } from '../components/AppProvider';
 import BackupControls from '../components/BackupControls';
 import EmptyState from '../components/EmptyState';
 import WorkoutCard from '../components/WorkoutCard';
 import MuscleMapCard from '../components/muscle/MuscleMapCard';
+import { getDashboardMetrics, PROGRESS_WINDOW_DAYS } from '../utils/dashboardMetrics';
 import {
   calculateWorkoutStats,
   getWorkoutDateTimestamp,
   sortWorkoutsByDate,
 } from '../utils/workout';
+
+const progressFormat = new Intl.NumberFormat('de-DE', {
+  style: 'percent',
+  signDisplay: 'exceptZero',
+  maximumFractionDigits: 0,
+});
 
 function formatVolume(value) {
   return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 }).format(value);
@@ -71,8 +78,17 @@ function isMeaningfulDraft(workout, templates) {
 export default function DashboardPage() {
   const { state, activeWorkoutId } = useAppData();
   const [showAllWorkouts, setShowAllWorkouts] = useState(false);
+  const [today, setToday] = useState(() => new Date());
+  useEffect(() => {
+    const nextDay = new Date(today);
+    nextDay.setHours(24, 0, 0, 0);
+    const timer = setTimeout(() => setToday(new Date()), nextDay.getTime() - Date.now());
+    return () => clearTimeout(timer);
+  }, [today]);
+
   const sortedWorkouts = sortWorkoutsByDate(state.workouts);
   const completedWorkouts = sortedWorkouts.filter((workout) => workout.completedAt);
+  const { daysSinceLastWorkout, progress } = getDashboardMetrics(completedWorkouts, today);
   const visibleWorkouts = showAllWorkouts ? completedWorkouts : completedWorkouts.slice(0, 6);
   const activeWorkout = state.workouts.find(
     (workout) => workout.id === activeWorkoutId && !workout.completedAt,
@@ -81,7 +97,7 @@ export default function DashboardPage() {
     ? null
     : sortedWorkouts.find((workout) => isMeaningfulDraft(workout, state.templates)) ?? null;
   const currentDraftStats = currentDraft ? calculateWorkoutStats(currentDraft) : null;
-  const monthStart = new Date();
+  const monthStart = new Date(today);
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
   const nextMonthStart = new Date(monthStart);
@@ -125,6 +141,24 @@ export default function DashboardPage() {
       <section className="dashboard-overview" aria-label="Trainingsübersicht">
         <div className="dashboard-overview-figure">
           <MuscleMapCard exercises={state.exercises} workouts={state.workouts} />
+        </div>
+        <div className="metric dashboard-metric dashboard-metric-progress"
+          title={`Mittlere Veränderung der besten Sätze derselben Übungen. Letzte ${PROGRESS_WINDOW_DAYS} Tage gegenüber den ${PROGRESS_WINDOW_DAYS} Tagen davor.`}
+        >
+          <p className="eyebrow">Fortschritt</p>
+          <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+            <span className="dashboard-metric-value font-display font-bold tabular-nums text-ink">{progress === null ? '–' : progressFormat.format(progress)}</span>
+            <span className="text-xs text-muted">{progress === null ? 'Keine Vergleichsdaten' : `${PROGRESS_WINDOW_DAYS} Tage`}</span>
+          </p>
+        </div>
+        <div className="metric dashboard-metric dashboard-metric-recency">
+          <p className="eyebrow">Letztes Workout</p>
+          <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+            <span className="dashboard-metric-value font-display font-bold tabular-nums text-ink">{daysSinceLastWorkout === 0 ? 'Heute' : daysSinceLastWorkout ?? '–'}</span>
+            {daysSinceLastWorkout !== 0 && (
+              <span className="text-xs text-muted">{daysSinceLastWorkout === null ? 'Kein Eintrag' : daysSinceLastWorkout === 1 ? 'Tag her' : 'Tage her'}</span>
+            )}
+          </p>
         </div>
         <div className="metric dashboard-metric dashboard-metric-total">
           <p className="eyebrow">Gesamt</p>

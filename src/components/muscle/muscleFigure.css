@@ -31,13 +31,13 @@
   display: grid;
   /* Fit the front view from hand to hand at the current figure height. */
   grid-template-columns: minmax(0, 1fr) min(50%, calc(var(--dashboard-figure-height) * .465)) minmax(0, 1fr);
-  grid-template-rows: 1fr 1fr;
+  grid-template-rows: repeat(3, 1fr);
   gap: 10px 2px;
   width: 100%;
   max-width: 760px;
   margin-inline: auto;
 }
-.dashboard-overview-figure { grid-column: 2; grid-row: 1 / 3; min-width: 0; }
+.dashboard-overview-figure { grid-column: 2; grid-row: 1 / 4; min-width: 0; }
 .dashboard-overview .muscle-map-card { border: 0; background: radial-gradient(ellipse at 50% 44%, #29313580, transparent 72%); box-shadow: none; }
 [data-theme='calendar'] .muscle-map-card,
 [data-theme='calendar'] .exercise-muscle-compact {
@@ -57,11 +57,14 @@
 .dashboard-overview .muscle-figure-stage, .dashboard-overview .muscle-map-loading { height: var(--dashboard-figure-height); }
 [data-theme='dark'] .dashboard-overview .muscle-figure-static { left: -20%; width: 140%; max-width: none; }
 .dashboard-overview .dashboard-metric { min-width: 0; padding: 10px 8px; }
-.dashboard-metric-total { grid-column: 1; grid-row: 1; align-self: end; }
-.dashboard-metric-month { grid-column: 3; grid-row: 1; align-self: end; }
-.dashboard-metric-volume { grid-column: 1; grid-row: 2; align-self: start; }
-.dashboard-metric-sets { grid-column: 3; grid-row: 2; align-self: start; }
+.dashboard-metric-progress { grid-column: 1; grid-row: 1; align-self: end; }
+.dashboard-metric-recency { grid-column: 3; grid-row: 1; align-self: end; }
+.dashboard-metric-total { grid-column: 1; grid-row: 2; align-self: center; }
+.dashboard-metric-month { grid-column: 3; grid-row: 2; align-self: center; }
+.dashboard-metric-volume { grid-column: 1; grid-row: 3; align-self: start; }
+.dashboard-metric-sets { grid-column: 3; grid-row: 3; align-self: start; }
 .dashboard-metric .eyebrow { font-size: clamp(7px, 2vw, 9px); letter-spacing: 0; white-space: nowrap; }
+.dashboard-overview .dashboard-metric-recency .eyebrow { white-space: normal; }
 .dashboard-metric-value { font-size: clamp(16px, 4.3vw, 26px); line-height: 1.2; white-space: nowrap; }
 .dashboard-metric-volume .dashboard-metric-value { font-size: clamp(11px, 3.4vw, 24px); }
 .dashboard-metric p + p { flex-direction: column; align-items: flex-start; gap: 3px; }

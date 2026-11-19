@@ -13,22 +13,25 @@ export default function WorkoutCard({ workout, compact = false }) {
       <article className="relative" aria-label={workout.name}>
       <Link
         to={workout.completedAt ? `/workouts/${workout.id}` : `/workouts/${workout.id}/edit`}
-        className="grid gap-3 bg-surface px-4 py-4 transition hover:bg-surface-raised sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:pl-5 sm:pr-16"
+        className="grid gap-2 bg-surface px-4 pb-4 pt-2 transition hover:bg-surface-raised sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:pl-5 sm:pr-16"
       >
         <div className="min-w-0 pr-10 sm:pr-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="eyebrow">{workout.mode === 'template' ? 'Vorlage' : 'Frei'}</span>
-            <span className="text-xs text-muted">{formatDate(workout.date)}</span>
-            {!workout.completedAt ? (
-              <span className="rounded-sm border border-amber/30 bg-amber-soft px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-deep">
-                Offen
-              </span>
-            ) : null}
+          <div className="flex min-h-11 items-center gap-2">
+            <h3 className="min-w-0 truncate text-base font-bold text-amber-deep sm:text-lg [[data-theme=calendar]_&]:text-orange-800" title={workout.name}>
+              {workout.name}
+            </h3>
+            <time className="shrink-0 whitespace-nowrap text-xs text-muted" dateTime={workout.date}>
+              {formatDate(workout.date)}
+            </time>
           </div>
-          <h3 className="mt-1 truncate text-base font-bold text-ink sm:text-lg">{workout.name}</h3>
-          {additional ? <p className="mt-1 text-xs text-muted">{additional}</p> : null}
+          {!workout.completedAt ? (
+            <span className="rounded-sm border border-amber/30 bg-amber-soft px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-deep">
+              Offen
+            </span>
+          ) : null}
+          {additional ? <p className="text-xs text-muted">{additional}</p> : null}
         </div>
-        <div className="grid grid-cols-3 gap-4 text-left sm:min-w-[250px] sm:text-right">
+        <div className="grid grid-cols-3 gap-4 text-left sm:min-w-[250px] sm:self-center sm:text-right">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">{primary.label}</p>
             <p className="mt-1 text-sm font-bold tabular-nums text-ink">{primary.display}{primary.unit ? ` ${primary.unit}` : ''}</p>

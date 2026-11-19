@@ -6,12 +6,11 @@ import EmptyState from '../components/EmptyState';
 import ExerciseAutocomplete from '../components/ExerciseAutocomplete';
 import ExerciseEditorCard from '../components/ExerciseEditorCard';
 import MoveExerciseModal from '../components/MoveExerciseModal';
+import WorkoutExerciseTabLabel from '../components/WorkoutExerciseTabLabel';
 import TemplatePicker from '../components/TemplatePicker';
 import WorkoutSummaryModal from '../components/WorkoutSummaryModal';
-import { splitExerciseName } from '../utils/workoutPresentation';
 import { readWorkoutExerciseIndex, saveWorkoutExercisePosition } from '../utils/workoutNavigation';
 import { getExerciseWeightSuggestions } from '../utils/weightSuggestions';
-import { getExerciseRepSuggestions } from '../utils/repSuggestions';
 import {
   calculateWorkoutStats,
   getLastExerciseCommentText,
@@ -284,10 +283,7 @@ export default function WorkoutBuilderPage({ mode }) {
                 className="flex gap-1.5 overflow-x-auto overscroll-x-contain p-2 [-webkit-overflow-scrolling:touch]"
                 aria-label="Übungen im Workout"
               >
-                {workout.exercises.map((exercise, index) => {
-                  const { mainName, nameDetail } = splitExerciseName(exercise.name);
-
-                  return (
+                {workout.exercises.map((exercise, index) => (
                   <button
                     key={exercise.id}
                     type="button"
@@ -301,18 +297,9 @@ export default function WorkoutBuilderPage({ mode }) {
                     title={exercise.name}
                     aria-current={index === activeExerciseIndex ? 'step' : undefined}
                   >
-                    <span className="block text-[10px] font-bold uppercase leading-3 tracking-[0.14em] text-amber-deep">
-                      {String(index + 1).padStart(2, '0')} · {exercise.sets.length} Sätze
-                    </span>
-                    <span className="mt-1 flex h-7 w-full flex-col justify-center">
-                      <span className="block w-full truncate text-sm font-bold leading-4">{mainName}</span>
-                      {nameDetail ? (
-                        <span className="block w-full truncate text-[10px] leading-3 text-muted">{nameDetail}</span>
-                      ) : null}
-                    </span>
+                    <WorkoutExerciseTabLabel exercise={exercise} index={index} />
                   </button>
-                  );
-                })}
+                ))}
                 <button
                   type="button"
                   onClick={() => setExerciseModalOpen(true)}
@@ -345,7 +332,6 @@ export default function WorkoutBuilderPage({ mode }) {
                   activeExercise.exerciseId,
                   state.exercises.find((item) => item.id === activeExercise.exerciseId)?.settings,
                 )}
-                repSuggestions={getExerciseRepSuggestions(state.workouts, activeExercise.exerciseId)}
                 exerciseHistory={getExerciseHistory(previousWorkouts, activeExercise.exerciseId, null, activeExercise.name)}
                 lastWorkoutSummary={getLastExerciseSummaryText(
                   previousWorkouts,

@@ -318,9 +318,6 @@ function ActiveWorkoutControl({ workout, trainingTarget }) {
             >
               {templateSaved ? 'Gespeichert' : 'Als Vorlage speichern'}
             </button>
-            <Link to="/templates" onClick={() => setMenuOpen(false)} className="secondary-button w-full">
-              Vorlagen
-            </Link>
             <button
               type="button"
               onClick={() => {

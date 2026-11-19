@@ -42,11 +42,26 @@ export default function TemplatePicker({ templates, onSelect, onDelete, onDuplic
               </span>
             </div>
 
-            {!isExpanded ? (
-              <p className="mt-3 min-h-[3rem] line-clamp-2 text-sm leading-6 text-muted">{exercisePreview}</p>
-            ) : null}
+            <button
+              type="button"
+              onClick={() => toggleTemplate(template.id)}
+              className="mt-3 flex min-h-11 w-full items-center justify-between gap-2 rounded-sm text-left text-sm leading-6 text-muted transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber"
+              aria-label={`Übungen von ${template.name} ${isExpanded ? 'ausblenden' : 'anzeigen'}`}
+              aria-expanded={isExpanded}
+              aria-controls={detailsId}
+            >
+              <span className="line-clamp-2 min-w-0">{exercisePreview}</span>
+              <svg
+                viewBox="0 0 20 20"
+                fill="none"
+                aria-hidden="true"
+                className={`h-4 w-4 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+              >
+                <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
 
-            <div className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-2">
+            <div className="mt-3 border-t border-line pt-3">
               <button
                 type="button"
                 onClick={() => onSelect(template.id)}
@@ -54,23 +69,6 @@ export default function TemplatePicker({ templates, onSelect, onDelete, onDuplic
                 aria-label={`Training mit ${template.name} starten`}
               >
                 Starten
-              </button>
-              <button
-                type="button"
-                onClick={() => toggleTemplate(template.id)}
-                className="secondary-button w-full gap-2"
-                aria-expanded={isExpanded}
-                aria-controls={detailsId}
-              >
-                {isExpanded ? 'Weniger' : 'Übungen'}
-                <svg
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  aria-hidden="true"
-                  className={`h-4 w-4 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                >
-                  <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
               </button>
             </div>
 
