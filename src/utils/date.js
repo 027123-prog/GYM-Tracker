@@ -24,21 +24,23 @@ export function formatDateTime(value) {
   }).format(new Date(value));
 }
 
-export function formatSetTime(value) {
+export function getSetTimestamp(value) {
   // A date without an actual time must not appear as an invented midnight set.
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value.trim())) {
-    return '';
+    return null;
   }
 
-  const date = new Date(value);
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
 
-  if (!Number.isFinite(date.getTime())) {
-    return '';
-  }
+export function formatSetTime(value) {
+  const timestamp = getSetTimestamp(value);
+  if (timestamp === null) return '';
 
   return new Intl.DateTimeFormat('de-DE', {
     hour: '2-digit',
     minute: '2-digit',
     hourCycle: 'h23',
-  }).format(date);
+  }).format(timestamp);
 }

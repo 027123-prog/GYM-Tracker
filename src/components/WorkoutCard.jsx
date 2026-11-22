@@ -3,10 +3,12 @@ import WorkoutActions from './WorkoutActions';
 import { calculateWorkoutStats } from '../utils/workout';
 import { formatDate } from '../utils/date';
 import { getWorkoutLoadMetrics } from '../utils/workoutPresentation';
+import { formatWorkoutDuration } from '../utils/workoutDuration';
 
 export default function WorkoutCard({ workout, compact = false }) {
   const stats = calculateWorkoutStats(workout);
   const { primary, additional } = getWorkoutLoadMetrics(stats, { showAdditionalDuration: !compact });
+  const duration = workout.completedAt ? formatWorkoutDuration(workout) : null;
 
   if (compact) {
     return (
@@ -31,7 +33,7 @@ export default function WorkoutCard({ workout, compact = false }) {
           ) : null}
           {additional ? <p className="text-xs text-muted">{additional}</p> : null}
         </div>
-        <div className="grid grid-cols-3 gap-4 text-left sm:min-w-[250px] sm:self-center sm:text-right">
+        <div className={`grid gap-2 text-left sm:self-center sm:text-right ${duration ? 'grid-cols-4 sm:min-w-[300px]' : 'grid-cols-3 sm:min-w-[250px]'}`}>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">{primary.label}</p>
             <p className="mt-1 text-sm font-bold tabular-nums text-ink">{primary.display}{primary.unit ? ` ${primary.unit}` : ''}</p>
@@ -44,6 +46,12 @@ export default function WorkoutCard({ workout, compact = false }) {
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Sätze</p>
             <p className="mt-1 text-sm font-bold tabular-nums text-ink">{stats.setCount}</p>
           </div>
+          {duration ? (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Gesamtzeit</p>
+              <p className="mt-1 text-sm font-bold tabular-nums text-ink">{duration}</p>
+            </div>
+          ) : null}
         </div>
       </Link>
       <WorkoutActions workout={workout} />
@@ -64,10 +72,11 @@ export default function WorkoutCard({ workout, compact = false }) {
         <h3 className="mt-3 font-display text-2xl font-bold text-ink">{workout.name}</h3>
         {additional ? <p className="mt-1 text-xs text-muted">{additional}</p> : null}
       </div>
-      <div className="grid grid-cols-3 border-t border-line pt-3 text-sm">
+      <div className={`grid gap-2 border-t border-line pt-3 text-sm ${duration ? 'grid-cols-4' : 'grid-cols-3'}`}>
         <span className="font-bold tabular-nums text-ink">{primary.display}{primary.unit ? ` ${primary.unit}` : ''}</span>
         <span className="text-center font-bold tabular-nums text-ink">{stats.exerciseCount} Üb.</span>
         <span className="text-right font-bold tabular-nums text-ink">{stats.setCount} Sätze</span>
+        {duration ? <span className="text-right font-bold tabular-nums text-ink" aria-label={`Gesamtzeit ${duration}`}>{duration}</span> : null}
       </div>
     </Link>
   );

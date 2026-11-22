@@ -5,6 +5,7 @@ import { calculateWorkoutStats } from '../utils/workout';
 import { formatDateTime, formatSetTime } from '../utils/date';
 import { formatSetSummary } from '../utils/setMeasurements';
 import { getWorkoutLoadMetrics } from '../utils/workoutPresentation';
+import { formatWorkoutDuration } from '../utils/workoutDuration';
 
 function ChartIcon() {
   return (
@@ -37,6 +38,7 @@ export default function WorkoutDetailPage() {
 
   const stats = calculateWorkoutStats(workout);
   const { primary, additional } = getWorkoutLoadMetrics(stats, { showAdditionalDuration: false });
+  const duration = workout.completedAt ? formatWorkoutDuration(workout) : null;
 
   return (
     <div className="space-y-4">
@@ -59,7 +61,7 @@ export default function WorkoutDetailPage() {
           </button>
         </div>
 
-        <div className="mt-5 grid grid-cols-3 gap-2 border-t border-line pt-4">
+        <div className={`mt-5 grid gap-2 border-t border-line pt-4 ${duration ? 'grid-cols-4' : 'grid-cols-3'}`}>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">{primary.label}</p>
             <p className="mt-1 text-xl font-bold tabular-nums text-ink">{primary.display}</p>
@@ -73,6 +75,12 @@ export default function WorkoutDetailPage() {
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Sätze</p>
             <p className="mt-1 text-xl font-bold tabular-nums text-ink">{stats.setCount}</p>
           </div>
+          {duration ? (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Gesamtzeit</p>
+              <p className="mt-1 text-xl font-bold tabular-nums text-ink">{duration}</p>
+            </div>
+          ) : null}
         </div>
         {additional ? <p className="mt-3 text-sm text-muted">{additional}</p> : null}
       </section>
