@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createWorkoutGoal, formatNextGoalSet, formatWorkoutGoal, getGoalProgress, guidedRepScheme, nextGoalQuantity, nextWarmup } from '../src/utils/workoutGoals.js';
+import { createWorkoutGoal, formatNextGoalSet, formatWorkoutGoal, getExerciseTabPercent, getGoalProgress, guidedRepScheme, nextGoalQuantity, nextWarmup } from '../src/utils/workoutGoals.js';
 import { createBackupPayload, normalizeAppState, parseBackupPayload } from '../src/utils/storage.js';
 
 const exercise = { id: 'row', name: 'Rudern', settings: { loadType: 'normal' }, weightOptions: [40, 42, 50] };
@@ -128,6 +128,24 @@ test('a machine uses its next known size, dumbbells use small per-hand steps and
   assert.deepEqual([dumbbell.load, dumbbell.amounts], [34, [6, 6]]);
   const intro = create([workout('2026-09-20', { ...entry, sets: [set(30, 10), set(50, 7)] })]);
   assert.deepEqual([intro.load, intro.amounts, intro.step], [30, [6, 6], 'intro']);
+});
+
+test('the whole tab credits warmups while reserve remains tied to work, including skips and edits', () => {
+  const goal = { ...starting(), warmups: [{load: 10, reps: 8}, {load: 20, reps: 6}] };
+  const current = { ...entry, goal, sets: [] };
+  const warm = (w) => set(w, 8, { setType: 'warmup' });
+  const work = set(40, 6);
+  for (const [record, percent] of [[warm(10), 25], [warm(20), 50], [work, 75], [work, 100]]) {
+    current.sets.push(record);
+    assert.equal(getExerciseTabPercent(current), percent);
+    assert.equal(getGoalProgress(current).complete, percent === 100);
+  }
+  assert.equal(getExerciseTabPercent({ ...current, sets: [warm(10), work] }), 67);
+  assert.equal(getExerciseTabPercent({ ...current, sets: [work] }), 50);
+  assert.equal(getExerciseTabPercent({ ...current, sets: [warm(10), warm(20), warm(30)] }), 50);
+  assert.equal(getExerciseTabPercent({ ...current, skipped: true }), 0);
+  assert.equal(getExerciseTabPercent({ ...current, sets: [{...warm(20), invalid: true}] }), 0);
+  assert.equal(getExerciseTabPercent({ ...current, goal: starting(), sets: [warm(10)] }), 33);
 });
 
 test('warmup-only sessions do not break reserve confirmations', () => {

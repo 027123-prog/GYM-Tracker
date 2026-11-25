@@ -95,12 +95,16 @@ function withRecentWarmups(goal, history) {
   return warmups.length ? { ...goal, warmups } : goal;
 }
 
+function availableWarmups(goal) {
+  return (goal.warmups ?? []).filter(step => goal.load === null || step.load <= goal.load);
+}
+
 export function nextWarmup(entry) {
   const { goal, sets } = entry;
   if (!goal?.warmups?.length || entry.skipped) return null;
   const logged = sets.filter(set => matchesMeasurement(set, goal));
   if (logged.some(set => !isWarmup(set))) return null;
-  return goal.warmups.filter(step => goal.load === null || step.load <= goal.load)[logged.length] ?? null;
+  return availableWarmups(goal)[logged.length] ?? null;
 }
 
 export function goalAfterSetSave(goal, set) {
@@ -190,6 +194,19 @@ export function getGoalProgress(entry) {
   const complete = achieved === total;
   const fraction = credited / (required.reduce((sum, value) => sum + value, 0) * groups.length);
   return { achieved, total, complete, percent: complete ? 100 : Math.min(99, Math.round(fraction * 100)) };
+}
+
+export function getExerciseTabPercent(entry) {
+  const work = getGoalProgress(entry);
+  if (entry.skipped || work.complete) return work.percent;
+  const logged = entry.sets.filter(set => matchesMeasurement(set, entry.goal));
+  const warmupCount = logged.filter(isWarmup).length;
+  const planned = availableWarmups(entry.goal).length;
+  const usualCount = exerciseRange({ id: entry.exerciseId, name: entry.name })[0] === 5 ? 2 : 1;
+  const credited = Math.min(warmupCount, planned || usualCount);
+  // Starting work skips any remaining warm-up slots in this exercise.
+  const slots = logged.length > warmupCount ? credited : planned || (credited ? usualCount : 0);
+  return Math.min(99, Math.round((credited * 100 + work.percent * work.total) / (slots + work.total)));
 }
 
 export function nextGoalQuantity(entry) {

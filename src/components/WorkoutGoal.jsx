@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { formatNextGoalSet, formatWorkoutGoal, getGoalProgress, validWorkoutGoal } from '../utils/workoutGoals';
 
 
@@ -49,19 +49,28 @@ function GoalEditor({ goal, settings, onSave, onClose }) {
 
 export default function WorkoutGoal({ exercise, settings, onChange }) {
   const [editing, setEditing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const detailsId = useId();
   const goal = exercise.goal;
   if (!goal) return null;
   const { complete, achieved, total } = getGoalProgress(exercise);
   const nextAction = exercise.skipped ? 'Übersprungen' : complete
-    ? (onChange && !goal.confirmed ? 'Ziel erreicht · Reserve bestätigen' : 'Ziel erreicht ✓')
+    ? 'Ziel erreicht ✓'
     : onChange ? formatNextGoalSet(exercise) : `${achieved}/${total} Zielsätze erreicht`;
   return (
     <section aria-label="Trainingsziel" className="bg-surface-raised px-3 py-2 text-sm">
-      <details>
-        <summary className="cursor-pointer font-semibold text-sage">
+      <div className="flex flex-wrap items-center gap-x-4">
+        <button type="button" aria-expanded={expanded} aria-controls={detailsId}
+          onClick={() => setExpanded(value => !value)} className="flex min-h-9 items-center gap-1.5 text-left font-semibold text-sage">
+          <span aria-hidden="true">{expanded ? '▾' : '▸'}</span>
           <span aria-live="polite">{nextAction}</span>
-        </summary>
-        <div className="mt-2 space-y-2">
+        </button>
+        {onChange && complete && <label className="flex min-h-10 cursor-pointer items-center gap-2 font-semibold">
+          <input type="checkbox" checked={goal.confirmed} onChange={e => onChange({ confirmed: e.target.checked })} />
+          Sauber und mit Reserve geschafft
+        </label>}
+      </div>
+      <div id={detailsId} hidden={!expanded} className="mt-2 space-y-2">
           <p><strong>{formatWorkoutGoal(goal)}</strong> · {achieved}/{total} Zielsätze</p>
           {onChange && <>
             {goal.load === null && <p className="text-xs text-muted">Der erste Arbeitssatz legt dein Startgewicht fest. Aufwärmsätze bitte markieren.</p>}
@@ -71,10 +80,6 @@ export default function WorkoutGoal({ exercise, settings, onChange }) {
             {goal.step === 'intro' && <p className="text-xs text-muted">Für diese Variante fehlt eine vergleichbare Arbeitsserie. Der Einstieg nutzt das leichtere Gewicht aus deiner letzten Einheit.</p>}
             {goal.step === 'weight' && <p className="text-xs text-muted">Kleiner Gewichtsschritt. Falls die Stufe fehlt, kannst du das Ziel am Gerät anpassen.</p>}
             {goal.step === 'hold' && <p className="text-xs text-muted">Obergrenze bestätigt. Gewicht halten, bis eine kleine Zwischenstufe verfügbar ist.</p>}
-            {complete && <label className="flex items-center gap-2 py-1 font-semibold">
-              <input type="checkbox" checked={goal.confirmed} onChange={e => onChange({ confirmed: e.target.checked })} />
-              Sauber und mit Reserve geschafft
-            </label>}
             {editing ? <GoalEditor goal={goal} settings={settings} onSave={onChange} onClose={() => setEditing(false)} /> :
               <button type="button" onClick={() => setEditing(true)} className="text-xs font-semibold text-amber-deep underline underline-offset-2">
                 {goal.load === null ? 'Arbeitsgewicht wählen' : 'Ziel anpassen'}
@@ -87,8 +92,7 @@ export default function WorkoutGoal({ exercise, settings, onChange }) {
                   : `Bestätigst du alle Sätze bei ${goal.max} an ${goal.weightConfirmations ?? goal.confirmations} Trainingstagen, folgt eine passende Gewichtsstufe. Dann startet jeder Arbeitssatz wieder mit ${goal.min} Wiederholungen.`}</p>
             </details>
           </>}
-        </div>
-      </details>
+      </div>
     </section>
   );
 }

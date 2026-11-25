@@ -7,7 +7,7 @@ import ExerciseAutocomplete from '../components/ExerciseAutocomplete';
 import ExerciseEditorCard from '../components/ExerciseEditorCard';
 import MoveExerciseModal from '../components/MoveExerciseModal';
 import WorkoutExerciseTabLabel from '../components/WorkoutExerciseTabLabel';
-import { getGoalProgress } from '../utils/workoutGoals';
+import { getExerciseTabPercent } from '../utils/workoutGoals';
 import TemplatePicker from '../components/TemplatePicker';
 import WorkoutModeModal from '../components/WorkoutModeModal';
 import WorkoutSummaryModal from '../components/WorkoutSummaryModal';
@@ -300,7 +300,7 @@ export default function WorkoutBuilderPage({ mode }) {
                 {workout.exercises.map((exercise, index) => {
                   const settings = state.exercises.find((item) => item.id === exercise.exerciseId)?.settings;
                   const tracksVolume = settings?.measurementType !== 'duration' && settings?.loadType !== 'none';
-                  const progress = exercise.goal ? getGoalProgress(exercise).percent
+                  const progress = exercise.goal ? getExerciseTabPercent(exercise)
                     : tracksVolume ? getExerciseVolumeProgress(exercise, exerciseHistoryById.get(exercise.id)) : null;
                   const comparison = exercise.goal ? 'des Trainingsziels' : 'des Vergleichsvolumens';
                   return (
