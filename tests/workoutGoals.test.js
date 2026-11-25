@@ -148,6 +148,25 @@ test('the whole tab credits warmups while reserve remains tied to work, includin
   assert.equal(getExerciseTabPercent({ ...current, goal: starting(), sets: [warm(10)] }), 33);
 });
 
+test('side plank progresses beyond the old guided range, checking both sides in seconds', () => {
+  const ex = { id: 'side', name: 'Side Plank', settings: { measurementType: 'duration', loadType: 'none' } };
+  const en = { ...entry, exerciseId: ex.id, name: ex.name, targetRepScheme: '2 × 20–30 Sek. je Seite · mit Reserve' };
+  const timed = (s, comment) => ({ weight: 0, weightMode: 'none', measurementType: 'duration', durationSeconds: s, comment });
+  const full = [timed(40,'L'), timed(40,'R'), timed(40,'L'), timed(40,'R')];
+  const old = { ...create([], ex, en), max: 30, amounts: [30, 30], confirmed: true };
+  const first = create([workout('2026-09-01', { ...en, goal: old, sets: full })], ex, en);
+  assert.deepEqual(first.amounts, [40, 40]);
+  assert.ok(!first.scheme.includes('20–30'));
+  const days = ['2026-09-12', '2026-09-19'].map(day => workout(day,{ ...en, goal:{ ...first, confirmed:true }, sets:full }));
+  assert.deepEqual(create(days.slice(0,1), ex, en).amounts, [40,40]);
+  const next = create(days, ex, en);
+  assert.deepEqual(next.amounts, [42,40]);
+  assert.equal(nextGoalQuantity({ ...en, goal:next, sets: [timed(40,'L'),timed(40,'R')] }), 42);
+  assert.equal(nextGoalQuantity({ ...en, goal:next, sets: [timed(42,'L'),timed(40,'R')] }), 40);
+  assert.equal(getGoalProgress({ ...en, goal:first, sets:full.map(s => ({...s, comment:'L'})) }).complete, false);
+  assert.deepEqual(old.amounts,[30,30]);
+});
+
 test('warmup-only sessions do not break reserve confirmations', () => {
   const warm = workout('2026-09-15', { ...entry, goal: starting(), sets: [set(20, 8, { setType: 'warmup' })] });
   assert.deepEqual(create([done('2026-09-12'), warm, done('2026-09-19')]).amounts, [7, 6]);

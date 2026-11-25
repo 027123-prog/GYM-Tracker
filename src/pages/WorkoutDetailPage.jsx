@@ -81,6 +81,7 @@ export default function WorkoutDetailPage() {
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Gesamtzeit</p>
               <p className="mt-1 text-xl font-bold tabular-nums text-ink">{duration}</p>
+              {duration !== '–' && <p className="text-xs text-muted">inkl. 5 min Warm-up</p>}
             </div>
           ) : null}
         </div>

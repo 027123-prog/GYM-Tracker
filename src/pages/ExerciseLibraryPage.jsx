@@ -8,7 +8,7 @@ import ExerciseMuscleProfile from '../components/muscle/ExerciseMuscleProfile';
 import { normalizeExerciseLibraryLayout } from '../utils/exerciseMuscleProfile';
 import LibraryIcon, { compactIconButtonClass as iconButtonClass } from '../components/InterfaceIcon';
 import { getExerciseRemovalImpact, referencesExercise } from '../utils/exerciseEditing';
-import { exerciseSortOptions as sortOptions, normalizeExerciseSortMode, sortExerciseCards } from '../utils/exerciseSort';
+import { defaultExerciseSort, exerciseSortOptions as sortOptions, normalizeExerciseSortMode, sortExerciseCards } from '../utils/exerciseSort';
 import { buildExerciseChartData, getExerciseWorkoutCount, getLastExerciseSnapshot, normalizeExerciseLibraryMetric, resolveExerciseLibraryMetric } from '../utils/workout';
 import { formatSetSummary } from '../utils/setMeasurements';
 
@@ -125,7 +125,7 @@ export default function ExerciseLibraryPage() {
             <span className="sr-only">Übungen durchsuchen</span>
             <input type="search" className="field h-10 py-2" value={query} onChange={(event) => updateSearchParams('q', event.target.value)} placeholder="Suchen …" />
           </label>
-          <button ref={sortButtonRef} type="button" className={`${iconButtonClass} ${sortMode !== 'count-desc' ? 'bg-amber-soft text-amber' : ''}`} aria-label="Übungen sortieren" title="Sortierung" aria-haspopup="dialog" aria-controls={showSort ? 'library-sort-popover' : undefined} aria-expanded={showSort} onClick={() => setShowSort((open) => !open)}>
+          <button ref={sortButtonRef} type="button" className={`${iconButtonClass} ${sortMode !== defaultExerciseSort ? 'bg-amber-soft text-amber' : ''}`} aria-label="Übungen sortieren" title="Sortierung" aria-haspopup="dialog" aria-controls={showSort ? 'library-sort-popover' : undefined} aria-expanded={showSort} onClick={() => setShowSort((open) => !open)}>
             <LibraryIcon name="sort" />
           </button>
           <button type="button" className={`${iconButtonClass} bg-amber-soft text-amber`}
@@ -206,7 +206,7 @@ export default function ExerciseLibraryPage() {
               aria-pressed={sortMode === option.value}
               data-autofocus={sortMode === option.value ? true : undefined}
               onClick={() => {
-                updateSearchParams('sort', option.value, 'count-desc');
+                updateSearchParams('sort', option.value, defaultExerciseSort);
                 setShowSort(false);
               }}
             >

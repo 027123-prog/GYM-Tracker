@@ -163,3 +163,9 @@
 }
 
 [data-theme='dark'] .workout-editor .panel { border-radius: .75rem; }
+
+.workout-set-actions > button {
+  min-height: 2.125rem;
+  padding: 0.25rem 0.65rem;
+  line-height: 1.125rem;
+}

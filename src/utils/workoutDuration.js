@@ -2,6 +2,7 @@ import { getSetTimestamp } from './date';
 
 const MINUTE_MS = 60_000;
 const MAX_ADJACENT_GAP = 45 * MINUTE_MS;
+const WARMUP_MS = 5 * MINUTE_MS;
 
 export function getWorkoutDuration(workout) {
   const times = (workout.exercises ?? [])
@@ -16,13 +17,13 @@ export function getWorkoutDuration(workout) {
   // or after the workout drops out, while pauses between blocks still count.
   const first = times.findIndex((time, index) => times[index + 1] - time <= MAX_ADJACENT_GAP);
   const last = times.findLastIndex((time, index) => time - times[index - 1] <= MAX_ADJACENT_GAP);
-  return first === -1 ? times.at(-1) - times[0] : times[last] - times[first];
+  const recorded = first === -1 ? times.at(-1) - times[0] : times[last] - times[first];
+  return WARMUP_MS + recorded;
 }
 
 export function formatWorkoutDuration(workout) {
   const elapsed = getWorkoutDuration(workout);
   if (elapsed === null) return '–';
-  if (elapsed > 0 && elapsed < MINUTE_MS) return '<1 min';
   const totalMinutes = Math.floor(elapsed / MINUTE_MS);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;

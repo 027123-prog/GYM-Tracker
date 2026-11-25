@@ -157,15 +157,14 @@ function seedGoal(goal, history, initialPhase) {
   return { ...goal, load, amounts: goal.amounts.map(() => start) };
 }
 
-export function getGoalProgress(entry) {
+function goalSetGroups(entry) {
   const goal = entry.goal;
   const bilateralTime = goal.duration && goal.perSide;
-  const required = [...goal.amounts].sort((a, b) => b - a);
   const sets = entry.skipped || goal.load === null ? [] : entry.sets.filter(set =>
     comparableSet(set, goal) && loadOf(set, goal.mode) === goal.load);
   const groups = bilateralTime ? [[], []] : [sets];
+  let nextSide = 0;
   if (bilateralTime) {
-    let nextSide = 0;
     for (const set of sets) {
       const note = (set.comment || '').trim();
       const side = /^(?:l|links)\b/i.test(note) ? 0 : /^(?:r|rechts)\b/i.test(note) ? 1 : nextSide;
@@ -173,6 +172,13 @@ export function getGoalProgress(entry) {
       nextSide = 1 - side;
     }
   }
+  return { groups, nextSide };
+}
+
+export function getGoalProgress(entry) {
+  const goal = entry.goal;
+  const { groups } = goalSetGroups(entry);
+  const required = [...goal.amounts].sort((a, b) => b - a);
   let achieved = 0;
   let credited = 0;
   for (const group of groups) {
@@ -211,20 +217,13 @@ export function getExerciseTabPercent(entry) {
 
 export function nextGoalQuantity(entry) {
   if (!entry.goal) return null;
-  const { achieved } = getGoalProgress(entry);
-  const perTarget = entry.goal.duration && entry.goal.perSide ? 2 : 1;
-  const index = Math.min(entry.goal.amounts.length - 1, Math.floor(achieved / perTarget));
-  // If the first (harder) target was missed, keep it available for the next set.
+  const { groups, nextSide } = goalSetGroups(entry);
   const targets = [...entry.goal.amounts].sort((a, b) => b - a);
-  if (perTarget === 1 && achieved && achieved < targets.length) {
-    const quantities = sortedQuantities(entry.sets.filter(set =>
-      comparableSet(set, entry.goal) && loadOf(set, entry.goal.mode) === entry.goal.load), entry.goal);
-    for (const target of targets) {
-      if ((quantities[0] || 0) < target) return target;
-      quantities.shift();
-    }
-  }
-  return targets[index];
+  const nextTargets = groups.map(group => {
+    const quantities = sortedQuantities(group, entry.goal);
+    return targets.find((target, index) => (quantities[index] || 0) < target);
+  });
+  return nextTargets[nextSide] ?? nextTargets.find(value => value !== undefined) ?? targets.at(-1);
 }
 
 function samePlan(a, b) {
@@ -285,12 +284,18 @@ export function createWorkoutGoal(exercise, entry, workouts, { date, id, templat
   const plan = prescription(scheme, duration, exercise);
   const type = exercise.settings?.loadType || 'normal';
   const mode = type.startsWith('bodyweight') ? 'bodyweight' : type;
+  const progressByTime = duration && ['none', 'bodyweight'].includes(type)
+    && /^(?:side[ -]?planks?|seitst(?:ü|ue)tz)$/i.test(exercise.name?.trim());
   const slow = exerciseRange(exercise)[0] === 5;
   const goal = {
     mode, duration, scheme, variant: entry.variantKey || '', perSide: plan.perSide,
     factor: mode === 'bodyweight' ? (exercise.settings?.bodyweightPercent || 100) / 100 : null,
     load: mode === 'none' || type === 'bodyweight' ? 0 : null,
     min: plan.min, max: plan.max, amounts: Array(plan.count).fill(plan.min),
+    ...(progressByTime ? {
+      progressByTime: true, perSide: true, min: 1, max: 86400, amounts: [40, 40],
+      scheme: ['2 Haltesätze je Seite', ...scheme.split('·').slice(1).map(part => part.trim())].join(' · '),
+    } : {}),
     confirmations: slow && !duration ? 1 : 2, weightConfirmations: 2, confirmed: false,
   };
   const scoped = history.filter(h => (h.templateId || '') === (templateId || ''));
@@ -298,6 +303,7 @@ export function createWorkoutGoal(exercise, entry, workouts, { date, id, templat
     && h.entry.sets.some(set => comparableSet(set, h.entry.goal)));
   const previous = guided[0];
   if (!samePlan(previous?.entry.goal, goal)) {
+    if (progressByTime) return goal;
     const seedHistory = /vorermüdung/i.test(scheme) ? scoped : history;
     return withRecentWarmups(seedGoal(goal, seedHistory.filter(h => !h.entry.skipped), plan.initialPhase), history);
   }

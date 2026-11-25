@@ -53,6 +53,7 @@ export default function WorkoutBuilderPage({ mode }) {
   const [exerciseSelection, setExerciseSelection] = useState(null);
   const exerciseSelectionRef = useRef(null);
   const exerciseTabsRef = useRef(null);
+  const lastTabState = useRef(null);
   const [templateSaved, setTemplateSaved] = useState(false);
 
   useEffect(() => {
@@ -121,14 +122,24 @@ export default function WorkoutBuilderPage({ mode }) {
       return;
     }
 
+    const previous = lastTabState.current;
+    const setCount = activeExercise.sets.length;
+    const addedSet = previous?.id === activeExercise.id && setCount > previous.setCount;
+    lastTabState.current = { id: activeExercise.id, setCount };
+    if (previous?.id !== activeExercise.id) tabs.style.removeProperty('padding-right');
     const tabBounds = selectedTab.getBoundingClientRect();
     const viewportBounds = tabs.getBoundingClientRect();
-    if (tabBounds.left < viewportBounds.left) {
+    if (addedSet) {
+      const inset = parseFloat(getComputedStyle(tabs).paddingLeft);
+      const remaining = tabs.lastElementChild.getBoundingClientRect().right - tabBounds.left;
+      tabs.style.paddingRight = `${Math.max(inset, tabs.clientWidth - inset - remaining)}px`;
+      tabs.scrollLeft += selectedTab.getBoundingClientRect().left - viewportBounds.left - inset;
+    } else if (tabBounds.left < viewportBounds.left) {
       tabs.scrollLeft += tabBounds.left - viewportBounds.left - 8;
     } else if (tabBounds.right > viewportBounds.right) {
       tabs.scrollLeft += tabBounds.right - viewportBounds.right + 8;
     }
-  }, [workout?.id, activeExercise?.id, activeExerciseIndex, isCompact]);
+  }, [workout?.id, activeExercise?.id, activeExercise?.sets.length, activeExerciseIndex, isCompact]);
 
   useEffect(() => {
     function handleKeyDown(event) {

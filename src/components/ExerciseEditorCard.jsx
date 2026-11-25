@@ -222,7 +222,6 @@ export default function ExerciseEditorCard({
             </div>
           ) : null}
 
-          <WorkoutGoal exercise={exercise} settings={libraryEntry?.settings} onChange={onUpdateGoal} />
           {lastWorkoutSummary || lastWorkoutCommentText || machineSettingsText ? <div
             className={`workout-reference grid gap-x-5 gap-y-1.5 bg-surface-raised px-3 py-2 text-sm leading-5 ${
               machineSettingsText ? 'md:grid-cols-2' : ''
@@ -300,13 +299,13 @@ export default function ExerciseEditorCard({
         </div>
 
         <div className="p-3 sm:p-4">
-          <div className="mb-3 flex flex-col gap-3 min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="eyebrow">Sätze · {exercise.sets.length}</p>
             </div>
-            <div className="grid grid-cols-2 gap-2 min-[380px]:flex">
+            <div className="workout-set-actions flex flex-wrap items-center gap-1.5">
               {exercise.sets.length ? (
-                <button type="button" onClick={repeatLastSet} className="secondary-button w-full min-[380px]:w-auto">
+                <button type="button" onClick={repeatLastSet} className="secondary-button">
                   Wiederholen
                 </button>
               ) : null}
@@ -316,13 +315,14 @@ export default function ExerciseEditorCard({
               <button
                 type="button"
                 onClick={openNewSet}
-                className={`action-button w-full min-[380px]:w-auto ${exercise.sets.length || durationExercise ? '' : 'col-span-2'}`}
+                className="action-button"
               >
                 {durationExercise ? 'Stoppuhr' : '+ Satz'}
               </button>
             </div>
           </div>
 
+          <WorkoutGoal exercise={exercise} settings={libraryEntry?.settings} onChange={onUpdateGoal} />
           {exercise.sets.length ? (
             <div className="divide-y divide-line border-y border-line">
               {exercise.sets.map((setItem, index) => (

@@ -24,7 +24,7 @@ test('notes survive a backup and do not count as sets, exercises, chart sessions
   const state = parseBackupPayload(JSON.stringify(backup));
   assert.deepEqual(state.workouts[0].exercises[1].notes, notes);
   assert.deepEqual(calculateWorkoutStats(state.workouts[0]), { exerciseCount: 1, setCount: 2, totalVolume: 400 });
-  assert.equal(formatWorkoutDuration(state.workouts[0]), '11 min');
+  assert.equal(formatWorkoutDuration(state.workouts[0]), '16 min');
   assert.equal(getExerciseWorkoutCount(state.workouts, 'curl'), 0);
   assert.deepEqual(buildExerciseChartData(state.workouts, 'curl'), []);
 });

@@ -77,32 +77,45 @@ export default function ModalShell({
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen || !window.visualViewport || !overlayRef.current) {
+    if (!isOpen || !overlayRef.current) {
       return undefined;
     }
 
     const viewport = window.visualViewport;
     const overlay = overlayRef.current;
+    const dialog = dialogRef.current;
     let frameId = 0;
 
     function syncToVisibleViewport() {
       window.cancelAnimationFrame(frameId);
       frameId = window.requestAnimationFrame(() => {
-        overlay.style.top = `${Math.max(0, viewport.offsetTop)}px`;
-        overlay.style.height = `${viewport.height}px`;
+        const height = viewport?.height ?? window.innerHeight;
+        overlay.style.top = `${Math.max(0, viewport?.offsetTop ?? 0)}px`;
+        overlay.style.height = `${height}px`;
         overlay.style.bottom = 'auto';
-        overlay.style.setProperty('--modal-viewport-height', `${viewport.height}px`);
+        overlay.style.setProperty('--modal-viewport-height', `${height}px`);
+        const field = document.activeElement;
+        if (dialog.contains(field) && field.matches('[data-keep-visible]')) {
+          const bounds = dialog.getBoundingClientRect();
+          const rect = field.getBoundingClientRect();
+          if (rect.top < bounds.top + 8 || rect.height > bounds.height - 16) dialog.scrollTop += rect.top - bounds.top - 8;
+          else if (rect.bottom > bounds.bottom - 8) dialog.scrollTop += rect.bottom - bounds.bottom + 8;
+        }
       });
     }
 
     syncToVisibleViewport();
-    viewport.addEventListener('resize', syncToVisibleViewport);
-    viewport.addEventListener('scroll', syncToVisibleViewport);
+    viewport?.addEventListener('resize', syncToVisibleViewport);
+    viewport?.addEventListener('scroll', syncToVisibleViewport);
+    window.addEventListener('resize', syncToVisibleViewport);
+    dialog.addEventListener('focusin', syncToVisibleViewport);
 
     return () => {
       window.cancelAnimationFrame(frameId);
-      viewport.removeEventListener('resize', syncToVisibleViewport);
-      viewport.removeEventListener('scroll', syncToVisibleViewport);
+      viewport?.removeEventListener('resize', syncToVisibleViewport);
+      viewport?.removeEventListener('scroll', syncToVisibleViewport);
+      window.removeEventListener('resize', syncToVisibleViewport);
+      dialog.removeEventListener('focusin', syncToVisibleViewport);
     };
   }, [isOpen]);
 

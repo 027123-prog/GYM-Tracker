@@ -88,7 +88,7 @@ export default function WorkoutGoal({ exercise, settings, onChange }) {
             <details className="text-xs text-muted">
               <summary className="cursor-pointer">Wann steigt mein Ziel?</summary>
               <p className="mt-1">Wenn du dein Ziel {goal.confirmations === 1 ? 'einmal' : `an ${goal.confirmations} Trainingstagen`} sauber mit Reserve bestätigst, steigt ein Satz um {goal.duration ? '2 Sekunden' : '1 Wiederholung'}.
-                {' '}{goal.duration || goal.mode === 'none' || (goal.mode === 'bodyweight' && settings?.loadType !== 'bodyweight-added') ? 'Am oberen Ende bleibt das Ziel stehen.'
+                {' '}{goal.progressByTime ? 'Beide Seiten haben dieselbe Zielzeit. Gesteigert wird die Haltedauer.' : goal.duration || goal.mode === 'none' || (goal.mode === 'bodyweight' && settings?.loadType !== 'bodyweight-added') ? 'Am oberen Ende bleibt das Ziel stehen.'
                   : `Bestätigst du alle Sätze bei ${goal.max} an ${goal.weightConfirmations ?? goal.confirmations} Trainingstagen, folgt eine passende Gewichtsstufe. Dann startet jeder Arbeitssatz wieder mit ${goal.min} Wiederholungen.`}</p>
             </details>
           </>}

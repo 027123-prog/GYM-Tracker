@@ -2,9 +2,10 @@ const germanNameCollator = new Intl.Collator('de-DE', {
   sensitivity: 'base',
 });
 
+export const defaultExerciseSort = 'last-trained';
 export const exerciseSortOptions = [
+  { value: defaultExerciseSort, label: 'Zuletzt trainiert' },
   { value: 'count-desc', label: 'Am häufigsten' },
-  { value: 'last-trained', label: 'Zuletzt trainiert' },
   { value: 'name-asc', label: 'A–Z' },
 ];
 
@@ -112,7 +113,7 @@ export function normalizeExerciseSortMode(value) {
   if (value === 'newest') return 'last-trained';
   return ['name-asc', 'count-desc', 'last-trained'].includes(value)
     ? value
-    : 'count-desc';
+    : defaultExerciseSort;
 }
 
 export function resolveExerciseNavigationOrder(exercises, requestedOrder) {

@@ -123,5 +123,6 @@ test('Diagramm-Navigation übernimmt eine übergebene Übungsreihenfolge sicher'
   assert.equal(normalizeExerciseSortMode('count-desc'), 'count-desc');
   assert.equal(normalizeExerciseSortMode('name-desc'), 'name-asc');
   assert.equal(normalizeExerciseSortMode('newest'), 'last-trained');
-  assert.equal(normalizeExerciseSortMode('unbekannt'), 'count-desc');
+  assert.equal(normalizeExerciseSortMode(null), 'last-trained');
+  assert.equal(normalizeExerciseSortMode('unbekannt'), 'last-trained');
 });

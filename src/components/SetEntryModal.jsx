@@ -228,7 +228,7 @@ export default function SetEntryModal({
         {!timerSetup ? <label className="block">
           <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Kommentar</span>
           <textarea
-            className="field min-h-16 resize-y" rows={2}
+            data-keep-visible className="field min-h-16 resize-y text-base" rows={2}
             value={comment}
             onChange={(event) => setComment(event.target.value)}
             placeholder="Form, Tempo, Gefühl …"
@@ -241,7 +241,7 @@ export default function SetEntryModal({
           </p>
         ) : null}
 
-        <div className="sticky bottom-0 -mx-5 border-t border-line bg-surface px-5 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-3 sm:-mx-6 sm:px-6">
+        <div className="-mx-5 border-t border-line bg-surface px-5 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-3 sm:-mx-6 sm:px-6">
           <button type="submit" className="action-button w-full">{timerSetup ? 'Übernehmen' : 'Speichern'}</button>
         </div>
       </form>
