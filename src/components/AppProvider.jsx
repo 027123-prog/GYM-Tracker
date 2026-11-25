@@ -9,12 +9,13 @@ import { clearStoredActiveWorkoutId, readStoredActiveWorkoutId, storeActiveWorko
 import { resumeWorkoutRecord } from '../utils/workoutLifecycle';
 import { getNewExerciseVariant } from '../utils/muscleAssignments';
 import { applyTrainingPlanImport } from '../utils/trainingPlanImport';
+import { createWorkoutGoal, getGoalProgress, goalAfterSetSave, validWorkoutGoal } from '../utils/workoutGoals';
 
 const AppContext = createContext(null);
 
-function createWorkoutEntry(exercise, options = {}) {
+function createWorkoutEntry(exercise, workouts, context, options = {}) {
   const variantKey = getNewExerciseVariant(exercise);
-  return {
+  const entry = {
     id: createId('entry'),
     exerciseId: exercise.id,
     name: options.name ?? exercise.name,
@@ -24,6 +25,7 @@ function createWorkoutEntry(exercise, options = {}) {
     sets: [],
     ...(variantKey ? { variantKey } : {}),
   };
+  return context.guided ? { ...entry, goal: createWorkoutGoal(exercise, entry, workouts, context) } : entry;
 }
 
 function getLastMachineSettings(workouts, exerciseId) {
@@ -224,13 +226,14 @@ export function AppProvider({ children }) {
     return workout.id;
   }
 
-  function createWorkoutFromTemplate(templateId) {
+  function createWorkoutFromTemplate(templateId, guided = false) {
     const template = state.templates.find((item) => item.id === templateId);
 
     if (!template) {
       return null;
     }
 
+    const createdAt = new Date().toISOString();
     let nextExercises = state.exercises;
     const templateEntries = template.exerciseTemplates.map((exerciseTemplate) => {
       const existingById = nextExercises.find((exercise) => exercise.id === exerciseTemplate.exerciseId);
@@ -240,7 +243,7 @@ export function AppProvider({ children }) {
         ? { exercises: nextExercises, exercise: existingById }
         : ensureExerciseRecord(nextExercises, exerciseTemplate.name);
       nextExercises = ensured.exercises;
-      return createWorkoutEntry(ensured.exercise, {
+      return createWorkoutEntry(ensured.exercise, state.workouts, { date: createdAt, templateId, guided }, {
         name: exerciseTemplate.name,
         targetRepScheme: exerciseTemplate.repScheme,
         machineSettings: getLastMachineSettings(state.workouts, ensured.exercise.id),
@@ -249,7 +252,6 @@ export function AppProvider({ children }) {
 
     if (!templateEntries.length) return null;
 
-    const createdAt = new Date().toISOString();
     const workout = {
       id: createId('workout'),
       name: template.name,
@@ -259,6 +261,7 @@ export function AppProvider({ children }) {
       draftStartedAt: null,
       mode: 'template',
       templateId,
+      ...(guided ? { guided: true } : {}),
       exercises: templateEntries,
     };
 
@@ -384,7 +387,7 @@ export function AppProvider({ children }) {
         return workout;
       }
 
-      const nextEntry = createWorkoutEntry(exercise);
+      const nextEntry = createWorkoutEntry(exercise, state.workouts, workout);
       const currentExercises = [...workout.exercises];
 
       if (placement === 'end' || !referenceEntryId) {
@@ -417,6 +420,21 @@ export function AppProvider({ children }) {
       ?.exercises.find((exercise) => exercise.id === entryId);
 
     return editLibraryExercise(entry?.exerciseId, { name: nextName });
+  }
+
+  function updateWorkoutGoal(workoutId, entryId, changes) {
+    setState(current => ({
+      ...current,
+      workouts: current.workouts.map(workout => workout.id !== workoutId ? workout : updateStartedWorkout(workout, {
+        exercises: workout.exercises.map(entry => {
+          if (entry.id !== entryId || !entry.goal) return entry;
+          const goal = { ...entry.goal, ...changes };
+          if (!validWorkoutGoal(goal)) return entry;
+          if (changes.confirmed && !getGoalProgress({ ...entry, goal }).complete) return entry;
+          return { ...entry, goal };
+        }),
+      })),
+    }));
   }
 
   function editLibraryExercise(exerciseId, changes) {
@@ -499,8 +517,12 @@ export function AppProvider({ children }) {
 
           const existingSet = exercise.sets.find((setItem) => setItem.id === payload.id);
           const nextSet = {
+            ...(existingSet?.setType ? { setType: existingSet.setType } : {}),
+            ...(existingSet?.invalid ? { invalid: true } : {}),
+            ...(existingSet?.rir != null ? { rir: existingSet.rir } : {}),
             id: payload.id ?? createId('set'),
             ...values,
+            ...(['work', 'warmup'].includes(payload.setType) ? { setType: payload.setType } : {}),
             comment: payload.comment?.trim() ?? '',
             seatHeight: existingSet?.seatHeight ?? '',
             savedAt: existingSet ? (existingSet.savedAt ?? '') : new Date().toISOString(),
@@ -513,6 +535,7 @@ export function AppProvider({ children }) {
 
           return {
             ...exercise,
+            ...(exercise.goal ? { goal: goalAfterSetSave(exercise.goal, nextSet) } : {}),
             sets,
           };
         }),
@@ -531,6 +554,7 @@ export function AppProvider({ children }) {
               exercise.id === entryId
                 ? {
                     ...exercise,
+                    ...(exercise.goal?.confirmed ? { goal: { ...exercise.goal, confirmed: false } } : {}),
                     sets: exercise.sets.filter((setItem) => setItem.id !== setId),
                   }
                 : exercise,
@@ -650,6 +674,7 @@ export function AppProvider({ children }) {
         deleteTemplate,
         duplicateTemplate,
         updateWorkoutName,
+        updateWorkoutGoal,
         addExerciseToWorkout,
         insertExerciseToWorkout,
         moveExerciseInWorkout,

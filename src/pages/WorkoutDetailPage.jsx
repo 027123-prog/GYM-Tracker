@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAppData } from '../components/AppProvider';
 import EmptyState from '../components/EmptyState';
+import WorkoutGoal from '../components/WorkoutGoal';
 import { calculateWorkoutStats } from '../utils/workout';
 import { formatDateTime, formatSetTime } from '../utils/date';
 import { formatSetSummary } from '../utils/setMeasurements';
@@ -115,6 +116,7 @@ export default function WorkoutDetailPage() {
               </Link>
             </div>
 
+            <WorkoutGoal exercise={exercise} />
             {exercise.sets.length ? (
               <div className="divide-y divide-line">
                 {exercise.sets.map((setItem, index) => {

@@ -40,6 +40,8 @@ function rememberBodyWeight(value) {
 export default function SetEntryModal({
   isOpen,
   initialSet,
+  goal,
+  plannedQuantity,
   timerSetup = false,
   exerciseName,
   exerciseSettings,
@@ -65,6 +67,7 @@ export default function SetEntryModal({
   const [weight, setWeight] = useState(getSetEntryWeight(initialSet, loadType, duration));
   const [reps, setReps] = useState((duration ? initialSet?.durationSeconds : initialSet?.reps) ?? '');
   const [comment, setComment] = useState(initialSet?.comment ?? '');
+  const [warmup, setWarmup] = useState(false);
   const [bodyWeight, setBodyWeight] = useState(initialSet?.bodyWeight ?? '');
   const [addedWeight, setAddedWeight] = useState(initialSet?.addedWeightInput ?? initialSet?.addedWeight ?? 0);
   const [error, setError] = useState('');
@@ -86,14 +89,16 @@ export default function SetEntryModal({
   ) : null;
 
   useLayoutEffect(() => {
-    setWeight(getSetEntryWeight(initialSet, loadType, duration));
-    setReps((duration ? initialSet?.durationSeconds : initialSet?.reps) ?? '');
+    const plannedWeight = goal?.mode === loadType && goal.load != null ? (paired ? goal.load / 2 : goal.load) : getSetEntryWeight(null, loadType, duration);
+    setWeight(initialSet ? getSetEntryWeight(initialSet, loadType, duration) : plannedWeight);
+    setReps((duration ? initialSet?.durationSeconds : initialSet?.reps) ?? plannedQuantity ?? '');
     setComment(initialSet?.comment ?? '');
+    setWarmup(initialSet?.setType === 'warmup');
     setBodyWeight(initialSet?.bodyWeight ?? readBodyWeight());
-    setAddedWeight(initialSet?.addedWeightInput ?? initialSet?.addedWeight ?? 0);
+    setAddedWeight(initialSet?.addedWeightInput ?? initialSet?.addedWeight ?? (goal?.mode === 'bodyweight' ? goal.load : 0) ?? 0);
     setError('');
     setManualField(null);
-  }, [exerciseName, initialSet, isOpen, duration, loadType]);
+  }, [exerciseName, initialSet, isOpen, duration, loadType, goal, plannedQuantity, paired]);
 
   function editButton(field, label) {
     const active = manualField === field;
@@ -135,6 +140,7 @@ export default function SetEntryModal({
     onSave({
       id: initialSet?.id,
       ...result.values,
+      ...(warmup || initialSet?.setType ? { setType: warmup ? 'warmup' : 'work' } : {}),
       comment,
     });
     onClose();
@@ -195,6 +201,10 @@ export default function SetEntryModal({
           {manualField === 'reps' ? <ManualEntry label={repsLabel} value={reps} onChange={setReps} inputMode="numeric" /> : null}
         </div> : null}
 
+        {!timerSetup && (goal || initialSet?.setType) && <label className="flex items-center gap-2 text-sm text-muted">
+          <input type="checkbox" checked={warmup} onChange={event => setWarmup(event.target.checked)} />
+          Aufwärmsatz
+        </label>}
         {!timerSetup && manualField ? <label className="block">
           <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Kommentar</span>
           <textarea

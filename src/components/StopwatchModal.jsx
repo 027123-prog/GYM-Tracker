@@ -21,7 +21,7 @@ function controlPressHandlers(action) {
   };
 }
 
-export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClose, onSave, onEditLoad }) {
+export default function StopwatchModal({ isOpen, exerciseName, loadValues, targetSeconds, onClose, onSave, onEditLoad }) {
   const [phase, setPhase] = useState('ready');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [error, setError] = useState('');
@@ -229,7 +229,7 @@ export default function StopwatchModal({ isOpen, exerciseName, loadValues, onClo
       style={{ touchAction: 'none' }}
     >
       <div className="flex shrink-0 items-start justify-between gap-3 px-5 pb-2 pt-[max(1rem,env(safe-area-inset-top))] sm:px-8">
-        <h2 id="stopwatch-title" className="pt-2 text-sm font-bold text-muted">{exerciseName || 'Stoppuhr'}</h2>
+          <h2 id="stopwatch-title" className="pt-2 text-sm font-bold text-muted">{exerciseName || 'Stoppuhr'}{targetSeconds ? ` · Ziel ${targetSeconds} s` : ''}</h2>
         <button type="button" {...controlPressHandlers(onClose)} className="icon-button" aria-label={phase === 'saved' ? 'Stoppuhr schließen' : 'Stoppuhr abbrechen'}>×</button>
       </div>
 

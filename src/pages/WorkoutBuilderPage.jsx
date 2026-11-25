@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAppData } from '../components/AppProvider';
 import AddExerciseModal from '../components/AddExerciseModal';
 import EmptyState from '../components/EmptyState';
@@ -7,7 +7,9 @@ import ExerciseAutocomplete from '../components/ExerciseAutocomplete';
 import ExerciseEditorCard from '../components/ExerciseEditorCard';
 import MoveExerciseModal from '../components/MoveExerciseModal';
 import WorkoutExerciseTabLabel from '../components/WorkoutExerciseTabLabel';
+import { getGoalProgress } from '../utils/workoutGoals';
 import TemplatePicker from '../components/TemplatePicker';
+import WorkoutModeModal from '../components/WorkoutModeModal';
 import WorkoutSummaryModal from '../components/WorkoutSummaryModal';
 import { readWorkoutExerciseIndex, saveWorkoutExercisePosition } from '../utils/workoutNavigation';
 import { getExerciseWeightSuggestions } from '../utils/weightSuggestions';
@@ -21,6 +23,8 @@ import {
 export default function WorkoutBuilderPage({ mode }) {
   const params = useParams();
   const navigate = useNavigate();
+  const [search, setSearch] = useSearchParams();
+  const trainingMode = search.get('modus');
   const {
     state,
     activateWorkout,
@@ -28,6 +32,7 @@ export default function WorkoutBuilderPage({ mode }) {
     createWorkoutFromTemplate,
     saveWorkoutAsTemplate,
     updateWorkoutName,
+    updateWorkoutGoal,
     addExerciseToWorkout,
     insertExerciseToWorkout,
     moveExerciseInWorkout,
@@ -170,7 +175,8 @@ export default function WorkoutBuilderPage({ mode }) {
         <TemplatePicker
           templates={state.templates}
           onSelect={(templateId) => {
-            const createdId = createWorkoutFromTemplate(templateId);
+            if (!['gefuehrt', 'frei'].includes(trainingMode)) return;
+            const createdId = createWorkoutFromTemplate(templateId, trainingMode === 'gefuehrt');
 
             if (createdId) {
               setWorkoutId(createdId);
@@ -178,6 +184,9 @@ export default function WorkoutBuilderPage({ mode }) {
             }
           }}
         />
+        <WorkoutModeModal isOpen={!['gefuehrt', 'frei'].includes(trainingMode)}
+          onChoose={guided => setSearch({ modus: guided ? 'gefuehrt' : 'frei' }, { replace: true })}
+          onClose={() => navigate('/workouts/start', { replace: true })} />
       </section>
     );
   }
@@ -192,22 +201,20 @@ export default function WorkoutBuilderPage({ mode }) {
   };
 
   function handleAddExercise(name, placement = 'end') {
+    let index = workout.exercises.length;
+    let added;
     if (isCompact && activeExercise) {
-      insertExerciseToWorkout(workout.id, name, placement, activeExercise.id);
-
-      if (placement === 'before') {
-        return;
-      }
-
-      if (placement === 'after') {
-        setActiveExerciseIndex((current) => Math.min(current + 1, workout.exercises.length));
-        return;
-      }
+      added = insertExerciseToWorkout(workout.id, name, placement, activeExercise.id);
+      if (placement === 'before') index = activeExerciseIndex;
+      if (placement === 'after') index = activeExerciseIndex + 1;
     } else {
-      addExerciseToWorkout(workout.id, name);
+      added = addExerciseToWorkout(workout.id, name);
     }
-
-    setActiveExerciseIndex(workout.exercises.length);
+    if (added) {
+      const selection = { workoutId: workout.id, index };
+      exerciseSelectionRef.current = selection;
+      setExerciseSelection(selection);
+    }
   }
 
   function handleMoveExercise(targetIndex) {
@@ -293,11 +300,11 @@ export default function WorkoutBuilderPage({ mode }) {
                         ? 'border-amber bg-amber-soft text-ink'
                         : 'border-line bg-paper text-muted hover:border-amber/45 hover:text-ink'
                     }`}
-                    aria-label={`${exercise.name}, ${exercise.sets.length} Sätze`}
+                    aria-label={`${exercise.name}, ${exercise.sets.length} Sätze${exercise.goal ? `, Ziel ${getGoalProgress(exercise).percent} %` : ''}`}
                     title={exercise.name}
                     aria-current={index === activeExerciseIndex ? 'step' : undefined}
                   >
-                    <WorkoutExerciseTabLabel exercise={exercise} index={index} />
+                    <WorkoutExerciseTabLabel exercise={exercise} index={index} showGoal />
                   </button>
                 ))}
                 <button
@@ -322,6 +329,7 @@ export default function WorkoutBuilderPage({ mode }) {
               <ExerciseEditorCard
                 key={activeExercise.id}
                 exercise={activeExercise}
+                onUpdateGoal={(changes) => updateWorkoutGoal(workout.id, activeExercise.id, changes)}
                 compact={isCompact}
                 onInsertExercise={() => setExerciseModalOpen(true)}
                 onMoveExercise={workout.exercises.length > 1 ? () => setMoveExerciseModalOpen(true) : undefined}

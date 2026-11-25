@@ -1,4 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import WorkoutModeModal from '../components/WorkoutModeModal';
 import { useAppData } from '../components/AppProvider';
 import EmptyState from '../components/EmptyState';
 import TemplatePicker from '../components/TemplatePicker';
@@ -8,8 +10,10 @@ export default function TemplatesPage() {
   const location = useLocation();
   const { state, createWorkoutFromTemplate, deleteTemplate, duplicateTemplate } = useAppData();
 
-  function startTemplate(templateId) {
-    const createdId = createWorkoutFromTemplate(templateId);
+  const [pendingTemplate, setPendingTemplate] = useState(null);
+  function startTemplate(guided) {
+    const createdId = createWorkoutFromTemplate(pendingTemplate, guided);
+    setPendingTemplate(null);
 
     if (createdId) {
       navigate(`/workouts/${createdId}/edit`);
@@ -29,7 +33,7 @@ export default function TemplatesPage() {
       {state.templates.length ? (
         <TemplatePicker
           templates={state.templates}
-          onSelect={startTemplate}
+          onSelect={setPendingTemplate}
           onDelete={deleteTemplate}
           onDuplicate={duplicateTemplate}
         />
@@ -39,6 +43,7 @@ export default function TemplatesPage() {
           description="Speichere ein offenes Workout als Vorlage, um es hier erneut zu starten."
         />
       )}
+      <WorkoutModeModal isOpen={Boolean(pendingTemplate)} onChoose={startTemplate} onClose={() => setPendingTemplate(null)} />
     </div>
   );
 }

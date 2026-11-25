@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import ExerciseSettingsModal from './ExerciseSettingsModal';
+import WorkoutGoal from './WorkoutGoal';
+import { nextGoalQuantity } from '../utils/workoutGoals';
 import SetEntryModal from './SetEntryModal';
 import StopwatchModal from './StopwatchModal';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
@@ -76,6 +78,7 @@ export default function ExerciseEditorCard({
   onDeleteExercise,
   onSaveSet,
   onDeleteSet,
+  onUpdateGoal,
 }) {
   const location = useLocation();
   const [setModalOpen, setSetModalOpen] = useState(false);
@@ -117,7 +120,11 @@ export default function ExerciseEditorCard({
     setEditingSet(null);
     setTimerSetup(false);
     if (durationExercise) {
-      const load = getTimerLoad(libraryEntry?.settings, exercise.sets.at(-1));
+      const goal = exercise.goal;
+      let source = exercise.sets.at(-1);
+      if (goal?.load != null && ['paired', 'normal'].includes(goal.mode)) source = { weight: goal.load, weightMode: goal.mode };
+      if (goal?.mode === 'bodyweight' && source) source = { ...source, addedWeight: goal.load };
+      const load = getTimerLoad(libraryEntry?.settings, source);
       setTimerLoad(load);
       if (load) {
         setTimerOpen(true);
@@ -214,6 +221,7 @@ export default function ExerciseEditorCard({
             </div>
           ) : null}
 
+          <WorkoutGoal exercise={exercise} settings={libraryEntry?.settings} onChange={onUpdateGoal} />
           {lastWorkoutSummary || lastWorkoutCommentText || machineSettingsText ? <div
             className={`workout-reference grid gap-x-5 gap-y-1.5 bg-surface-raised px-3 py-2 text-sm leading-5 ${
               machineSettingsText ? 'md:grid-cols-2' : ''
@@ -321,7 +329,7 @@ export default function ExerciseEditorCard({
                   }`}
                 >
                   <div>
-                    <span className="eyebrow">Satz {String(index + 1).padStart(2, '0')}</span>
+                    <span className="eyebrow">{setItem.setType === 'warmup' ? 'Aufwärmsatz' : 'Satz'} {String(index + 1).padStart(2, '0')}</span>
                     {formatSetTime(setItem.savedAt) ? <time dateTime={setItem.savedAt} className="mt-1 block text-xs tabular-nums text-muted">
                       {formatSetTime(setItem.savedAt)} Uhr
                     </time> : null}
@@ -368,6 +376,8 @@ export default function ExerciseEditorCard({
       <SetEntryModal
         isOpen={setModalOpen}
         initialSet={editingSet}
+        goal={exercise.goal}
+        plannedQuantity={nextGoalQuantity(exercise)}
         timerSetup={timerSetup}
         exerciseName={exercise.name}
         exerciseSettings={libraryEntry?.settings}
@@ -377,6 +387,7 @@ export default function ExerciseEditorCard({
         onSave={saveModalValues}
       />
       <StopwatchModal
+        targetSeconds={nextGoalQuantity(exercise)}
         isOpen={timerOpen}
         exerciseName={exercise.name}
         loadValues={timerLoad}

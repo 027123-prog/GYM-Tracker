@@ -44,6 +44,7 @@ export function getRepeatedSetPayload(latest, settings) {
   const quantity = {
     ...(measurementType === 'duration' ? { measurementType, durationSeconds: latest.durationSeconds, reps: 0 } : { reps: latest.reps }),
     comment: '',
+    ...(latest.setType === 'warmup' ? { setType: 'warmup' } : {}),
   };
   if (currentType === 'none') return { ...quantity, weightMode: 'none', weight: 0 };
   return {
