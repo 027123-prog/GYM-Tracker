@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAppData } from '../components/AppProvider';
 import EmptyState from '../components/EmptyState';
+import ExerciseNotes from '../components/ExerciseNotes';
 import WorkoutGoal from '../components/WorkoutGoal';
 import { calculateWorkoutStats } from '../utils/workout';
 import { formatDateTime, formatSetTime } from '../utils/date';
@@ -153,11 +154,12 @@ export default function WorkoutDetailPage() {
                   );
                 })}
               </div>
-            ) : (
+            ) : !exercise.notes?.length ? (
               <p className="px-4 py-3 text-sm text-muted">
                 {exercise.skipped ? 'Ausgelassen' : 'Keine Sätze'}
               </p>
-            )}
+            ) : null}
+            <ExerciseNotes notes={exercise.notes} />
           </article>
         ))}
       </section>

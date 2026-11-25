@@ -191,6 +191,15 @@ function normalizeWorkoutExercises(exercises) {
       targetRepScheme: safeString(exercise?.targetRepScheme),
       machineSettings: normalizeMachineSettings(exercise?.machineSettings),
       sets: normalizeSets(exercise?.sets),
+      ...(exercise?.notes !== undefined ? {
+        notes: safeArray(exercise.notes)
+          .filter((note) => note && typeof note === 'object')
+          .map((note, index) => ({
+            id: safeId(note.id, 'note', index),
+            savedAt: safeString(note.savedAt),
+            comment: safeString(note.comment).trim(),
+          })),
+      } : {}),
     }))
     .filter((exercise) => exercise.name);
 }
@@ -408,7 +417,7 @@ export function createBackupPayload(state) {
 
   return {
     app: 'hardgainwaf',
-    appVersion: typeof __APP_RELEASE__ === 'undefined' ? '2.23.0' : __APP_RELEASE__.version,
+    appVersion: typeof __APP_RELEASE__ === 'undefined' ? '2.24.0' : __APP_RELEASE__.version,
     storageKey: STORAGE_KEY,
     storageVersion: STORAGE_VERSION,
     exportedAt: new Date().toISOString(),

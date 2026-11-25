@@ -1,8 +1,6 @@
 import { splitExerciseName } from '../utils/workoutPresentation';
-import { getGoalProgress } from '../utils/workoutGoals';
-import { GoalBar } from './WorkoutGoal';
 
-export default function WorkoutExerciseTabLabel({ exercise, index, showGoal = false }) {
+export default function WorkoutExerciseTabLabel({ exercise, index }) {
   const { mainName, nameDetail } = splitExerciseName(exercise.name);
 
   return (
@@ -16,7 +14,6 @@ export default function WorkoutExerciseTabLabel({ exercise, index, showGoal = fa
           <span className="block w-full truncate text-[10px] leading-3 text-muted">{nameDetail}</span>
         ) : null}
       </span>
-      {showGoal && exercise.goal && <GoalBar percent={getGoalProgress(exercise).percent} name={exercise.name} />}
     </span>
   );
 }

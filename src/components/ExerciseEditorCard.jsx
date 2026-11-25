@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import ExerciseSettingsModal from './ExerciseSettingsModal';
 import WorkoutGoal from './WorkoutGoal';
-import { nextGoalQuantity } from '../utils/workoutGoals';
+import { nextGoalQuantity, nextWarmup } from '../utils/workoutGoals';
 import SetEntryModal from './SetEntryModal';
+import ExerciseNotes from './ExerciseNotes';
 import StopwatchModal from './StopwatchModal';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
 import InterfaceIcon from './InterfaceIcon';
@@ -309,10 +310,13 @@ export default function ExerciseEditorCard({
                   Wiederholen
                 </button>
               ) : null}
+              {durationExercise || exercise.goal ? (
+                <button type="button" className="secondary-button" onClick={() => editSet({ note: true })}>Notiz</button>
+              ) : null}
               <button
                 type="button"
                 onClick={openNewSet}
-                className={`action-button w-full min-[380px]:w-auto ${exercise.sets.length ? '' : 'col-span-2'}`}
+                className={`action-button w-full min-[380px]:w-auto ${exercise.sets.length || durationExercise ? '' : 'col-span-2'}`}
               >
                 {durationExercise ? 'Stoppuhr' : '+ Satz'}
               </button>
@@ -363,11 +367,18 @@ export default function ExerciseEditorCard({
                 </div>
               ))}
             </div>
-          ) : (
+          ) : !exercise.notes?.length ? (
             <div className="rounded-sm border border-dashed border-line px-4 py-7 text-center text-sm text-muted">
               Noch keine Sätze
             </div>
-          )}
+          ) : null}
+          <ExerciseNotes
+            notes={exercise.notes}
+            onEdit={(note) => editSet({ ...note, note: true })}
+            onDelete={(noteId) => {
+              if (window.confirm('Notiz wirklich löschen?')) onDeleteSet(noteId, { note: true });
+            }}
+          />
           <div ref={bottomAnchorRef} />
         </div>
       </article>
@@ -378,6 +389,7 @@ export default function ExerciseEditorCard({
         initialSet={editingSet}
         goal={exercise.goal}
         plannedQuantity={nextGoalQuantity(exercise)}
+        plannedWarmup={nextWarmup(exercise)}
         timerSetup={timerSetup}
         exerciseName={exercise.name}
         exerciseSettings={libraryEntry?.settings}

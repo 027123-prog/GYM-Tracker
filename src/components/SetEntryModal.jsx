@@ -42,6 +42,7 @@ export default function SetEntryModal({
   initialSet,
   goal,
   plannedQuantity,
+  plannedWarmup,
   timerSetup = false,
   exerciseName,
   exerciseSettings,
@@ -49,6 +50,7 @@ export default function SetEntryModal({
   onClose,
   onSave,
 }) {
+  const noteOnly = initialSet?.note === true;
   const configuredLoadType = exerciseSettings?.loadType ?? 'normal';
   const loadType = getSetEntryLoadType(initialSet, exerciseSettings);
   const paired = loadType === 'paired';
@@ -89,16 +91,25 @@ export default function SetEntryModal({
   ) : null;
 
   useLayoutEffect(() => {
-    const plannedWeight = goal?.mode === loadType && goal.load != null ? (paired ? goal.load / 2 : goal.load) : getSetEntryWeight(null, loadType, duration);
+    const load = plannedWarmup?.load ?? goal?.load;
+    const plannedWeight = goal?.mode === loadType && load != null ? (paired ? load / 2 : load) : getSetEntryWeight(null, loadType, duration);
     setWeight(initialSet ? getSetEntryWeight(initialSet, loadType, duration) : plannedWeight);
-    setReps((duration ? initialSet?.durationSeconds : initialSet?.reps) ?? plannedQuantity ?? '');
+    setReps((duration ? initialSet?.durationSeconds : initialSet?.reps) ?? plannedWarmup?.reps ?? plannedQuantity ?? '');
     setComment(initialSet?.comment ?? '');
-    setWarmup(initialSet?.setType === 'warmup');
+    setWarmup(initialSet ? initialSet.setType === 'warmup' : Boolean(plannedWarmup));
     setBodyWeight(initialSet?.bodyWeight ?? readBodyWeight());
     setAddedWeight(initialSet?.addedWeightInput ?? initialSet?.addedWeight ?? (goal?.mode === 'bodyweight' ? goal.load : 0) ?? 0);
     setError('');
     setManualField(null);
-  }, [exerciseName, initialSet, isOpen, duration, loadType, goal, plannedQuantity, paired]);
+  }, [exerciseName, initialSet, isOpen, duration, loadType, goal, plannedQuantity, plannedWarmup, paired]);
+
+  function chooseWarmup(checked) {
+    setWarmup(checked);
+    if (initialSet || !plannedWarmup) return;
+    const load = checked ? plannedWarmup.load : goal.load;
+    setWeight(load == null ? '' : paired ? load / 2 : load);
+    setReps(checked ? plannedWarmup.reps : plannedQuantity);
+  }
 
   function editButton(field, label) {
     const active = manualField === field;
@@ -112,6 +123,15 @@ export default function SetEntryModal({
 
   function handleSubmit(event) {
     event.preventDefault();
+    const hasWeightEntry = usesBodyweight
+      ? (String(bodyWeight).trim() && bodyWeight !== readBodyWeight()) || (allowsAddedWeight && Number(addedWeight) !== 0)
+      : !withoutWeight && String(weight).trim();
+    if (!timerSetup && (noteOnly || (!initialSet && !hasWeightEntry && !String(reps).trim()))) {
+      onSave({ id: initialSet?.id, note: true, comment });
+      onClose();
+      return;
+    }
+
     const result = prepareSetValues({
       measurementType,
       weight,
@@ -140,7 +160,7 @@ export default function SetEntryModal({
     onSave({
       id: initialSet?.id,
       ...result.values,
-      ...(warmup || initialSet?.setType ? { setType: warmup ? 'warmup' : 'work' } : {}),
+      ...(goal || warmup || initialSet?.setType ? { setType: warmup ? 'warmup' : 'work' } : {}),
       comment,
     });
     onClose();
@@ -156,7 +176,7 @@ export default function SetEntryModal({
       </div>
 
       <form onSubmit={handleSubmit} className="mt-3 space-y-3">
-        {!withoutWeight ? (
+        {!noteOnly && !withoutWeight ? (
           <div>
             <WeightSuggestionGrid options={usesBodyweight ? [] : displayedWeightOptions}
               selectedValue={usesBodyweight ? bodyWeight : weight} onSelect={usesBodyweight ? setBodyWeight : setWeight}
@@ -168,7 +188,7 @@ export default function SetEntryModal({
           </div>
         ) : null}
 
-        {allowsAddedWeight ? (
+        {!noteOnly && allowsAddedWeight ? (
           <div>
             <WeightSuggestionGrid options={[-20, -10, -5, 0, 5, 10, 15, 20]} selectedValue={addedWeight}
               onSelect={setAddedWeight} label={addedWeightLabel} allowNegative editControl={editButton('added', addedWeightLabel)} />
@@ -176,7 +196,7 @@ export default function SetEntryModal({
           </div>
         ) : null}
 
-        {usesBodyweight ? (
+        {!noteOnly && usesBodyweight ? (
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs text-muted">Körpergewichtsanteil: <strong className="text-ink">{bodyweightPercent} %</strong></p>
               <p className="text-xs text-muted">
@@ -188,7 +208,7 @@ export default function SetEntryModal({
             </div>
         ) : null}
 
-        {!timerSetup ? <div>
+        {!timerSetup && !noteOnly ? <div>
           <p className="mb-1.5 text-xs font-bold text-muted">{repsLabel}</p>
           <div className="flex flex-wrap gap-1.5">
             {editButton('reps', repsLabel)}
@@ -201,20 +221,19 @@ export default function SetEntryModal({
           {manualField === 'reps' ? <ManualEntry label={repsLabel} value={reps} onChange={setReps} inputMode="numeric" /> : null}
         </div> : null}
 
-        {!timerSetup && (goal || initialSet?.setType) && <label className="flex items-center gap-2 text-sm text-muted">
-          <input type="checkbox" checked={warmup} onChange={event => setWarmup(event.target.checked)} />
+        {!timerSetup && !noteOnly && (goal || initialSet?.setType) && <label className="flex items-center gap-2 text-sm text-muted">
+          <input type="checkbox" checked={warmup} onChange={event => chooseWarmup(event.target.checked)} />
           Aufwärmsatz
         </label>}
-        {!timerSetup && manualField ? <label className="block">
+        {!timerSetup ? <label className="block">
           <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted">Kommentar</span>
           <textarea
-            className="field min-h-[88px] resize-y"
+            className="field min-h-16 resize-y" rows={2}
             value={comment}
             onChange={(event) => setComment(event.target.value)}
             placeholder="Form, Tempo, Gefühl …"
           />
         </label> : null}
-        {!timerSetup && !manualField && comment ? <p className="text-sm italic text-muted">{comment}</p> : null}
 
         {error ? (
           <p className="rounded-sm border border-ember/35 bg-ember/10 px-3 py-2 text-sm font-semibold text-ember" role="alert">

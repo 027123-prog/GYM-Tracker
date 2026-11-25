@@ -47,8 +47,12 @@ function prescription(scheme, duration, exercise) {
   };
 }
 
-function comparableSet(set, goal) {
-  if (set.invalid || set.setType === 'warmup' || warmupNote.test(set.comment || '')) return false;
+function isWarmup(set) {
+  return set.setType === 'warmup' || (set.setType !== 'work' && warmupNote.test(set.comment || ''));
+}
+
+function matchesMeasurement(set, goal) {
+  if (set.invalid) return false;
   if (goal.duration !== isDurationSet(set) || set.comparisonUncertain) return false;
   if (set.variantKey && set.variantKey !== goal.variant) return false;
   const quantity = goal.duration ? set.durationSeconds : set.reps;
@@ -60,9 +64,43 @@ function comparableSet(set, goal) {
   return goal.mode === mode && (mode !== 'bodyweight' || Math.abs(set.bodyweightFactor - goal.factor) < 0.00001);
 }
 
+function comparableSet(set, goal) {
+  return matchesMeasurement(set, goal) && !isWarmup(set);
+}
+
 function loadOf(set, mode) {
   if (mode === 'none') return 0;
   return mode === 'bodyweight' ? set.addedWeight : set.weight;
+}
+
+function withRecentWarmups(goal, history) {
+  if (goal.duration || !['normal', 'paired'].includes(goal.mode)) return goal;
+  const session = history.find(({ entry }) => !entry.skipped && entry.sets.some(set => comparableSet(set, goal)));
+  if (!session) return goal;
+  const sets = session.entry.sets.filter(set => matchesMeasurement(set, goal) && Number.isFinite(set.weight));
+  const counts = new Map();
+  for (const set of sets) {
+    if (!isWarmup(set)) counts.set(set.weight, (counts.get(set.weight) || 0) + 1);
+  }
+  const repeatedLoads = [...counts.keys()].filter(load => counts.get(load) >= 2);
+  const workingLoad = Math.max(...repeatedLoads);
+  const warmups = [];
+  for (const set of sets) {
+    const explicit = isWarmup(set);
+    if (!explicit && (set.setType === 'work' || set.weight >= workingLoad || set.weight > workingLoad * 0.8)) break;
+    if (set.weight < 0 || set.weight > 2000 || set.reps > 1000 || warmups.length >= 20) break;
+    if (goal.load !== null && (set.weight > goal.load || (!explicit && set.weight === goal.load))) break;
+    warmups.push({ load: set.weight, reps: set.reps });
+  }
+  return warmups.length ? { ...goal, warmups } : goal;
+}
+
+export function nextWarmup(entry) {
+  const { goal, sets } = entry;
+  if (!goal?.warmups?.length || entry.skipped) return null;
+  const logged = sets.filter(set => matchesMeasurement(set, goal));
+  if (logged.some(set => !isWarmup(set))) return null;
+  return goal.warmups.filter(step => goal.load === null || step.load <= goal.load)[logged.length] ?? null;
 }
 
 export function goalAfterSetSave(goal, set) {
@@ -96,7 +134,13 @@ function seedGoal(goal, history, initialPhase) {
     if (working) candidates.push({ load: working[0], quantity: sortedQuantities(working[1], goal)[count - 1] });
     if (candidates.length === 2) break;
   }
-  if (!candidates.length) return goal;
+  if (!candidates.length) {
+    if (goal.duration || !['normal', 'paired'].includes(goal.mode)) return goal;
+    const [opening, ...rest] = sessions[0] || [];
+    if (!opening || opening.reps < goal.min + 2 || opening.rir === 0 || failureNote.test((opening.comment || '').trim())) return goal;
+    if (!rest.some(set => set.weight > opening.weight && set.reps >= goal.min)) return goal;
+    return { ...goal, load: opening.weight, step: 'intro' };
+  }
   let load = Math.min(...candidates.map(item => item.load));
   const observed = Math.min(...candidates.map(item => item.quantity));
   const quantity = goal.duration ? Math.max(1, Math.floor(observed / 5) * 5) : observed;
@@ -178,23 +222,34 @@ function advanceGoal(goal, exercise) {
     goal.amounts[index] = Math.min(goal.max, low + (goal.duration ? 2 : 1));
     return;
   }
-  if (goal.duration || !['normal', 'paired'].includes(goal.mode) || !goal.load) return;
-  // All stored weights are total kg. A paired increase is at most 1 kg per side.
-  const absoluteLimit = exerciseRange(exercise)[0] === 8 ? 1.25 : goal.mode === 'paired' ? 2 : 2.5;
-  const limit = Math.min(goal.load * 0.05, absoluteLimit);
-  const options = (exercise.weightOptions || []).filter(value =>
-    Number.isFinite(value) && value > goal.load && value <= goal.load + limit && value <= 2000);
-  // A barbell target can propose a microplate step even if it has never been logged.
-  const barbell = goal.mode === 'normal' && (['exercise-squat', 'exercise-deadlift'].includes(exercise.id)
-    || /langhantel|\bstange\b|barbell/i.test(exercise.name));
-  if (barbell && limit >= 2.5 && goal.load <= 1997.5) options.push(goal.load + 2.5);
-  if (options.length) {
-    goal.load = Math.min(...options);
-    goal.amounts.fill(goal.min);
-    goal.step = 'weight';
+  if (goal.duration || goal.load === null || goal.mode === 'none') return;
+  const name = exercise.name || '';
+  let increase;
+  if (goal.mode === 'bodyweight') {
+    if (exercise.settings?.loadType !== 'bodyweight-added') return;
+    increase = 1;
   } else {
-    goal.step = 'hold';
+    const deadlift = goal.mode === 'normal' && (exercise.id === 'exercise-deadlift' || /^(?:kreuzheben|deadlift)(?:$|[ -](?:vom boden|langhantel|stange|konventionell))/i.test(name));
+    const barbell = goal.mode === 'normal' && (exercise.id === 'exercise-squat' || /langhantel|\bstange\b|barbell/i.test(name));
+    if (deadlift || barbell) {
+      increase = deadlift && goal.load >= 50 ? 5 : goal.load >= 25 ? 2.5 : 1;
+    } else {
+      const isolation = exerciseRange(exercise)[0] === 8;
+      const cap = goal.mode === 'paired' ? 2 : isolation ? 1.25 : 5;
+      const limit = Math.min(cap, goal.load * 0.1);
+      const options = (exercise.weightOptions || []).filter(value =>
+        Number.isFinite(value) && value > goal.load && value <= goal.load + limit);
+      if (options.length) increase = Math.min(...options) - goal.load;
+      else if (goal.mode === 'paired') increase = limit >= 2 ? 2 : limit >= 1 ? 1 : undefined;
+    }
   }
+  if (!increase || goal.load + increase > 2000) {
+    goal.step = 'hold';
+    return;
+  }
+  goal.load += increase;
+  goal.amounts.fill(goal.min);
+  goal.step = 'weight';
 }
 
 export function createWorkoutGoal(exercise, entry, workouts, { date, id, templateId } = {}) {
@@ -219,29 +274,31 @@ export function createWorkoutGoal(exercise, entry, workouts, { date, id, templat
     factor: mode === 'bodyweight' ? (exercise.settings?.bodyweightPercent || 100) / 100 : null,
     load: mode === 'none' || type === 'bodyweight' ? 0 : null,
     min: plan.min, max: plan.max, amounts: Array(plan.count).fill(plan.min),
-    confirmations: slow ? 3 : 2, confirmed: false,
+    confirmations: slow && !duration ? 1 : 2, weightConfirmations: 2, confirmed: false,
   };
   const scoped = history.filter(h => (h.templateId || '') === (templateId || ''));
-  const guided = scoped.filter(h => h.entry.goal && !h.entry.skipped && h.entry.sets.length);
+  const guided = scoped.filter(h => h.entry.goal && !h.entry.skipped
+    && h.entry.sets.some(set => comparableSet(set, h.entry.goal)));
   const previous = guided[0];
   if (!samePlan(previous?.entry.goal, goal)) {
     const seedHistory = /vorermüdung/i.test(scheme) ? scoped : history;
-    return seedGoal(goal, seedHistory.filter(h => !h.entry.skipped), plan.initialPhase);
+    return withRecentWarmups(seedGoal(goal, seedHistory.filter(h => !h.entry.skipped), plan.initialPhase), history);
   }
   const last = previous.entry.goal;
   const next = { ...goal, load: last.load, amounts: [...last.amounts] };
+  const requiredDays = next.amounts.every(value => value === next.max) ? next.weightConfirmations : next.confirmations;
   const days = new Set();
   for (const h of guided) {
     const prior = h.entry.goal;
     if (!samePlan(prior, next) || !prior.confirmed || prior.load !== next.load ||
       !prior.amounts.every((value, i) => value === next.amounts[i]) || !getGoalProgress(h.entry).complete) break;
     days.add(h.day);
-    if (days.size >= next.confirmations) {
+    if (days.size >= requiredDays) {
       advanceGoal(next, exercise);
       break;
     }
   }
-  return next;
+  return withRecentWarmups(next, history);
 }
 
 export function formatWorkoutGoal(goal) {
@@ -254,6 +311,18 @@ export function formatWorkoutGoal(goal) {
   return `${weight}${goal.mode === 'bodyweight' ? ' Zusatzlast' : ''} · ${quantity}`;
 }
 
+export function formatNextGoalSet(entry) {
+  const { goal } = entry;
+  const warmup = nextWarmup(entry);
+  const load = warmup?.load ?? goal.load;
+  const quantity = warmup?.reps ?? nextGoalQuantity(entry);
+  let weight = '';
+  if (goal.mode === 'paired' && load !== null) weight = `2 × ${kg.format(load / 2)} kg × `;
+  if (goal.mode === 'normal' && load !== null) weight = `${kg.format(load)} kg × `;
+  if (goal.mode === 'bodyweight' && load) weight = `${kg.format(load)} kg Zusatzlast × `;
+  return `${weight}${quantity} ${goal.duration ? 's' : 'Wdh.'}${goal.perSide ? ' je Seite' : ''}${warmup ? ' (Warm-up)' : ''}${load === null ? ' · Gewicht wählen' : ''}`;
+}
+
 export function validWorkoutGoal(goal) {
   const limit = goal?.duration ? 86400 : 1000;
   return goal && ['normal', 'paired', 'none', 'bodyweight'].includes(goal.mode)
@@ -263,7 +332,12 @@ export function validWorkoutGoal(goal) {
     && (goal.load === null || (Number.isFinite(goal.load) && Math.abs(goal.load) <= 2000
       && (goal.mode === 'bodyweight' || goal.load >= 0)))
     && Number.isInteger(goal.min) && goal.min >= 1 && Number.isInteger(goal.max) && goal.max >= goal.min && goal.max <= limit
+    && (goal.warmups === undefined || (!goal.duration && ['normal', 'paired'].includes(goal.mode)
+      && Array.isArray(goal.warmups) && goal.warmups.length <= 20
+      && goal.warmups.every(step => Number.isFinite(step?.load) && step.load >= 0 && step.load <= 2000
+        && Number.isInteger(step.reps) && step.reps >= 1 && step.reps <= 1000)))
     && Array.isArray(goal.amounts) && goal.amounts.length > 0 && goal.amounts.length <= 20
     && goal.amounts.every(n => Number.isInteger(n) && n > 0 && n <= goal.max)
-    && [2, 3].includes(goal.confirmations) && typeof goal.confirmed === 'boolean';
+    && [1, 2, 3].includes(goal.confirmations) && (goal.weightConfirmations === undefined || [1, 2, 3].includes(goal.weightConfirmations))
+    && typeof goal.confirmed === 'boolean';
 }

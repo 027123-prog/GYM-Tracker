@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createWorkoutGoal, formatWorkoutGoal, getGoalProgress, guidedRepScheme, nextGoalQuantity } from '../src/utils/workoutGoals.js';
+import { createWorkoutGoal, formatNextGoalSet, formatWorkoutGoal, getGoalProgress, guidedRepScheme, nextGoalQuantity, nextWarmup } from '../src/utils/workoutGoals.js';
 import { createBackupPayload, normalizeAppState, parseBackupPayload } from '../src/utils/storage.js';
 
 const exercise = { id: 'row', name: 'Rudern', settings: { loadType: 'normal' }, weightOptions: [40, 42, 50] };
@@ -76,16 +76,63 @@ test('at the ceiling the smallest suitable load restarts the range; larger machi
   assert.deepEqual([held.load, held.amounts, held.step], [40, [9, 9], 'hold']);
 });
 
-test('floor deadlift starts with the first prescribed phase, and needs three days before a microplate step', () => {
+test('floor deadlift increases one rep after one confirmation and adds 5 kg after two ceiling confirmations', () => {
   const ex = { ...exercise, id: 'exercise-deadlift', name: 'Kreuzheben', weightOptions: [60, 70] };
   const lift = { ...entry, exerciseId: ex.id, variantKey: 'floor_reset', targetRepScheme: 'Zunächst 2 × 5, später 2 × 5–8' };
   const seed = create([workout('2026-09-01', { ...lift, sets: [set(60, 8), set(60, 8)] })], ex, lift);
-  assert.deepEqual([seed.load, seed.amounts, seed.confirmations], [60, [5, 5], 3]);
+  assert.deepEqual([seed.load, seed.amounts, seed.confirmations, seed.weightConfirmations], [60, [5, 5], 1, 2]);
   const history = ['2026-09-05', '2026-09-12', '2026-09-19'].map(day => workout(day,
     { ...lift, goal: { ...seed, amounts: [8, 8], confirmed: true }, sets: [set(60, 8), set(60, 8)] }));
-  assert.equal(create(history.slice(1), ex, lift).load, 60);
+  assert.equal(create(history.slice(2), ex, lift).load, 60);
+  assert.deepEqual(create([workout('2026-09-19', { ...lift, goal: { ...seed, confirmed: true }, sets: [set(60, 5), set(60, 5)] })], ex, lift).amounts, [6, 5]);
   const next = create(history, ex, lift);
-  assert.deepEqual([next.load, next.amounts], [62.5, [5, 5]]);
+  assert.deepEqual([next.load, next.amounts], [65, [5, 5]]);
+});
+
+test('repeat recent ascending warmups, excluding a drop set, and switch to work on save or skip', () => {
+  const day = workout('2026-09-20', { ...entry, sets: [set(0, 10), set(20, 6), set(40, 7), set(40, 7), set(15, 12)] });
+  const goal = create([day]);
+  assert.deepEqual(goal.warmups, [{ load: 0, reps: 10 }, { load: 20, reps: 6 }]);
+  const current = { ...entry, goal, sets: [] };
+  assert.equal(formatNextGoalSet(current), '0 kg × 10 Wdh. (Warm-up)');
+  current.sets.push(set(0, 10, { setType: 'warmup' }));
+  assert.equal(formatNextGoalSet(current), '20 kg × 6 Wdh. (Warm-up)');
+  assert.equal(getGoalProgress(current).percent, 0);
+  current.sets.push(set(40, 7, { setType: 'work' }));
+  assert.equal(nextWarmup(current), null);
+  assert.equal(formatNextGoalSet(current), '40 kg × 7 Wdh.');
+  assert.equal(getGoalProgress(current).percent, 50);
+  const restored = parseBackupPayload(JSON.stringify(createBackupPayload({ exercises: [exercise], workouts: [workout('2026-09-21', current)] })));
+  assert.deepEqual(restored.workouts[0].exercises[0].goal.warmups, goal.warmups);
+});
+
+test('explicit paired warmup survives an equal working weight and other variations never supply it', () => {
+  const pair = { ...exercise, settings: { loadType: 'paired' } };
+  const paired = (w, n, extra) => set(w, n, { weightMode: 'paired', ...extra });
+  const sets = [paired(20, 8, { comment: 'WU' }), paired(20, 8), paired(20, 8)];
+  const history = [workout('2026-09-22', { ...entry, sets }), workout('2026-09-24', { ...entry, variantKey:'other', sets: [paired(4, 10), ...sets] })];
+  const goal = create(history, pair);
+  assert.equal(formatNextGoalSet({ goal, sets: [] }), '2 × 10 kg × 8 Wdh. (Warm-up)');
+  assert.equal(create([workout('2026-09-20', { ...entry, sets: [set(20, 6, { setType: 'work' }), set(40, 7), set(40, 7)] })]).warmups, undefined);
+});
+
+test('a machine uses its next known size, dumbbells use small per-hand steps and a lone heavy attempt does not set a bench target', () => {
+  const machine = { ...exercise, weightOptions: [60, 65, 70] };
+  const ceiling = { ...starting(), load: 60, amounts: [9, 9], confirmed: true };
+  const cycle = (goal, sets) => ['2026-09-12', '2026-09-19'].map(day => workout(day, { ...entry, goal, sets }));
+  const next = create(cycle(ceiling, [set(60, 9), set(60, 9)]), machine);
+  assert.deepEqual([next.load, next.amounts], [65, [6, 6]]);
+  const pair = { ...exercise, settings: { loadType: 'paired' }, weightOptions: [24, 28, 32] };
+  const dbSet = set(32, 9, { weightMode: 'paired' });
+  const dumbbell = create(cycle({ ...ceiling, mode: 'paired', load: 32 }, [dbSet, dbSet]), pair);
+  assert.deepEqual([dumbbell.load, dumbbell.amounts], [34, [6, 6]]);
+  const intro = create([workout('2026-09-20', { ...entry, sets: [set(30, 10), set(50, 7)] })]);
+  assert.deepEqual([intro.load, intro.amounts, intro.step], [30, [6, 6], 'intro']);
+});
+
+test('warmup-only sessions do not break reserve confirmations', () => {
+  const warm = workout('2026-09-15', { ...entry, goal: starting(), sets: [set(20, 8, { setType: 'warmup' })] });
+  assert.deepEqual(create([done('2026-09-12'), warm, done('2026-09-19')]).amounts, [7, 6]);
 });
 
 test('warmups, invalid or wrong loads, and repetitions above one target cannot fill two targets', () => {

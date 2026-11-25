@@ -483,6 +483,30 @@ export function AppProvider({ children }) {
   }
 
   function saveSet(workoutId, entryId, payload) {
+    if (payload.note === true) {
+      const id = payload.id ?? createId('note');
+      const timestamp = new Date().toISOString();
+      setState((current) => ({
+        ...current,
+        workouts: current.workouts.map((workout) => workout.id === workoutId
+          ? updateStartedWorkout(workout, {
+              exercises: workout.exercises.map((exercise) => {
+                if (exercise.id !== entryId) return exercise;
+                const notes = exercise.notes ?? [];
+                const existing = notes.find((note) => note.id === id);
+                if (payload.id && !existing) return exercise;
+                const note = { id, comment: payload.comment?.trim() ?? '', savedAt: existing?.savedAt ?? timestamp };
+                return {
+                  ...exercise,
+                  notes: existing ? notes.map((item) => item.id === id ? note : item) : [...notes, note],
+                };
+              }),
+            })
+          : workout),
+      }));
+      return id;
+    }
+
     const { values, error } = prepareSetValues(payload);
 
     if (error) {
@@ -546,24 +570,22 @@ export function AppProvider({ children }) {
     return savedSetId;
   }
 
-  function deleteSet(workoutId, entryId, setId) {
-    const nextWorkouts = state.workouts.map((workout) =>
-      workout.id === workoutId
+  function deleteSet(workoutId, entryId, setId, { note = false } = {}) {
+    const collection = note ? 'notes' : 'sets';
+    setState(current => ({
+      ...current,
+      workouts: current.workouts.map(workout => workout.id === workoutId
         ? updateStartedWorkout(workout, {
-            exercises: workout.exercises.map((exercise) =>
-              exercise.id === entryId
-                ? {
-                    ...exercise,
-                    ...(exercise.goal?.confirmed ? { goal: { ...exercise.goal, confirmed: false } } : {}),
-                    sets: exercise.sets.filter((setItem) => setItem.id !== setId),
-                  }
-                : exercise,
-            ),
+            exercises: workout.exercises.map(exercise => exercise.id === entryId
+              ? {
+                  ...exercise,
+                  ...(!note && exercise.goal?.confirmed ? { goal: { ...exercise.goal, confirmed: false } } : {}),
+                  [collection]: (exercise[collection] ?? []).filter(item => item.id !== setId),
+                }
+              : exercise),
           })
-        : workout,
-    );
-
-    setWorkouts(nextWorkouts);
+        : workout),
+    }));
   }
 
   function resumeWorkout(workoutId) {

@@ -11,6 +11,7 @@ import { getGoalProgress } from '../utils/workoutGoals';
 import TemplatePicker from '../components/TemplatePicker';
 import WorkoutModeModal from '../components/WorkoutModeModal';
 import WorkoutSummaryModal from '../components/WorkoutSummaryModal';
+import { getExerciseVolumeProgress, getWorkoutAlternatives } from '../utils/workoutPresentation';
 import { readWorkoutExerciseIndex, saveWorkoutExercisePosition } from '../utils/workoutNavigation';
 import { getExerciseWeightSuggestions } from '../utils/weightSuggestions';
 import {
@@ -165,6 +166,12 @@ export default function WorkoutBuilderPage({ mode }) {
     () => state.workouts.filter((item) => item.id !== workoutId),
     [state.workouts, workoutId],
   );
+  const exerciseHistoryById = useMemo(() => new Map(
+    (workout?.exercises ?? []).map((exercise) => [
+      exercise.id,
+      getExerciseHistory(previousWorkouts, exercise.exerciseId, null, exercise.name),
+    ]),
+  ), [previousWorkouts, workout?.exercises]);
 
   if (mode === 'template' && !workoutId) {
     return (
@@ -290,23 +297,37 @@ export default function WorkoutBuilderPage({ mode }) {
                 className="flex gap-1.5 overflow-x-auto overscroll-x-contain p-2 [-webkit-overflow-scrolling:touch]"
                 aria-label="Übungen im Workout"
               >
-                {workout.exercises.map((exercise, index) => (
-                  <button
-                    key={exercise.id}
-                    type="button"
-                    onClick={() => setActiveExerciseIndex(index)}
-                    className={`flex h-[3.5625rem] w-40 shrink-0 flex-col justify-center rounded-sm border px-3 py-1 text-left transition ${
-                      index === activeExerciseIndex
-                        ? 'border-amber bg-amber-soft text-ink'
-                        : 'border-line bg-paper text-muted hover:border-amber/45 hover:text-ink'
-                    }`}
-                    aria-label={`${exercise.name}, ${exercise.sets.length} Sätze${exercise.goal ? `, Ziel ${getGoalProgress(exercise).percent} %` : ''}`}
-                    title={exercise.name}
-                    aria-current={index === activeExerciseIndex ? 'step' : undefined}
-                  >
-                    <WorkoutExerciseTabLabel exercise={exercise} index={index} showGoal />
-                  </button>
-                ))}
+                {workout.exercises.map((exercise, index) => {
+                  const settings = state.exercises.find((item) => item.id === exercise.exerciseId)?.settings;
+                  const tracksVolume = settings?.measurementType !== 'duration' && settings?.loadType !== 'none';
+                  const progress = exercise.goal ? getGoalProgress(exercise).percent
+                    : tracksVolume ? getExerciseVolumeProgress(exercise, exerciseHistoryById.get(exercise.id)) : null;
+                  const comparison = exercise.goal ? 'des Trainingsziels' : 'des Vergleichsvolumens';
+                  return (
+                    <button
+                      key={exercise.id}
+                      type="button"
+                      onClick={() => setActiveExerciseIndex(index)}
+                      className={`relative isolate flex h-[3.5625rem] w-40 shrink-0 flex-col justify-center overflow-hidden rounded-sm border px-3 py-1 text-left transition ${
+                        index === activeExerciseIndex
+                          ? 'border-amber bg-amber-soft text-ink'
+                          : 'border-line bg-paper text-muted hover:border-amber/45 hover:text-ink'
+                      }`}
+                      aria-label={`${exercise.name}, ${exercise.sets.length} Sätze${progress === null ? '' : `, ${progress} Prozent ${comparison}`}`}
+                      title={progress === null ? exercise.name : `${exercise.name} · ${progress} % ${comparison}`}
+                      aria-current={index === activeExerciseIndex ? 'step' : undefined}
+                    >
+                      {progress === null ? null : (
+                        <span
+                          aria-hidden="true"
+                          className="pointer-events-none absolute inset-y-0 left-0 -z-10 bg-emerald-500/25 transition-[width] motion-reduce:transition-none"
+                          style={{ width: `${Math.min(progress, 100)}%` }}
+                        />
+                      )}
+                      <WorkoutExerciseTabLabel exercise={exercise} index={index} />
+                    </button>
+                  );
+                })}
                 <button
                   type="button"
                   onClick={() => setExerciseModalOpen(true)}
@@ -340,7 +361,7 @@ export default function WorkoutBuilderPage({ mode }) {
                   activeExercise.exerciseId,
                   state.exercises.find((item) => item.id === activeExercise.exerciseId)?.settings,
                 )}
-                exerciseHistory={getExerciseHistory(previousWorkouts, activeExercise.exerciseId, null, activeExercise.name)}
+                exerciseHistory={exerciseHistoryById.get(activeExercise.id)}
                 lastWorkoutSummary={getLastExerciseSummaryText(
                   previousWorkouts,
                   activeExercise.exerciseId,
@@ -362,7 +383,7 @@ export default function WorkoutBuilderPage({ mode }) {
                   setActiveExerciseIndex((current) => Math.max(current - 1, 0));
                 }}
                 onSaveSet={(payload) => saveSet(workout.id, activeExercise.id, payload)}
-                onDeleteSet={(setId) => deleteSet(workout.id, activeExercise.id, setId)}
+                onDeleteSet={(setId, options) => deleteSet(workout.id, activeExercise.id, setId, options)}
               />
             </div>
           ) : null
@@ -408,6 +429,7 @@ export default function WorkoutBuilderPage({ mode }) {
 
       <AddExerciseModal
         isOpen={exerciseModalOpen}
+        suggestions={exerciseModalOpen ? getWorkoutAlternatives(state.exercises, workout, activeExercise, previousWorkouts) : undefined}
         exercises={state.exercises}
         onClose={() => setExerciseModalOpen(false)}
         onAdd={handleAddExercise}

@@ -109,7 +109,7 @@ function getExerciseMatch(exercise, query, queryTokens) {
   return null;
 }
 
-export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) {
+export default function AddExerciseModal({ isOpen, exercises, suggestions, onClose, onAdd }) {
   const [value, setValue] = useState('');
   const [selectedExerciseName, setSelectedExerciseName] = useState('');
   const [placement, setPlacement] = useState('after');
@@ -122,9 +122,7 @@ export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) 
     const query = normalizeText(value);
     const queryTokens = getSearchTokens(value);
 
-    if (!query) {
-      return [];
-    }
+    if (!query) return suggestions ?? [];
 
     return activeExercises
       .map((exercise) => getExerciseMatch(exercise, query, queryTokens))
@@ -132,7 +130,7 @@ export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) 
       .sort((a, b) => a.score - b.score || a.distance - b.distance || a.exercise.name.localeCompare(b.exercise.name, 'de'))
       .map((item) => item.exercise)
       .slice(0, 8);
-  }, [activeExercises, value]);
+  }, [activeExercises, value, suggestions]);
 
   const hasExactExercise = useMemo(
     () => activeExercises.some((exercise) => normalizeText(exercise.name) === normalizeText(trimmedValue)),
@@ -255,6 +253,7 @@ export default function AddExerciseModal({ isOpen, exercises, onClose, onAdd }) 
                   <span>{archivedExactMatch ? 'Wieder aktivieren' : 'Neue Übung'}: {archivedExactMatch?.name ?? trimmedValue}</span>
                 </button>
               ) : null}
+              {!trimmedValue && <p className="px-3 py-1 text-xs font-bold text-muted">Aus deinem Training</p>}
               {filteredExercises.map((exercise) => (
                 <button
                   key={exercise.id}
