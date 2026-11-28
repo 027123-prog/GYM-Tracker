@@ -145,10 +145,12 @@ zwischen Android und Windows den PC-Dienst einmal im Projektverzeichnis einricht
 .\scripts\home-sync-setup.ps1 -AllowFirewallPrompt
 ```
 
-Die lokale PC-App unter `http://127.0.0.1:4175/` öffnen. Unter **Einstellungen →
-Heim-WLAN → Handy koppeln** den QR-Code mit der Handykamera scannen und die
-Verbindung in der Android-App bestätigen. Der Code ist zehn Minuten gültig.
-Wechselt die lokale IP-Adresse des PCs, das Handy mit einem neuen Code verbinden.
+Auf dem PC den Desktop-Starter **Zuhause-Dashboard starten** öffnen und im Dashboard
+**Gym-App koppeln** wählen. Der QR-Code ist auch in der lokalen PC-App unter
+`http://127.0.0.1:4175/` über **Einstellungen → Heim-WLAN → Handy koppeln** erreichbar.
+Den Code im Heim-WLAN mit der Handykamera scannen und die Verbindung in der Android-App
+bestätigen. Der Code gilt zehn Minuten. Erhält der PC später eine andere WLAN-Adresse,
+sucht die Android-App den bereits gekoppelten PC beim nächsten Abgleich automatisch.
 
 Beide Geräte können offline arbeiten. Im privaten Heimnetz führt die App unabhängige
 Änderungen zusammen. Bei widersprüchlichen Änderungen zeigt sie beide Fassungen zur

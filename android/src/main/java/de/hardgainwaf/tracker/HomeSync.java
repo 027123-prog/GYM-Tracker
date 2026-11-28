@@ -4,13 +4,12 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.Network;
-import android.net.NetworkCapabilities;
 import android.net.Uri;
+import android.os.SystemClock;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetAddress;
 import java.net.Proxy;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -19,6 +18,9 @@ import java.security.MessageDigest;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Locale;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -46,6 +48,10 @@ final class HomeSync {
     private final ConnectivityManager networks;
     private final Callback callback;
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
+    // Shared with the one-shot background transport. A different network starts a new attempt immediately.
+    private static String unavailableNetwork;
+    private static int failedAttempts;
+    private static long nextAttempt;
     private volatile String pendingLink;
     private volatile int generation;
     private HttpsURLConnection active;
@@ -61,7 +67,7 @@ final class HomeSync {
         return context.getSharedPreferences("home-sync", Context.MODE_PRIVATE);
     }
 
-    private static boolean isLanIp(String host) {
+    static boolean isLanIp(String host) {
         if (host == null || !host.matches("(?:[0-9]{1,3}\\.){3}[0-9]{1,3}")) return false;
         String[] parts = host.split("\\.");
         int[] n = new int[4];
@@ -152,14 +158,6 @@ final class HomeSync {
         worker.shutdownNow();
     }
 
-    private Network activeLan() throws IOException {
-        Network network = networks.getActiveNetwork();
-        NetworkCapabilities caps = network == null ? null : networks.getNetworkCapabilities(network);
-        if (caps == null || !(caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
-            || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))) throw new IOException("Kein WLAN");
-        return network;
-    }
-
     private static boolean matchesPin(X509Certificate cert, String pin) throws GeneralSecurityException {
         byte[] digest = MessageDigest.getInstance("SHA-256").digest(cert.getEncoded());
         byte[] expected = new byte[digest.length];
@@ -197,24 +195,77 @@ final class HomeSync {
         PeerUnreachable(IOException cause) { super(cause); }
     }
 
-    private Reply exchange(int epoch, Peer peer, String path, String method, String token, String revision, String body)
+    private static synchronized void offline(String key) {
+        failedAttempts = key.equals(unavailableNetwork) ? Math.min(3, failedAttempts + 1) : 1;
+        unavailableNetwork = key;
+        nextAttempt = SystemClock.elapsedRealtime() + (15000L << (failedAttempts - 1));
+    }
+
+    private static synchronized boolean coolingDown(String key) {
+        return key.equals(unavailableNetwork) && SystemClock.elapsedRealtime() < nextAttempt;
+    }
+
+    private static synchronized void reachable() {
+        unavailableNetwork = null;
+        failedAttempts = 0;
+    }
+
+    private static boolean matchesServer(Reply reply, String serverId) {
+        try { return serverId.equals(new JSONObject(reply.body).optString("serverId")); }
+        catch (JSONException malformed) { return false; }
+    }
+
+    private Reply exchange(int epoch, Peer peer, String path, String method, String token, String serverId, String revision, String body)
         throws IOException, GeneralSecurityException {
-        Network lan = activeLan();
+        List<HomeLan> lans = HomeLan.connected(networks);
+        if (lans.isEmpty()) throw new IOException("Kein WLAN");
+        String key = serverId + ":" + peer.pin;
+        for (HomeLan lan : lans) key += ":" + lan.network.getNetworkHandle();
+        if (serverId != null && coolingDown(key)) throw new IOException("PC derzeit offline");
         SSLContext context = tls(peer.pin);
-        try {
-            return send(lan, epoch, context, peer.host, peer.pin, path, method, token, revision, body);
-        } catch (PeerUnreachable first) {
-            // Only retry a connection that never sent the operation, not a lost response.
-            if (peer.name.isEmpty()) throw first;
-            for (InetAddress address : lan.getAllByName(peer.name)) {
-                String ip = address.getHostAddress();
-                if (isLanIp(ip) && !ip.equals(peer.host)) {
-                    try { return send(lan, epoch, context, ip, peer.pin, path, method, token, revision, body); }
-                    catch (PeerUnreachable unavailable) { /* Try the next private DNS result. */ }
+        for (HomeLan lan : lans) {
+            if (!lan.includes(peer.host)) continue;
+            try {
+                Reply reply = send(lan.network, epoch, context, peer.host, peer.pin, path, method, token, revision, body);
+                if (serverId != null && reply.status == 200 && !matchesServer(reply, serverId)) {
+                    if ("GET".equals(method)) continue;
+                    throw new IOException("Andere Gerätekennung");
+                }
+                reachable();
+                return reply;
+            } catch (PeerUnreachable unavailable) { /* No operation was sent. Try another route. */ }
+        }
+        long deadline = SystemClock.elapsedRealtime() + 10000;
+        for (HomeLan lan : lans) {
+            Set<String> tried = new HashSet<>();
+            tried.add(peer.host);
+            // A fresh QR may use its own hostname if its address changed. Broadcast lookup is for paired PCs.
+            for (int source = serverId == null ? 1 : 0; source < 2 && SystemClock.elapsedRealtime() < deadline; source++) {
+                Set<String> candidates = source == 0 ? lan.discover() : lan.resolve(peer.name);
+                for (String ip : candidates) {
+                    if (SystemClock.elapsedRealtime() >= deadline) break;
+                    if (!tried.add(ip) || epoch != generation) continue;
+                    if (serverId == null) {
+                        try { return send(lan.network, epoch, context, ip, peer.pin, path, method, null, null, body); }
+                        catch (PeerUnreachable unavailable) { continue; }
+                    }
+                    Reply identity;
+                    try { identity = send(lan.network, epoch, context, ip, peer.pin, STATE, "GET", token, null, null); }
+                    catch (IOException unavailable) { continue; } // Only a read has been attempted here.
+                    if (identity.status != 200 || !matchesServer(identity, serverId)) continue;
+                    if (epoch != generation || !serverId.equals(prefs.getString("serverId", null))
+                        || !peer.pin.equals(prefs.getString("pin", null)) || !token.equals(prefs.getString("token", null))) {
+                        throw new IOException("Verbindung geändert");
+                    }
+                    prefs.edit().putString("host", ip).apply();
+                    reachable();
+                    if ("GET".equals(method)) return identity;
+                    return send(lan.network, epoch, context, ip, peer.pin, path, method, token, revision, body);
                 }
             }
-            throw first;
         }
+        if (serverId != null) offline(key);
+        throw new IOException("PC nicht erreichbar");
     }
 
     private Reply send(Network network, int epoch, SSLContext context, String host, String pin,
@@ -236,8 +287,8 @@ final class HomeSync {
             connection.setRequestMethod(method);
             connection.setInstanceFollowRedirects(false);
             connection.setUseCaches(false);
-            connection.setConnectTimeout(3500);
-            connection.setReadTimeout(12000);
+            connection.setConnectTimeout(1500);
+            connection.setReadTimeout(2200);
             connection.setRequestProperty("Accept", "application/json");
             connection.setRequestProperty("X-HardGain-Sync", "1");
             if (token != null) connection.setRequestProperty("Authorization", "Bearer " + token);
@@ -253,6 +304,7 @@ final class HomeSync {
             }
             try { connection.connect(); }
             catch (IOException error) { throw new PeerUnreachable(error); }
+            connection.setReadTimeout(12000);
             if (payload != null) {
                 try (OutputStream output = connection.getOutputStream()) { output.write(payload); }
             }
@@ -283,7 +335,7 @@ final class HomeSync {
         worker.execute(() -> {
             try {
                 String body = new JSONObject().put("code", peer.code).toString();
-                Reply reply = exchange(epoch, peer, PAIR, "POST", null, null, body);
+                Reply reply = exchange(epoch, peer, PAIR, "POST", null, null, null, body);
                 if (reply.status < 200 || reply.status >= 300) { callback.complete(id, reply.status, ""); return; }
                 JSONObject response = new JSONObject(reply.body);
                 String token = response.getString("token"), serverId = response.getString("serverId");
@@ -309,7 +361,7 @@ final class HomeSync {
         var saved = prefs.getAll();
         if (!serverId.equals(saved.get("serverId")) || !pairId.equals(saved.get("pairId"))) return new Reply(401, "");
         Peer peer = new Peer((String) saved.get("host"), (String) saved.get("name"), (String) saved.get("pin"), null);
-        return exchange(generation, peer, RECONCILE, "POST", (String) saved.get("token"), null, body);
+        return exchange(generation, peer, RECONCILE, "POST", (String) saved.get("token"), serverId, null, body);
     }
 
     void request(String id, String method, String revision, String body) {
@@ -324,10 +376,12 @@ final class HomeSync {
             try {
                 String token = prefs.getString("token", null);
                 if (token == null) { callback.complete(id, 401, ""); return; }
+                String serverId = prefs.getString("serverId", null);
+                if (serverId == null) { callback.complete(id, 401, ""); return; }
                 Peer peer = new Peer(prefs.getString("host", ""), prefs.getString("name", ""), prefs.getString("pin", ""), null);
                 Reply reply;
                 synchronized (HomeSyncJob.TRANSFER) {
-                    reply = exchange(epoch, peer, STATE, method, token, revision, "PUT".equals(method) ? body : null);
+                    reply = exchange(epoch, peer, STATE, method, token, serverId, revision, "PUT".equals(method) ? body : null);
                 }
                 if (epoch != generation) { callback.complete(id, 0, ""); return; }
                 callback.complete(id, reply.status, reply.body);

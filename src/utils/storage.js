@@ -417,7 +417,7 @@ export function createBackupPayload(state) {
 
   return {
     app: 'hardgainwaf',
-    appVersion: typeof __APP_RELEASE__ === 'undefined' ? '2.25.0' : __APP_RELEASE__.version,
+    appVersion: typeof __APP_RELEASE__ === 'undefined' ? '2.25.1' : __APP_RELEASE__.version,
     storageKey: STORAGE_KEY,
     storageVersion: STORAGE_VERSION,
     exportedAt: new Date().toISOString(),
