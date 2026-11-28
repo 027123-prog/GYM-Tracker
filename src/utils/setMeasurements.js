@@ -1,4 +1,4 @@
-import { calculateBodyweightLoad, parseLocalizedNumber } from './bodyweight';
+import { calculateBodyweightLoad, parseLocalizedNumber } from './bodyweight.js';
 
 const decimalPattern = '(?:\\d+(?:[.,]\\d+)?|[.,]\\d+)';
 const singleWeight = new RegExp(`^[+-]?${decimalPattern}$`);

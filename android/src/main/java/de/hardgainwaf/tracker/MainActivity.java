@@ -34,6 +34,7 @@ public final class MainActivity extends Activity {
     private FrameLayout frame;
     private WebView web;
     private AndroidUpdates updates;
+    private HomeSync homeSync;
     private ValueCallback<Uri[]> importCallback;
     private String pendingExport;
 
@@ -56,6 +57,8 @@ public final class MainActivity extends Activity {
         });
         updateChrome(false);
         updates = new AndroidUpdates(this, this::updateStatus);
+        homeSync = new HomeSync(this, this::homeSyncResponse);
+        acceptHomeSyncIntent(getIntent());
 
         web.getSettings().setJavaScriptEnabled(true);
         web.getSettings().setDomStorageEnabled(true);
@@ -88,6 +91,49 @@ public final class MainActivity extends Activity {
             }
         });
         web.loadUrl(START_URL);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        acceptHomeSyncIntent(intent);
+    }
+
+    private void acceptHomeSyncIntent(Intent intent) {
+        if (intent == null || !Intent.ACTION_VIEW.equals(intent.getAction())) return;
+        String link = intent.getDataString();
+        if (homeSync.acceptLink(link)) {
+            // Cold start reads the pending link through the bridge after React mounts.
+            web.evaluateJavascript("window.dispatchEvent(new CustomEvent('hardgain-home-sync-link',{detail:{link:"
+                + JSONObject.quote(link) + "}}))", null);
+            setIntent(new Intent(Intent.ACTION_MAIN));
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        HomeSyncJob.enterForeground();
+    }
+
+    @Override
+    protected void onStop() {
+        HomeSyncJob.leaveForeground(getApplicationContext());
+        super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (homeSync != null) homeSync.close();
+        super.onDestroy();
+    }
+
+    private void homeSyncResponse(String id, int status, String body) {
+        runOnUiThread(() -> {
+            if (isDestroyed() || isFinishing()) return;
+            web.evaluateJavascript("window.dispatchEvent(new CustomEvent('hardgain-home-sync-response',{detail:{id:"
+                + JSONObject.quote(id) + ",status:" + status + ",body:" + JSONObject.quote(body) + "}}))", null);
+        });
     }
 
     private static boolean isAppUrl(Uri url) {
@@ -144,6 +190,33 @@ public final class MainActivity extends Activity {
     }
 
     public final class AndroidBridge {
+        @JavascriptInterface
+        public String homeSyncStatus() { return homeSync.status(); }
+
+        @JavascriptInterface
+        public void homeSyncDismissLink() { homeSync.dismissLink(); }
+
+        @JavascriptInterface
+        public void homeSyncPair(String id, String link) { homeSync.pair(id, link); }
+
+        @JavascriptInterface
+        public void homeSyncRequest(String id, String method, String revision, String body) {
+            homeSync.request(id, method, revision, body);
+        }
+
+        @JavascriptInterface
+        public void homeSyncForget() { homeSync.forget(); }
+
+        @JavascriptInterface
+        public void homeSyncQueue(String serverId, String baseRevision, String baseJson, String localJson) {
+            HomeSyncJob.mirror(getApplicationContext(), serverId, baseRevision, baseJson, localJson);
+        }
+
+        @JavascriptInterface
+        public String homeSyncBackgroundReceipt() {
+            return HomeSyncJob.receipt(getApplicationContext());
+        }
+
         @JavascriptInterface
         public void checkForUpdate() {
             runOnUiThread(updates::check);

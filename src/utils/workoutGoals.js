@@ -1,4 +1,4 @@
-import { isDurationSet, parseWeightInput } from './setMeasurements';
+import { isDurationSet, parseWeightInput } from './setMeasurements.js';
 
 const DAY = 86400000;
 const warmupNote = /^\s*(?:wu\b|warm[\s-]?up\b|aufw(?:ä|ae)rm(?:en|satz|sätze)?\b)/iu;

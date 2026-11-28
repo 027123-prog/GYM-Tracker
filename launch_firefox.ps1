@@ -1,3 +1,5 @@
+param([switch]$ServerOnly)
+
 $ErrorActionPreference = 'Stop'
 
 $baseDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -220,6 +222,8 @@ if (-not $existingServer) {
   Set-Content -Path $pidFile -Value ([int]$existingServer.pid) -Encoding ascii
   Set-Content -Path $portFile -Value $defaultPort -Encoding ascii
 }
+
+if ($ServerOnly) { return }
 
 $appUrl = "$appOrigin/"
 

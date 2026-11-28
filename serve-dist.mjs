@@ -1,6 +1,7 @@
 import { createReadStream, existsSync, realpathSync, statSync } from 'node:fs';
 import { extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import http from 'node:http';
+import { startHomeSync } from './scripts/home-sync-server.mjs';
 
 const FIXED_HOST = '127.0.0.1';
 const FIXED_PORT = 4175;
@@ -142,7 +143,13 @@ function sendFile(request, response, filePath) {
   stream.pipe(response);
 }
 
+let homeSync = null;
 const server = http.createServer((request, response) => {
+  if (request.url?.startsWith('/api/home-sync/')) {
+    if (homeSync) homeSync.api(request, response, false);
+    else sendText(request, response, 503, 'WLAN-Abgleich auf diesem PC nicht eingerichtet.');
+    return;
+  }
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     sendText(request, response, 405, 'Method not allowed', { Allow: 'GET, HEAD' });
     return;
@@ -163,6 +170,7 @@ const server = http.createServer((request, response) => {
     const body = JSON.stringify({
       protocol: SERVER_PROTOCOL,
       pid: process.pid,
+      homeSync: Boolean(homeSync),
       root: appRoot,
       origin: `http://${FIXED_HOST}:${FIXED_PORT}`,
     });
@@ -223,7 +231,13 @@ server.once('error', (error) => {
   process.exitCode = 1;
 });
 
+server.once('close', () => homeSync?.close());
+
 server.listen(FIXED_PORT, FIXED_HOST, () => {
+  if (process.platform === 'win32' && process.env.LOCALAPPDATA) {
+    try { homeSync = startHomeSync(resolve(process.env.LOCALAPPDATA, 'HardGainWAF', 'home-sync')); }
+    catch (error) { process.stderr.write('WLAN-Abgleich konnte nicht starten: ' + error.message + '\n'); }
+  }
   process.stdout.write(
     `HardGainWAF server running at http://${FIXED_HOST}:${FIXED_PORT}\n`,
   );

@@ -6,16 +6,20 @@ const statusStyles = {
 };
 
 export default function SyncIndicator({ compact = false }) {
-  const { syncState } = useAppData();
+  const { syncState, homeSync } = useAppData();
   const error = syncState.status === 'error';
   const savedTime = syncState.savedAt
     ? new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' }).format(new Date(syncState.savedAt))
     : '';
 
+  if (!error && homeSync.report.status === 'conflict') {
+    return <button type="button" className="text-xs font-semibold text-amber-deep" onClick={() => window.dispatchEvent(new Event('hardgain-open-settings'))}>WLAN-Konflikt klären</button>;
+  }
+  const homeStatus = homeSync.report.status === 'ok' ? ' · Im Heim-WLAN abgeglichen' : '';
   return (
     <div
       className="flex items-center gap-1.5"
-      title={`${syncState.message}${savedTime ? ` · ${savedTime}` : ''}`}
+      title={`${syncState.message}${savedTime ? ` · ${savedTime}` : ''}${homeStatus}`}
     >
       <span
         aria-hidden="true"

@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="de.hardgainwaf.tracker">
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <application
         android:allowBackup="false"
@@ -10,16 +12,25 @@
         android:label="HardGainWAF"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:usesCleartextTraffic="false">
+        <service android:name=".HomeSyncJob" android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
         <activity android:name=".UpdateConfirmationActivity"
             android:exported="false" android:theme="@android:style/Theme.NoDisplay" />
         <activity
             android:name=".MainActivity"
+            android:launchMode="singleTop"
             android:configChanges="keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="hardgainwaf" android:host="pair" />
             </intent-filter>
         </activity>
     </application>

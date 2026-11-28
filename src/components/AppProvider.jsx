@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { loadAppState, normalizeAppState, saveAppState, STORAGE_KEY } from '../utils/storage';
 import { createId, normalizeWeightOptions } from '../utils/workout';
+import useHomeSync from './useHomeSync';
 import { editExerciseRecord, ensureExerciseRecord, findExerciseByName, removeExerciseRecord, restoreExerciseRecord } from '../utils/exerciseEditing';
 import { prepareSetValues } from '../utils/setMeasurements';
 import { updateTemplateRecord } from '../utils/templateEditing';
@@ -78,6 +79,7 @@ export function AppProvider({ children }) {
   });
 
   useLayoutEffect(() => { stateRef.current = state; }, [state]);
+  const homeSync = useHomeSync(state, stateRef, setState);
 
   const flushCurrentState = useCallback(() => {
     try {
@@ -686,6 +688,7 @@ export function AppProvider({ children }) {
       value={{
         state,
         syncState,
+        homeSync,
         flushState: flushCurrentState,
         activeWorkoutId,
         activateWorkout,

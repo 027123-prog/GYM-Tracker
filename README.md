@@ -138,9 +138,28 @@ Zwei Einzelgewichte** umstellen. Danach nur das Gewicht einer Hantel eingeben:
 Gewichtsvorschläge zeigen Einzelgewichte; Diagramme und Trainingsvolumen verwenden
 die Gesamtlast. Bestehende Trainingswerte bleiben beim Umstellen erhalten.
 
-Trainingsdaten bleiben im lokalen Browserspeicher. Über die Datenverwaltung in
-der App lassen sie sich als JSON exportieren und wieder importieren. Vor einem
-Import erstellt HardGainWAF zusätzlich eine lokale Wiederherstellungskopie.
+Die App speichert Trainings auf jedem Gerät lokal. Für den automatischen Abgleich
+zwischen Android und Windows den PC-Dienst einmal im Projektverzeichnis einrichten:
+
+```powershell
+.\scripts\home-sync-setup.ps1 -AllowFirewallPrompt
+```
+
+Die lokale PC-App unter `http://127.0.0.1:4175/` öffnen. Unter **Einstellungen →
+Heim-WLAN → Handy koppeln** den QR-Code mit der Handykamera scannen und die
+Verbindung in der Android-App bestätigen. Der Code ist zehn Minuten gültig.
+Wechselt die lokale IP-Adresse des PCs, das Handy mit einem neuen Code verbinden.
+
+Beide Geräte können offline arbeiten. Im privaten Heimnetz führt die App unabhängige
+Änderungen zusammen. Bei widersprüchlichen Änderungen zeigt sie beide Fassungen zur
+Auswahl. Android kann ausstehende Änderungen auch im Hintergrund senden, sobald es
+ein geeignetes WLAN hat und der PC läuft. Beim Öffnen lädt es den gemeinsamen Stand.
+Der Windows-Dienst startet bei der Anmeldung und speichert den gemeinsamen Stand in
+`%LOCALAPPDATA%\HardGainWAF\home-sync\state.json` mit früheren Ständen im Unterordner
+`recovery`. Der Ordner enthält auch private Kopplungsdaten.
+
+Über die Datenverwaltung lassen sich weiterhin JSON-Sicherungen exportieren und
+importieren. Vor einem Import erstellt HardGainWAF eine lokale Wiederherstellungskopie.
 
 Plan-Dateien im Format `hardgainwaf-training-plans` werden über denselben
 Import eingelesen. Sie aktualisieren ausschließlich die enthaltenen Vorlagen

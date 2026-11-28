@@ -1,5 +1,5 @@
-import { EXERCISE_MUSCLE_RULES, MUSCLE_GROUPS } from '../data/exerciseMuscles';
-import { CHEST_REGION_LABELS, resolveChestProfile } from '../data/chestRegions';
+import { EXERCISE_MUSCLE_RULES, MUSCLE_GROUPS } from '../data/exerciseMuscles.js';
+import { CHEST_REGION_LABELS, resolveChestProfile } from '../data/chestRegions.js';
 
 const nameKey = (name = '') => name.normalize('NFKC').toLocaleLowerCase('de-DE').replace(/[–—-]/g, ' ').replace(/\s+/g, ' ').trim();
 const rules = new Map(EXERCISE_MUSCLE_RULES.flatMap(rule => rule.names.map(name => [nameKey(name), rule])));

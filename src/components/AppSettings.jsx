@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAppData } from './AppProvider';
+import HomeSyncSettings from './HomeSyncSettings';
 import { readTheme, saveTheme } from '../utils/appearance';
 import InterfaceIcon from './InterfaceIcon';
 import ModalShell from './ModalShell';
@@ -6,6 +8,15 @@ import AndroidUpdateControl from './AndroidUpdateControl';
 
 export default function AppSettings() {
   const [open, setOpen] = useState(false);
+  const { homeSync } = useAppData();
+  useEffect(() => {
+    if (homeSync.pairing.pendingLink) setOpen(true);
+  }, [homeSync.pairing.pendingLink]);
+  useEffect(() => {
+    const openSettings = () => setOpen(true);
+    window.addEventListener('hardgain-open-settings', openSettings);
+    return () => window.removeEventListener('hardgain-open-settings', openSettings);
+  }, []);
   const [theme, setTheme] = useState(readTheme);
   const calendar = theme === 'calendar';
 
@@ -35,6 +46,7 @@ export default function AppSettings() {
             {calendar ? 'Ein' : 'Aus'}
           </span>
         </button>
+        {open && <HomeSyncSettings sync={homeSync} />}
         {import.meta.env.MODE === 'android' && <AndroidUpdateControl />}
       </ModalShell>
     </>
