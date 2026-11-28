@@ -7,8 +7,8 @@ import ModalShell from './ModalShell';
 import AndroidUpdateControl from './AndroidUpdateControl';
 
 export default function AppSettings() {
-  const [open, setOpen] = useState(false);
   const { homeSync } = useAppData();
+  const [open, setOpen] = useState(() => homeSync.device === 'pc' && new URLSearchParams(location.search).get('koppeln') === '1');
   useEffect(() => {
     if (homeSync.pairing.pendingLink) setOpen(true);
   }, [homeSync.pairing.pendingLink]);

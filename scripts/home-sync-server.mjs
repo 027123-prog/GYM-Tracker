@@ -113,7 +113,8 @@ export function createSyncApi(folder, peerInfo) {
     if (saved.receipts) next.receipts = saved.receipts;
     if (receipt) {
       const recent = next.receipts?.[receipt.device] ?? [];
-      next.receipts = { ...next.receipts, [receipt.device]: [...recent.slice(-31), { hash: receipt.hash, revision: next.revision }] };
+      const confirmed = { hash: receipt.hash, localHash: receipt.localHash, revision: next.revision };
+      next.receipts = { ...next.receipts, [receipt.device]: [...recent.slice(-31), confirmed] };
     }
     if (changed && saved.revision) backupPrevious(folder, stateFile, saved.revision);
     atomicJson(stateFile, next);
@@ -160,19 +161,26 @@ export function createSyncApi(folder, peerInfo) {
       if (!Number.isSafeInteger(input?.baseRevision) || input.baseRevision < 0
         || !(input.baseRevision === 0 ? input.baseState === null : validState(input.baseState))
         || !validState(input.localState)) { send(res, 400, { error: 'invalid_state' }); return; }
-      if (input.serverId !== serverId || input.baseRevision > saved.revision
-        || (input.baseRevision === saved.revision && !homeValuesEqual(input.baseState, saved.state))) {
+      const device = remote ? digest(req.headers.authorization) : 'pc';
+      const receipts = saved.receipts?.[device] ?? [];
+      if (input.serverId !== serverId || input.baseRevision > saved.revision) {
         send(res, 409, { error: 'revision_conflict', serverId, revision: saved.revision }); return;
       }
+      if (input.baseRevision === saved.revision && !homeValuesEqual(input.baseState, saved.state)) {
+        // A background receipt acknowledges the phone's projection before PC-only edits have arrived there.
+        const baseHash = digest(JSON.stringify(input.baseState));
+        if (!receipts.some(item => item.revision === input.baseRevision && item.localHash === baseHash)) {
+          send(res, 409, { error: 'revision_conflict', serverId, revision: saved.revision }); return;
+        }
+      }
       // Retrying after a lost acknowledgement must not resurrect records later deleted on the PC.
-      const device = remote ? digest(req.headers.authorization) : 'pc';
       const hash = digest(JSON.stringify([input.baseRevision, input.baseState, input.localState]));
-      const receipt = saved.receipts?.[device]?.find(item => item.hash === hash);
+      const receipt = receipts.find(item => item.hash === hash);
       if (receipt) { send(res, 200, { serverId, revision: receipt.revision }); return; }
       const result = mergeHomeState(input.baseState, input.localState, saved.state);
       if (result.conflicts.length) { send(res, 409, { error: 'merge_conflict', serverId, revision: saved.revision }); return; }
       if (!validState(result.state)) { send(res, 400, { error: 'invalid_state' }); return; }
-      commit(result.state, { device, hash });
+      commit(result.state, { device, hash, localHash: digest(JSON.stringify(input.localState)) });
       send(res, 200, { serverId, revision: saved.revision });
       return;
     }

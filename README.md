@@ -154,6 +154,11 @@ Beide Geräte können offline arbeiten. Im privaten Heimnetz führt die App unab
 Änderungen zusammen. Bei widersprüchlichen Änderungen zeigt sie beide Fassungen zur
 Auswahl. Android kann ausstehende Änderungen auch im Hintergrund senden, sobald es
 ein geeignetes WLAN hat und der PC läuft. Beim Öffnen lädt es den gemeinsamen Stand.
+Für eine lokale Auswertung zeigt `node scripts/read-training.mjs` den jüngsten Stand.
+Mit `--last 4` kommen die letzten vier Trainings einschließlich Sätzen und Kommentaren,
+mit `--all` der gesamte Trainingsstand. Das Skript liest über das lokale Zuhause-Dashboard,
+den Gym-Dienst oder die private Datei auf dem PC.
+
 Der Windows-Dienst startet bei der Anmeldung und speichert den gemeinsamen Stand in
 `%LOCALAPPDATA%\HardGainWAF\home-sync\state.json` mit früheren Ständen im Unterordner
 `recovery`. Der Ordner enthält auch private Kopplungsdaten.

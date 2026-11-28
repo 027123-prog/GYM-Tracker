@@ -135,3 +135,33 @@ test('offline changes merge once and preserve concurrent PC edits and unresolved
   assert.deepEqual((await reconcile({}, restarted)).data, { serverId, revision: 3 });
   assert.deepEqual((await call(restarted)).data, { serverId, revision: 4, state: pc });
 });
+
+test('only the acknowledged device can continue from its offline projection after a PC edit', async t => {
+  const { folder, api } = fixture(t);
+  const { serverId, token } = await pair(api);
+  const other = await pair(api);
+  const base = state();
+  const pc = structuredClone(base);
+  pc.workouts[0].name = 'Training vom PC';
+  pc.workouts.push({ id: 'pc', name: 'Weiterer PC-Eintrag', exercises: [] });
+  const first = structuredClone(base);
+  first.workouts[0].comment = 'Erste Handynotiz';
+  for (const [revision, value] of [base, pc].entries()) {
+    assert.equal((await call(api, { method: 'PUT', data: { revision, state: value } })).status, 200);
+  }
+  const reconcile = (server, bearer, revision, ancestor, local) => call(server, {
+    method: 'POST', path: 'reconcile', remote: true, headers: { authorization: 'Bearer ' + bearer },
+    data: { serverId, baseRevision: revision, baseState: ancestor, localState: local },
+  });
+  assert.deepEqual((await reconcile(api, token, 1, base, first)).data, { serverId, revision: 3 });
+
+  const restart = createSyncApi(folder, fakePeer);
+  const second = structuredClone(first);
+  second.workouts[0].comment = 'Zweite Handynotiz';
+  assert.equal((await reconcile(restart, other.token, 3, first, second)).status, 409);
+  assert.equal((await reconcile(restart, token, 3, base, second)).status, 409);
+  assert.deepEqual((await reconcile(restart, token, 3, first, second)).data, { serverId, revision: 4 });
+  const expected = structuredClone(pc);
+  expected.workouts[0].comment = 'Zweite Handynotiz';
+  assert.deepEqual((await call(restart)).data, { serverId, revision: 4, state: expected });
+});

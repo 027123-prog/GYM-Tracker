@@ -31,6 +31,8 @@ public final class HomeSyncJob extends JobService {
     private static final String RECEIPT = "home-sync-delivered";
     private static final ExecutorService WRITER = Executors.newSingleThreadExecutor();
     private static final Object FILES = new Object();
+    // A new local edit (including reverting the last edit) is compared with the latest delivery receipt.
+    private static final Object DELIVERY = new Object();
     // A newly opened activity must see the result of a reconcile already on the wire.
     static final Object TRANSFER = new Object();
     private static final AtomicInteger visibleActivities = new AtomicInteger();
@@ -42,7 +44,7 @@ public final class HomeSyncJob extends JobService {
     static void leaveForeground(Context context) {
         if (visibleActivities.decrementAndGet() == 0) WRITER.execute(() -> {
             synchronized (FILES) {
-                if (file(context, QUEUE).getBaseFile().exists()) schedule(context);
+                if (file(context, QUEUE).getBaseFile().exists()) schedule(context, true);
             }
         });
     }
@@ -81,9 +83,9 @@ public final class HomeSyncJob extends JobService {
         return (String) settings.get("pairId");
     }
 
-    private static void schedule(Context context) {
+    private static void schedule(Context context, boolean replace) {
         JobScheduler scheduler = context.getSystemService(JobScheduler.class);
-        if (scheduler.getPendingJob(JOB) != null) return;
+        if (!replace && scheduler.getPendingJob(JOB) != null) return;
         JobInfo job = new JobInfo.Builder(JOB, new ComponentName(context, HomeSyncJob.class))
             .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
             .setPersisted(true)
@@ -108,32 +110,36 @@ public final class HomeSyncJob extends JobService {
             || !base.startsWith("{") || !local.startsWith("{")) return;
         long baseRevision = Long.parseLong(revision);
         WRITER.execute(() -> {
-            synchronized (FILES) {
-                if (!tag.equals(pairId(context, serverId))) return;
-                try {
-                    JSONObject previous = read(context, RECEIPT);
-                    boolean fromReceipt = belongsTo(previous, tag) && previous.getLong("baseRevision") == baseRevision;
-                    if (!fromReceipt) file(context, RECEIPT).delete();
-                    String acknowledged = fromReceipt ? previous.getString("localJson") : base;
-                    if (acknowledged.equals(local)) {
-                        file(context, QUEUE).delete();
-                        context.getSystemService(JobScheduler.class).cancel(JOB);
-                        return;
+            synchronized (DELIVERY) {
+                synchronized (FILES) {
+                    if (!tag.equals(pairId(context, serverId))) return;
+                    try {
+                        JSONObject previous = read(context, RECEIPT);
+                        boolean fromReceipt = belongsTo(previous, tag) && previous.getLong("baseRevision") == baseRevision;
+                        if (!fromReceipt) file(context, RECEIPT).delete();
+                        String acknowledged = fromReceipt ? previous.getString("localJson") : base;
+                        if (acknowledged.equals(local)) {
+                            file(context, QUEUE).delete();
+                            context.getSystemService(JobScheduler.class).cancel(JOB);
+                            return;
+                        }
+                        JSONObject packet = new JSONObject().put("pairId", tag).put("serverId", serverId)
+                            .put("packetId", UUID.randomUUID().toString()).put("baseRevision", baseRevision)
+                            .put("baseJson", base).put("localJson", local);
+                        // A completed job may still await jobFinished() on the main thread.
+                        boolean firstPending = !file(context, QUEUE).getBaseFile().exists();
+                        write(context, QUEUE, packet);
+                        schedule(context, firstPending);
+                    } catch (IOException | JSONException ignored) {
+                        // The WebView still holds the full workout and re-mirrors on its next foreground sync.
                     }
-                    JSONObject packet = new JSONObject().put("pairId", tag).put("serverId", serverId)
-                        .put("packetId", UUID.randomUUID().toString()).put("baseRevision", baseRevision)
-                        .put("baseJson", base).put("localJson", local);
-                    write(context, QUEUE, packet);
-                    schedule(context);
-                } catch (IOException | JSONException ignored) {
-                    // The WebView still holds the full workout and re-mirrors on its next foreground sync.
                 }
             }
         });
     }
 
     static String receipt(Context context) {
-        synchronized (TRANSFER) {
+        synchronized (DELIVERY) {
             synchronized (FILES) {
                 try {
                     JSONObject record = read(context, RECEIPT);
@@ -153,8 +159,10 @@ public final class HomeSyncJob extends JobService {
         new Thread(() -> {
             boolean retry;
             synchronized (TRANSFER) {
-                try { retry = deliver(parameters); }
-                catch (IOException | GeneralSecurityException | JSONException | RuntimeException error) { retry = true; }
+                synchronized (DELIVERY) {
+                    try { retry = deliver(parameters); }
+                    catch (IOException | GeneralSecurityException | JSONException | RuntimeException error) { retry = true; }
+                }
             }
             final boolean reschedule = retry;
             main.post(() -> {

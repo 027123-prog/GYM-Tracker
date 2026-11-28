@@ -31,13 +31,17 @@ if (($folder.Attributes -band [IO.FileAttributes]::ReparsePoint) -or
     ($folder.Parent.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
     throw 'Der lokale Abgleichordner darf nicht umgeleitet sein.'
 }
-$acl = Get-Acl -LiteralPath $privateDir
+$accessSection = [Security.AccessControl.AccessControlSections]::Access
+$acl = [IO.Directory]::GetAccessControl($privateDir, $accessSection)
+$priorAccess = $acl.GetSecurityDescriptorSddlForm($accessSection)
 $acl.SetAccessRuleProtection($true, $false)
 foreach ($sid in @([Security.Principal.WindowsIdentity]::GetCurrent().User.Value,'S-1-5-18','S-1-5-32-544')) {
     $account = [Security.Principal.SecurityIdentifier]::new($sid)
     $acl.SetAccessRule([Security.AccessControl.FileSystemAccessRule]::new($account,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))
 }
-Set-Acl -LiteralPath $privateDir -AclObject $acl
+if ($priorAccess -ne $acl.GetSecurityDescriptorSddlForm($accessSection)) {
+    [IO.Directory]::SetAccessControl($privateDir, $acl)
+}
 
 $config = Join-Path $privateDir 'tls.json'
 if (!(Test-Path -LiteralPath $config)) {
@@ -77,10 +81,10 @@ $shortcut.WorkingDirectory = $projectDir
 $shortcut.WindowStyle = 7
 $shortcut.Save()
 
-# Replace only the earlier static server owned by this same working copy.
+# Restart only this working copy's own server so setup also loads updated sync code.
 $identity = $null
 try { $identity = Invoke-RestMethod 'http://127.0.0.1:4175/.well-known/gym-tracker-server' -TimeoutSec 2 } catch {}
-if ($identity -and !$identity.homeSync) {
+if ($identity) {
     $owned = Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 4175 -State Listen -ErrorAction Stop
     $process = Get-CimInstance Win32_Process -Filter ("ProcessId=" + [int]$identity.pid)
     if ($identity.protocol -ne 'gym-tracker-dist-v2' -or $identity.origin -ne 'http://127.0.0.1:4175' -or

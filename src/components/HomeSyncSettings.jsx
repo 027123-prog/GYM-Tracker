@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import qrcode from 'qrcode-generator';
 import { pcOrigin, pcRequest } from '../utils/homeSyncTransport';
 
@@ -31,6 +31,13 @@ export default function HomeSyncSettings({ sync }) {
     setTicket({ ...response.data, image: pairingImage(response.data.link) });
     setCopied(false);
   }
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (device !== 'pc' || url.searchParams.get('koppeln') !== '1') return;
+    url.searchParams.delete('koppeln');
+    window.history.replaceState(window.history.state, '', url);
+    void action(generate);
+  }, [device]);
   const localLabel = device === 'pc' ? 'Diese PC-Fassung behalten' : 'Handy-Fassung behalten';
   return <section aria-label="Heim-WLAN" className="mt-4 space-y-2 border-t border-line pt-3">
     <h3 className="font-semibold text-ink">Heim-WLAN</h3>

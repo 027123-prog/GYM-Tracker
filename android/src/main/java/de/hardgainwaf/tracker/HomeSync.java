@@ -104,12 +104,21 @@ final class HomeSync {
 
     boolean acceptLink(String link) {
         try {
-            parse(link);
+            Peer peer = parse(link);
+            // Android can restore the original launch intent after this activity's process died.
+            if (codeDigest(peer.code).equals(prefs.getString("consumedLink", null))) return false;
             pendingLink = link;
             return true;
         } catch (IllegalArgumentException error) {
             return false;
         }
+    }
+
+    private static String codeDigest(String code) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(code.getBytes(StandardCharsets.UTF_8));
+            return android.util.Base64.encodeToString(digest, android.util.Base64.NO_WRAP);
+        } catch (GeneralSecurityException error) { throw new IllegalStateException(error); }
     }
 
     String status() {
@@ -131,7 +140,8 @@ final class HomeSync {
     synchronized void forget() {
         generation++;
         pendingLink = null;
-        prefs.edit().clear().commit();
+        String consumed = prefs.getString("consumedLink", null);
+        prefs.edit().clear().putString("consumedLink", consumed).commit();
         HomeSyncJob.disconnected(context);
         if (active != null) active.disconnect();
     }
@@ -282,6 +292,7 @@ final class HomeSync {
                     if (epoch != generation) throw new IOException("Verbindung geändert");
                     if (!prefs.edit().putString("host", peer.host).putString("name", peer.name).putString("pin", peer.pin)
                         .putString("token", token).putString("serverId", serverId)
+                        .putString("consumedLink", codeDigest(peer.code))
                         .putString("pairId", UUID.randomUUID().toString()).commit()) throw new IOException("Speicherfehler");
                     HomeSyncJob.disconnected(context);
                     generation++;
