@@ -3,7 +3,7 @@ import { calculateBodyweightLoad } from './bodyweight.js';
 import { createPairedLoad, isDurationSet, isPairedSet, isWeightlessSet, parseWeightInput } from './setMeasurements.js';
 import { hasConfirmedPlankSource, mergeConfirmedPlankRecords } from './plankMigration.js';
 import { getExerciseMuscleAssignment } from './muscleAssignments.js';
-import { validWorkoutGoal } from './workoutGoals.js';
+import { validGuidedStart, validWarmupPlan, validWorkoutGoal } from './workoutGoals.js';
 
 export const STORAGE_KEY = 'gym-tracker-state-v2';
 export const LEGACY_STORAGE_KEY = 'gym-tracker-state-v1';
@@ -158,6 +158,8 @@ function normalizeExercises(exercises) {
         : '';
       const exerciseData = exercise && typeof exercise === 'object' ? { ...exercise } : {};
       delete exerciseData.createdAt;
+      if (!validWarmupPlan(exerciseData.warmupPlan)) delete exerciseData.warmupPlan;
+      if (!validGuidedStart(exerciseData.guidedStart)) delete exerciseData.guidedStart;
       const muscleAssignment = getExerciseMuscleAssignment({ ...exerciseData, name: migrateName(exercise?.name) });
 
       return {
@@ -417,7 +419,7 @@ export function createBackupPayload(state) {
 
   return {
     app: 'hardgainwaf',
-    appVersion: typeof __APP_RELEASE__ === 'undefined' ? '2.25.1' : __APP_RELEASE__.version,
+    appVersion: typeof __APP_RELEASE__ === 'undefined' ? '2.25.2' : __APP_RELEASE__.version,
     storageKey: STORAGE_KEY,
     storageVersion: STORAGE_VERSION,
     exportedAt: new Date().toISOString(),

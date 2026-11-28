@@ -73,8 +73,24 @@ function loadOf(set, mode) {
   return mode === 'bodyweight' ? set.addedWeight : set.weight;
 }
 
-function withRecentWarmups(goal, history) {
+function validWarmupSteps(steps) {
+  return Array.isArray(steps) && steps.length <= 20
+    && steps.every(step => Number.isFinite(step?.load) && step.load >= 0 && step.load <= 2000
+      && Number.isInteger(step.reps) && step.reps >= 1 && step.reps <= 1000);
+}
+
+export function validWarmupPlan(plan) {
+  return typeof plan?.variantKey === 'string' && ['normal', 'paired'].includes(plan.mode)
+    && validWarmupSteps(plan.sets) && plan.sets.length > 0;
+}
+
+function withWarmups(goal, history, plan) {
   if (goal.duration || !['normal', 'paired'].includes(goal.mode)) return goal;
+  if (validWarmupPlan(plan) && plan.variantKey === goal.variant && plan.mode === goal.mode) {
+    const warmups = plan.sets.filter(step => goal.load === null || step.load <= goal.load)
+      .map(({ load, reps }) => ({ load, reps }));
+    return warmups.length ? { ...goal, warmups } : goal;
+  }
   const session = history.find(({ entry }) => !entry.skipped && entry.sets.some(set => comparableSet(set, goal)));
   if (!session) return goal;
   const sets = session.entry.sets.filter(set => matchesMeasurement(set, goal) && Number.isFinite(set.weight));
@@ -231,6 +247,36 @@ function samePlan(a, b) {
     && a.amounts.length === b.amounts.length && a.min === b.min && a.max === b.max;
 }
 
+export function validGuidedStart(start) {
+  const timed = start?.duration === true;
+  return typeof start?.templateId === 'string' && start.templateId.length > 0
+    && typeof start.variantKey === 'string' && (start.duration === undefined || typeof start.duration === 'boolean')
+    && (start.from === undefined || (typeof start.from === 'string'
+      && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,3})?(?:Z|[+-]\d\d:\d\d)$/.test(start.from) && Number.isFinite(Date.parse(start.from))))
+    && (timed ? start.mode === 'none' && start.load === 0 : ['normal', 'paired'].includes(start.mode))
+    && Number.isFinite(start.load) && start.load >= 0 && start.load <= 2000
+    && Number.isInteger(start.min) && start.min >= 1 && Number.isInteger(start.max) && start.max >= start.min
+    && start.max <= (timed ? 86400 : 1000)
+    && Array.isArray(start.amounts) && start.amounts.length > 0 && start.amounts.length <= 20
+    && start.amounts.every(n => Number.isInteger(n) && n >= start.min && n <= start.max);
+}
+
+function matchesGuidedStart(start, goal, templateId, now) {
+  return validGuidedStart(start) && (start.duration === true) === goal.duration
+    && start.templateId === templateId && start.variantKey === goal.variant && start.mode === goal.mode
+    && start.min === goal.min && start.max === goal.max && start.amounts.length === goal.amounts.length
+    && (!start.from || Date.parse(start.from) <= now);
+}
+
+function hasGuidedWork(workouts, exerciseId, goal, templateId, id, from, now) {
+  // An earlier guided work set consumes the start even when it has aged out of the progression window.
+  return workouts.some(workout => workout.id !== id && workout.templateId === templateId
+    && Date.parse(workout.date) >= from && Date.parse(workout.date) <= now && Date.parse(workout.completedAt) <= now
+    && workout.exercises.some(entry => entry.exerciseId === exerciseId && !entry.skipped && !entry.comparisonUncertain
+      && (entry.variantKey || '') === goal.variant && entry.goal?.mode === goal.mode && entry.goal.duration === goal.duration
+      && entry.sets.some(set => comparableSet(set, entry.goal))));
+}
+
 function advanceGoal(goal, exercise) {
   const low = Math.min(...goal.amounts);
   if (low < goal.max) {
@@ -276,7 +322,7 @@ export function createWorkoutGoal(exercise, entry, workouts, { date, id, templat
     .flatMap(w => {
       const match = w.exercises.find(e => e.exerciseId === exercise.id && !e.comparisonUncertain
         && (e.variantKey || '') === (entry.variantKey || ''));
-      return match ? [{ entry: match, day: new Date(w.date).toLocaleDateString('sv-SE'), templateId: w.templateId }] : [];
+      return match ? [{ entry: match, date: w.date, day: new Date(w.date).toLocaleDateString('sv-SE'), templateId: w.templateId }] : [];
     });
   const duration = exercise.settings?.measurementType === 'duration';
   const pastScheme = history.find(h => h.entry.targetRepScheme)?.entry.targetRepScheme || '';
@@ -299,13 +345,20 @@ export function createWorkoutGoal(exercise, entry, workouts, { date, id, templat
     confirmations: slow && !duration ? 1 : 2, weightConfirmations: 2, confirmed: false,
   };
   const scoped = history.filter(h => (h.templateId || '') === (templateId || ''));
+  const start = exercise.guidedStart;
+  const useStart = matchesGuidedStart(start, goal, templateId, now);
+  const from = useStart && start.from ? Date.parse(start.from) : -Infinity;
   const guided = scoped.filter(h => h.entry.goal && !h.entry.skipped
+    && Date.parse(h.date) >= from
     && h.entry.sets.some(set => comparableSet(set, h.entry.goal)));
   const previous = guided[0];
   if (!samePlan(previous?.entry.goal, goal)) {
+    if (useStart && !hasGuidedWork(workouts, exercise.id, goal, templateId, id, from, now)) {
+      return withWarmups({ ...goal, load: start.load, amounts: [...start.amounts] }, history, exercise.warmupPlan);
+    }
     if (progressByTime) return goal;
     const seedHistory = /vorermüdung/i.test(scheme) ? scoped : history;
-    return withRecentWarmups(seedGoal(goal, seedHistory.filter(h => !h.entry.skipped), plan.initialPhase), history);
+    return withWarmups(seedGoal(goal, seedHistory.filter(h => !h.entry.skipped), plan.initialPhase), history, exercise.warmupPlan);
   }
   const last = previous.entry.goal;
   const next = { ...goal, load: last.load, amounts: [...last.amounts] };
@@ -321,7 +374,7 @@ export function createWorkoutGoal(exercise, entry, workouts, { date, id, templat
       break;
     }
   }
-  return withRecentWarmups(next, history);
+  return withWarmups(next, history, exercise.warmupPlan);
 }
 
 export function formatWorkoutGoal(goal) {
@@ -356,9 +409,7 @@ export function validWorkoutGoal(goal) {
       && (goal.mode === 'bodyweight' || goal.load >= 0)))
     && Number.isInteger(goal.min) && goal.min >= 1 && Number.isInteger(goal.max) && goal.max >= goal.min && goal.max <= limit
     && (goal.warmups === undefined || (!goal.duration && ['normal', 'paired'].includes(goal.mode)
-      && Array.isArray(goal.warmups) && goal.warmups.length <= 20
-      && goal.warmups.every(step => Number.isFinite(step?.load) && step.load >= 0 && step.load <= 2000
-        && Number.isInteger(step.reps) && step.reps >= 1 && step.reps <= 1000)))
+      && validWarmupSteps(goal.warmups)))
     && Array.isArray(goal.amounts) && goal.amounts.length > 0 && goal.amounts.length <= 20
     && goal.amounts.every(n => Number.isInteger(n) && n > 0 && n <= goal.max)
     && [1, 2, 3].includes(goal.confirmations) && (goal.weightConfirmations === undefined || [1, 2, 3].includes(goal.weightConfirmations))

@@ -68,6 +68,82 @@ test('only consecutive confirmed completions on distinct days advance one set, w
   assert.deepEqual(create([first, freeDay, skipped, second]).amounts, [7, 6]);
 });
 
+test('a personal start sets only the first guided target, with no earned progress or reserve', () => {
+  const guidedStart = { templateId: 'A', variantKey: '', mode: 'normal', min: 6, max: 9, load: 40, amounts: [9, 9] };
+  const ex = { ...exercise, guidedStart };
+  const free = workout('2026-09-01', { ...entry, sets: [set(32, 7), set(32, 7)] });
+  const first = create([free], ex);
+  assert.deepEqual([first.load, first.amounts, first.confirmed], [40, [9, 9], false]);
+  assert.equal(getGoalProgress({ goal: first, sets: [] }).achieved, 0);
+  const logged = (day, confirmed, amounts = [9, 9]) => workout(day, {
+    ...entry, goal: { ...first, confirmed, amounts }, sets: amounts.map(reps => set(40, reps)),
+  });
+  const once = logged('2026-09-12', true);
+  assert.equal(create([once], ex).load, 40);
+  assert.equal(create([once, logged('2026-09-19', false)], ex).load, 40);
+  const advanced = create([once, logged('2026-09-19', true)], ex);
+  assert.deepEqual([advanced.load, advanced.amounts, advanced.confirmed], [42, [6, 6], false]);
+  assert.deepEqual(create([logged('2026-09-19', false, [7, 7])], ex).amounts, [7, 7]);
+  assert.deepEqual(create([logged('2026-04-01', true), free], ex).amounts, [7, 7]);
+  assert.deepEqual(guidedStart.amounts, [9, 9]);
+});
+
+test('personal starts survive backup, require the planned scope and reject invalid prescriptions', () => {
+  const start = { templateId: 'A', variantKey: '', mode: 'normal', min: 6, max: 9, load: 32.5, amounts: [8, 7] };
+  const payload = createBackupPayload({ exercises: [{ ...exercise, guidedStart: start }] });
+  const [restored] = parseBackupPayload(JSON.stringify(payload)).exercises;
+  assert.deepEqual(restored.guidedStart, start);
+  assert.deepEqual(create([], restored).amounts, [8, 7]);
+  for (const patch of [{ templateId: 'B' }, { variantKey: 'other' }, { mode: 'paired' }, { min: 7 }, { max: 10 }, { amounts: [8] }]) {
+    assert.equal(create([], { ...exercise, guidedStart: { ...start, ...patch } }).load, null);
+  }
+  for (const patch of [{ load: -1 }, { amounts: [5, 7] }, { amounts: [] }, { from: 'tomorrow' }, { duration: true }]) {
+    const invalid = { ...exercise, guidedStart: { ...start, ...patch } };
+    assert.equal(normalizeAppState({ exercises: [invalid] }).exercises[0].guidedStart, undefined);
+    assert.equal(create([], invalid).load, null);
+  }
+});
+
+test('a dated start replaces earlier targets, retaining warmups and counting only later confirmations', () => {
+  const paired = { ...exercise, settings: { loadType: 'paired' }, guidedStart: {
+    templateId: 'A', variantKey: '', mode: 'paired', min: 6, max: 9, load: 32, amounts: [6, 6],
+    from: '2026-09-15T00:00:00.000Z',
+  } };
+  const goalOn = (date, history) => createWorkoutGoal(paired, entry, history, { date, templateId: 'A' });
+  const previous = { ...goalOn('2026-09-01', []), load: 28, amounts: [8, 8], confirmed: true };
+  const logged = (date, goal) => workout(date, { ...entry, goal: { ...goal, confirmed: true }, sets: [
+    set(16, 7, { weightMode: 'paired', setType: 'warmup' }),
+    ...goal.amounts.map(reps => set(goal.load, reps, { weightMode: 'paired' })),
+  ] });
+  const history = [logged('2026-09-05', previous)];
+  assert.deepEqual(goalOn('2026-09-12', history).amounts, [8, 8]);
+  const first = goalOn('2026-09-15', history);
+  assert.deepEqual([first.load, first.amounts, first.confirmed, first.warmups],
+    [32, [6, 6], false, [{ load: 16, reps: 7 }]]);
+  // Even an identical target completed before the start date earns no confirmation towards it.
+  history.push(logged('2026-09-14', first), logged('2026-09-16', first));
+  assert.deepEqual(goalOn('2026-09-18', history).amounts, [6, 6]);
+  history.push(logged('2026-09-20', first));
+  assert.deepEqual(goalOn('2026-09-22', history).amounts, [7, 6]);
+  assert.deepEqual(history[0].exercises[0].goal, previous);
+});
+
+test('a timed personal start uses seconds and preserves the unilateral side-plank progression', () => {
+  const timed = { id: 'timed', name: 'Halteübung', settings: { measurementType: 'duration', loadType: 'none' },
+    guidedStart: { templateId: 'A', variantKey: '', mode: 'none', duration: true, min: 20, max: 60,
+      load: 0, amounts: [42, 42], from: '2026-09-01T00:00:00Z' } };
+  const timedEntry = { ...entry, exerciseId: timed.id, targetRepScheme: '2 × 20–60 Sek.' };
+  const first = create([], timed, timedEntry);
+  assert.deepEqual([first.duration, first.perSide, first.amounts, first.confirmed], [true, false, [42, 42], false]);
+  const logged = day => workout(day, { ...timedEntry, goal: { ...first, confirmed: true }, sets: Array.from({ length: 2 },
+    () => ({ measurementType: 'duration', weightMode: 'none', durationSeconds: 42 })) });
+  assert.deepEqual(create([logged('2026-09-11'), logged('2026-09-21')], timed, timedEntry).amounts, [44, 42]);
+  const side = create([], { ...timed, name: 'Side Plank' }, timedEntry);
+  assert.deepEqual([side.perSide, side.amounts], [true, [40, 40]]);
+  const restored = parseBackupPayload(JSON.stringify(createBackupPayload({ exercises: [timed] })));
+  assert.deepEqual(restored.exercises[0].guidedStart, timed.guidedStart);
+});
+
 test('at the ceiling the smallest suitable load restarts the range; larger machine steps are held', () => {
   const history = ['2026-09-12', '2026-09-19'].map(day => done(day, { amounts: [9, 9] }));
   const next = create(history);
@@ -114,6 +190,60 @@ test('explicit paired warmup survives an equal working weight and other variatio
   const goal = create(history, pair);
   assert.equal(formatNextGoalSet({ goal, sets: [] }), '2 × 10 kg × 8 Wdh. (Warm-up)');
   assert.equal(create([workout('2026-09-20', { ...entry, sets: [set(20, 6, { setType: 'work' }), set(40, 7), set(40, 7)] })]).warmups, undefined);
+});
+
+test('personal warmups override history on template start and when adding the same exercise', () => {
+  const warmupPlan = { variantKey: 'floor_reset', mode: 'normal', sets: [{ load: 25, reps: 8 }, { load: 45, reps: 4 }] };
+  const ex = { ...exercise, id: 'exercise-deadlift', name: 'Kreuzheben', warmupPlan };
+  const lift = { ...entry, exerciseId: ex.id, name: ex.name, variantKey: 'floor_reset', targetRepScheme: 'Zunächst 2 × 5, später 2 × 5–8' };
+  const history = [workout('2026-09-20', { ...lift, sets: [set(25, 10), set(45, 8), set(75, 5), set(75, 5)] })];
+  const original = structuredClone(history);
+  for (const start of [lift, { ...lift, targetRepScheme: '' }]) {
+    const goal = create(history, ex, start);
+    const historical = create(history, { ...ex, warmupPlan: undefined }, start);
+    assert.deepEqual(goal, { ...historical, warmups: warmupPlan.sets });
+    assert.equal(formatNextGoalSet({ goal, sets: [] }), '25 kg × 8 Wdh. (Warm-up)');
+    const sets = [set(25, 8, { setType: 'warmup' })];
+    assert.equal(formatNextGoalSet({ goal, sets }), '45 kg × 4 Wdh. (Warm-up)');
+    sets.push(set(45, 4, { setType: 'warmup' }));
+    assert.equal(formatNextGoalSet({ goal, sets }), '75 kg × 5 Wdh.');
+    assert.notEqual(goal.warmups[0], warmupPlan.sets[0]);
+  }
+  const guidedHistory = [workout('2026-09-27', { ...lift, goal: { ...create(history, ex, lift), confirmed: true },
+    sets: [set(15, 9, { setType: 'warmup' }), set(75, 5), set(75, 5)] })];
+  const next = create(guidedHistory, ex, lift);
+  assert.deepEqual([next.warmups, next.load, next.amounts], [warmupPlan.sets, 75, [6, 5]]);
+  assert.deepEqual(history, original);
+  assert.equal(create([], ex, { ...lift, variantKey: 'other' }).warmups, undefined);
+  assert.equal(create([], { ...ex, settings: { loadType: 'paired' } }, lift).warmups, undefined);
+  assert.equal(create([], exercise, entry).warmups, undefined);
+});
+
+test('plans for the unnamed variant stay on the exercise and respect a lighter work target', () => {
+  const warmupPlan = { variantKey: '', mode: 'normal', sets: [{ load: 22.5, reps: 7 }, { load: 35, reps: 4 }] };
+  const ex = { ...exercise, id: 'exercise-squat', name: 'Kniebeugen', warmupPlan };
+  const item = { ...entry, exerciseId: ex.id, name: ex.name };
+  const history = load => [workout('2026-09-23', { ...item, sets: [set(5, 12), set(load, 7), set(load, 7)] })];
+  assert.deepEqual(create(history(55), ex, item).warmups, warmupPlan.sets);
+  assert.deepEqual(create(history(30), ex, item).warmups, [warmupPlan.sets[0]]);
+  assert.equal(create(history(15), ex, item).warmups, undefined);
+  const edited = { ...create(history(55), ex, item), load: 30 };
+  assert.equal(nextWarmup({ goal: edited, sets: [set(22.5, 7, { setType: 'warmup' })] }), null);
+  assert.equal(create([], ex, { ...item, variantKey: 'other' }).warmups, undefined);
+});
+
+test('workout backup round-trip preserves personal warmup preferences and discards malformed plans', () => {
+  const warmupPlan = { variantKey: '', mode: 'normal', sets: [{ load: 5, reps: 8 }] };
+  const exercises = [
+    { ...exercise, warmupPlan }, { ...exercise, id: 'no-plan' },
+    ...[{ sets: [] }, { sets: [{ load: -5, reps: 6 }] }, { sets: [{ load: 5, reps: 2.5 }] },
+      { variantKey: null }, { mode: 'none' }].map((override, i) => ({
+        ...exercise, id: 'bad-' + i, warmupPlan: { ...warmupPlan, ...override },
+      })),
+  ];
+  const saved = parseBackupPayload(JSON.stringify(createBackupPayload({ exercises })));
+  assert.deepEqual(saved.exercises[0].warmupPlan, warmupPlan);
+  assert.ok(saved.exercises.slice(1).every(ex => !Object.hasOwn(ex, 'warmupPlan')));
 });
 
 test('a machine uses its next known size, dumbbells use small per-hand steps and a lone heavy attempt does not set a bench target', () => {
