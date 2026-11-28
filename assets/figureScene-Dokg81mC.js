@@ -1,4 +1,4 @@
-import{F as tl}from"./index-BRc8dOvp.js";import{m as nl}from"./muscleFigure-DCAxInmY.js";/**
+import{F as tl}from"./index-B4ilmSno.js";import{m as nl}from"./muscleFigure-Bt5oibHc.js";/**
  * @license
  * Copyright 2010-2026 Three.js Authors
  * SPDX-License-Identifier: MIT
