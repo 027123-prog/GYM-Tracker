@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
-import { isAbsolute, join, resolve } from 'node:path';
+import { homedir } from 'node:os';
+import { isAbsolute, join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const usage = 'node scripts/read-training.mjs [--last ANZAHL | --all | --help]';
@@ -72,7 +73,16 @@ function workoutTime(workout) {
   return -Infinity;
 }
 
-export async function readTraining(args, { fetchImpl = fetch, read = readFile, localAppData = process.env.LOCALAPPDATA } = {}) {
+// Desktop apps can redirect LOCALAPPDATA into their own Windows package. The Gym
+// service belongs to the signed-in user and keeps its data in that user's Local folder.
+function serviceDataDirectory() {
+  const local = process.env.LOCALAPPDATA;
+  const userLocal = join(homedir(), 'AppData', 'Local');
+  const packaged = local?.toLowerCase().startsWith(join(userLocal, 'Packages').toLowerCase() + sep);
+  return process.platform === 'win32' && (!local || packaged) ? userLocal : local;
+}
+
+export async function readTraining(args, { fetchImpl = fetch, read = readFile, localAppData = serviceDataDirectory() } = {}) {
   const { mode, count } = parseOptions(args);
   if (mode === 'help') return usage + '\nOhne Argumente erscheint die Übersicht. --last N zeigt N vollständige Trainings, --all den gesamten synchronisierten App-Datenbestand als JSON.';
   const { source, revision, state } = await snapshotFromPc(fetchImpl, read, localAppData);
